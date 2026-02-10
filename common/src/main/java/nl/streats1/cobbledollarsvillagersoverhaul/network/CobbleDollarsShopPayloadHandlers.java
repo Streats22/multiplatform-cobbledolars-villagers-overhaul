@@ -34,6 +34,8 @@ public final class CobbleDollarsShopPayloadHandlers {
         if (!Config.VILLAGERS_ACCEPT_COBBLEDOLLARS) return;
         if (!CobbleDollarsIntegration.isAvailable()) return;
 
+        LOGGER.info("Handling shop data request for villager {} from player {}", villagerId, serverPlayer.getName().getString());
+
         long balance = CobbleDollarsIntegration.getBalance(serverPlayer);
         if (balance < 0) balance = 0;
 
@@ -43,6 +45,15 @@ public final class CobbleDollarsShopPayloadHandlers {
 
         ServerLevel level = serverPlayer.serverLevel();
         Entity entity = level.getEntity(villagerId);
+        
+        if (entity == null) {
+            LOGGER.warn("Entity {} not found for player {}", villagerId, serverPlayer.getName().getString());
+            return;
+        }
+        
+        LOGGER.info("Found entity {} for villager {}: {} at {}", 
+            entity.getClass().getSimpleName(), villagerId, entity.getName().getString(), entity.position());
+        
         List<MerchantOffer> allOffers = null;
         
         if (entity instanceof Villager villager) {
@@ -53,7 +64,7 @@ public final class CobbleDollarsShopPayloadHandlers {
             buildOfferLists(allOffers, buyOffers, sellOffers);
         } else if (RctTrainerAssociationCompat.isTrainerAssociation(entity)) {
             // RCTA trainers might have offers, try to get them
-            LOGGER.info("RCTA trainer detected: {}", entity.getClass().getSimpleName());
+            LOGGER.info("RCTA trainer detected: {} at position {}", entity.getClass().getSimpleName(), entity.position());
             
             // Try different methods to get trades
             List<MerchantOffer> rctaOffers = new ArrayList<>();
@@ -63,8 +74,11 @@ public final class CobbleDollarsShopPayloadHandlers {
                 rctaOffers = merchant.getOffers();
                 LOGGER.info("RCTA trainer has Merchant interface, found {} offers", rctaOffers.size());
             } else {
+                LOGGER.info("RCTA trainer does not implement Merchant interface");
+                
                 // Method 2: Try reflection to get offers
                 try {
+                    // Try getOffers() method
                     var getOffersMethod = entity.getClass().getMethod("getOffers");
                     var offers = getOffersMethod.invoke(entity);
                     if (offers instanceof List) {
@@ -72,11 +86,49 @@ public final class CobbleDollarsShopPayloadHandlers {
                         LOGGER.info("RCTA trainer getOffers() via reflection, found {} offers", rctaOffers.size());
                     }
                 } catch (Exception e) {
-                    LOGGER.warn("Could not get RCTA trainer offers via reflection: {}", e.getMessage());
+                    LOGGER.warn("Could not get RCTA trainer offers via getOffers() reflection: {}", e.getMessage());
+                }
+                
+                // Method 3: Try other common method names
+                if (rctaOffers.isEmpty()) {
+                    try {
+                        var getTradesMethod = entity.getClass().getMethod("getTrades");
+                        var trades = getTradesMethod.invoke(entity);
+                        if (trades instanceof List) {
+                            rctaOffers = (List<MerchantOffer>) trades;
+                            LOGGER.info("RCTA trainer getTrades() via reflection, found {} offers", rctaOffers.size());
+                        }
+                    } catch (Exception e) {
+                        LOGGER.warn("Could not get RCTA trainer offers via getTrades() reflection: {}", e.getMessage());
+                    }
+                }
+                
+                // Method 4: Check for offer fields
+                if (rctaOffers.isEmpty()) {
+                    try {
+                        var offersField = entity.getClass().getDeclaredField("offers");
+                        offersField.setAccessible(true);
+                        var offers = offersField.get(entity);
+                        if (offers instanceof List) {
+                            rctaOffers = (List<MerchantOffer>) offers;
+                            LOGGER.info("RCTA trainer offers field via reflection, found {} offers", rctaOffers.size());
+                        }
+                    } catch (Exception e) {
+                        LOGGER.warn("Could not get RCTA trainer offers via field reflection: {}", e.getMessage());
+                    }
                 }
             }
             
+            // Log details about found offers
             if (!rctaOffers.isEmpty()) {
+                LOGGER.info("RCTA trainer offers:");
+                for (int i = 0; i < rctaOffers.size(); i++) {
+                    MerchantOffer offer = rctaOffers.get(i);
+                    if (offer != null) {
+                        LOGGER.info("  Offer {}: costA={}, costB={}, result={}", 
+                            i, offer.getCostA(), offer.getCostB(), offer.getResult());
+                    }
+                }
                 allOffers = rctaOffers;
                 buildRctaOfferLists(allOffers, buyOffers, sellOffers);
             } else {
@@ -168,7 +220,7 @@ public final class CobbleDollarsShopPayloadHandlers {
             // RCTA trainers: Handle emerald-based trades (buy)
             if (!costA.isEmpty() && costA.is(Items.EMERALD)) {
                 ItemStack safeResult = result.copy();
-                ItemStack safeCostB = (!costB.isEmpty() && costB != null) ? costB.copy() : ItemStack.EMPTY;
+                ItemStack safeCostB = (costB != null && !costB.isEmpty()) ? costB.copy() : ItemStack.EMPTY;
                 
                 if (safeResult != null && !safeResult.isEmpty() && safeCostB != null) {
                     buyOut.add(new CobbleDollarsShopPayloads.ShopOfferEntry(
@@ -202,7 +254,7 @@ public final class CobbleDollarsShopPayloadHandlers {
                 
                 // Show as "buy" - give costA, get result
                 ItemStack safeResult = result.copy();
-                ItemStack safeCostB = (!costB.isEmpty() && costB != null) ? costB.copy() : ItemStack.EMPTY;
+                ItemStack safeCostB = (costB != null && !costB.isEmpty()) ? costB.copy() : ItemStack.EMPTY;
                 
                 if (safeResult != null && !safeResult.isEmpty() && safeCostB != null) {
                     // Use 0 emerald cost to indicate it's an item-for-item trade
@@ -299,9 +351,8 @@ public final class CobbleDollarsShopPayloadHandlers {
         MerchantOffer offer;
         if (RctTrainerAssociationCompat.isTrainerAssociation(entity)) {
             // For RCTA, get all offers (including item-for-item)
-            var allOffersList = allOffers.stream().toList();
-            if (offerIndex < 0 || offerIndex >= allOffersList.size()) return;
-            offer = allOffersList.get(offerIndex);
+            if (offerIndex < 0 || offerIndex >= allOffers.size()) return;
+            offer = allOffers.get(offerIndex);
         } else {
             // For villagers/traders, only get emerald-based offers
             var emerald = Objects.requireNonNull(net.minecraft.world.item.Items.EMERALD);
@@ -382,8 +433,6 @@ public final class CobbleDollarsShopPayloadHandlers {
         Merchant merchant = null;
         if (entity instanceof Merchant) {
             merchant = (Merchant) entity;
-        } else if (entity instanceof net.minecraft.world.item.trading.Merchant) {
-            merchant = (net.minecraft.world.item.trading.Merchant) entity;
         }
         
         if (merchant != null) {
@@ -419,9 +468,8 @@ public final class CobbleDollarsShopPayloadHandlers {
         MerchantOffer offer;
         if (RctTrainerAssociationCompat.isTrainerAssociation(entity)) {
             // For RCTA, get all offers (including item-for-item)
-            var allOffersList = allOffers.stream().toList();
-            if (offerIndex < 0 || offerIndex >= allOffersList.size()) return;
-            offer = allOffersList.get(offerIndex);
+            if (offerIndex < 0 || offerIndex >= allOffers.size()) return;
+            offer = allOffers.get(offerIndex);
         } else {
             // For villagers/traders, only get emerald result offers
             List<MerchantOffer> sellOffers = allOffers.stream()
@@ -474,8 +522,6 @@ public final class CobbleDollarsShopPayloadHandlers {
         Merchant merchant = null;
         if (entity instanceof Merchant) {
             merchant = (Merchant) entity;
-        } else if (entity instanceof net.minecraft.world.item.trading.Merchant) {
-            merchant = (net.minecraft.world.item.trading.Merchant) entity;
         }
         
         if (merchant != null) {
