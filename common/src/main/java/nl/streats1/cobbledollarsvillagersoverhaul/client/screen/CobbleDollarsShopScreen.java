@@ -15,6 +15,7 @@ import net.minecraft.world.item.Items;
 import nl.streats1.cobbledollarsvillagersoverhaul.client.screen.widget.InvisibleButton;
 import nl.streats1.cobbledollarsvillagersoverhaul.client.screen.widget.TextureOnlyButton;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.CobbleDollarsConfigHelper;
+import nl.streats1.cobbledollarsvillagersoverhaul.integration.RctTrainerAssociationCompat;
 import nl.streats1.cobbledollarsvillagersoverhaul.network.CobbleDollarsShopPayloads;
 import nl.streats1.cobbledollarsvillagersoverhaul.platform.PlatformNetwork;
 
@@ -496,7 +497,79 @@ public class CobbleDollarsShopScreen extends Screen {
 
         renderPlayerInventory(guiGraphics, left, top);
 
+        renderTooltips(guiGraphics, mouseX, mouseY, left, top);
+
         super.render(guiGraphics, mouseX, mouseY, partialTick);
+    }
+
+    private void renderTooltips(GuiGraphics guiGraphics, int mouseX, int mouseY, int left, int top) {
+        if (minecraft == null) return;
+        
+        int listTop = top + LIST_TOP_OFFSET;
+        int rowL = left + LIST_LEFT_OFFSET;
+        int rowR = rowL + LIST_WIDTH;
+        var offers = currentOffers();
+
+        // Check shop list items for tooltips
+        for (int i = 0; i < listVisibleRows; i++) {
+            int idx = scrollOffset + i;
+            if (idx >= offers.size()) break;
+            
+            int y = listTop + i * listItemHeight;
+            if (mouseX >= rowL && mouseX < rowR && mouseY >= y && mouseY < y + listItemHeight) {
+                CobbleDollarsShopPayloads.ShopOfferEntry entry = offers.get(idx);
+                
+                // Calculate icon position once for use in both tooltip checks
+                int iconX = rowL + OFFER_ROW_PADDING_LEFT + LIST_ICON_OFFSET_X;
+                int iconY = y + (listItemHeight - LIST_ITEM_ICON_SIZE) / 2 + LIST_ICON_OFFSET_Y;
+                
+                // Check main item tooltip
+                ItemStack result = resultStackFrom(entry);
+                if (!result.isEmpty()) {
+                    int iconSize = Math.round(LIST_ITEM_ICON_SIZE * LIST_ICON_SCALE);
+                    
+                    if (mouseX >= iconX && mouseX < iconX + iconSize && 
+                        mouseY >= iconY && mouseY < iconY + iconSize) {
+                        guiGraphics.renderTooltip(font, result, mouseX, mouseY);
+                    }
+                }
+                
+                // Check costB item tooltip
+                if (!isSellTab() && entry.hasCostB()) {
+                    ItemStack costB = costBStackFrom(entry);
+                    if (!costB.isEmpty()) {
+                        int priceX = iconX + LIST_ITEM_ICON_SIZE + OFFER_ROW_GAP_AFTER_ICON;
+                        int priceY = y + (listItemHeight - font.lineHeight) / 2 + PRICE_TEXT_OFFSET_Y;
+                        int costBX = priceX + Math.round(font.width(formatPrice(priceForDisplay(entry))) * LIST_TEXT_SCALE);
+                        int costBY = y + (listItemHeight - LIST_ITEM_ICON_SIZE) / 2 + LIST_ICON_OFFSET_Y;
+                        int costBSize = Math.round(LIST_ITEM_ICON_SIZE * LIST_COSTB_SCALE);
+                        
+                        if (mouseX >= costBX && mouseX < costBX + costBSize && 
+                            mouseY >= costBY && mouseY < costBY + costBSize) {
+                            guiGraphics.renderTooltip(font, costB, mouseX, mouseY);
+                        }
+                    }
+                }
+                break; // Only show tooltip for topmost item
+            }
+        }
+        
+        // Check detail panel item tooltip
+        boolean hasSelection = selectedIndex >= 0 && selectedIndex < offers.size();
+        if (hasSelection) {
+            CobbleDollarsShopPayloads.ShopOfferEntry entry = offers.get(selectedIndex);
+            ItemStack result = resultStackFrom(entry);
+            if (!result.isEmpty()) {
+                int detailX = left + LEFT_PANEL_X + LEFT_PANEL_DETAIL_OFFSET_X;
+                int detailY = top + LEFT_PANEL_DETAIL_Y + LEFT_PANEL_DETAIL_OFFSET_Y;
+                int detailSize = Math.round(16 * LEFT_PANEL_DETAIL_SCALE);
+                
+                if (mouseX >= detailX && mouseX < detailX + detailSize && 
+                    mouseY >= detailY && mouseY < detailY + detailSize) {
+                    guiGraphics.renderTooltip(font, result, mouseX, mouseY);
+                }
+            }
+        }
     }
 
     private void renderPlayerInventory(GuiGraphics guiGraphics, int left, int top) {
@@ -559,6 +632,9 @@ public class CobbleDollarsShopScreen extends Screen {
         }
         if (entity instanceof WanderingTrader) {
             return Component.translatable("entity.minecraft.wandering_trader");
+        }
+        if (RctTrainerAssociationCompat.isTrainerAssociation(entity)) {
+            return Component.literal("Trainer Association");
         }
         return Component.empty();
     }

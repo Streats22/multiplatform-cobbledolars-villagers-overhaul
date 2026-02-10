@@ -35,11 +35,28 @@ public final class CobbleDollarsShopPayloads {
                         ShopOfferEntry::result,
                         VAR_INT,
                         ShopOfferEntry::emeraldCount,
-                        ITEM_STACK,
+                        // Use optional ItemStack codec for costB to handle empty items
+                        StreamCodec.of(
+                                (buf, stack) -> {
+                                    boolean hasCostB = stack != null && !stack.isEmpty();
+                                    BOOL.encode(buf, hasCostB);
+                                    if (hasCostB) {
+                                        ITEM_STACK.encode(buf, stack);
+                                    }
+                                },
+                                buf -> {
+                                    boolean hasCostB = BOOL.decode(buf);
+                                    return hasCostB ? ITEM_STACK.decode(buf) : ItemStack.EMPTY;
+                                }
+                        ),
                         ShopOfferEntry::costB,
                         BOOL,
                         ShopOfferEntry::directPrice,
-                        ShopOfferEntry::new
+                        (result, emeraldCount, costB, directPrice) -> new ShopOfferEntry(
+                                result,
+                                emeraldCount,
+                                costB,
+                                directPrice)
                 );
 
         public boolean hasCostB() {

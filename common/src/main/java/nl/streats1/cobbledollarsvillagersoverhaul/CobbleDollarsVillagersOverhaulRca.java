@@ -28,7 +28,6 @@ public class CobbleDollarsVillagersOverhaulRca {
         if (!Config.USE_COBBLEDOLLARS_SHOP_UI || !CobbleDollarsIntegration.isModLoaded()) return false;
 
         if (RctTrainerAssociationCompat.isTrainerAssociation(target)) {
-            if (!isSneaking) return false;
             cancelAction.run();
             return true;
         }
