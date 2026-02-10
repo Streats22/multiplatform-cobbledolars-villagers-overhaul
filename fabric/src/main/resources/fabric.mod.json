@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "id": "cobbledollars_villagers_overhaul_rca",
+  "version": "${version}",
+  "name": "CobbleDollars Villagers Overhaul",
+  "description": "Integrates CobbleDollars with villager trading system",
+  "authors": [
+    "Streats1"
+  ],
+  "license": "All Rights Reserved",
+  "icon": "icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "nl.streats1.cobbledollarsvillagersoverhaul.fabric.CobbleDollarsVillagersOverhaulFabric"
+    ],
+    "client": [
+      "nl.streats1.cobbledollarsvillagersoverhaul.fabric.CobbleDollarsVillagersOverhaulFabricClient"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.15.0",
+    "fabric-api": "*",
+    "minecraft": "~1.21.1",
+    "cobbledollars": "*",
+    "cobblemon": ">=1.7.3 <1.8.0",
+    "java": ">=21"
+  },
+  "mixins": [
+    "cobbledollars_villagers_overhaul_rca.mixins.json"
+  ]
+}

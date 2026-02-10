@@ -1,0 +1,128 @@
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+# IntelliJ IDEA
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+!**/src/main/**/out/
+!**/src/test/**/out/
+
+# Eclipse
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+bin/
+!**/src/main/**/bin/
+!**/src/test/**/bin/
+
+# VS Code
+.vscode/
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Linux
+*~
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+*.bak
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store?
+.DS_Store
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Minecraft mod specific
+run/
+logs/
+crash-reports/
+*.jar
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/resources/**/*.jar
+
+# Architectury
+.architectury-transformer/
+
+# Kotlin
+.kotlin/
+
+# Fabric/NeoForge specific
+fabric/loom.toml
+neoforge/loom.toml
+**/accessTransformer.toml
+**/mods.toml
+**/pack.mcmeta
+
+# Test outputs
+test-results/
+test-output/
+
+# Local configuration
+local.properties
+*.local
+
+# Debug files
+hs_err_pid*
+replay_pid*
+
+# Profiling
+*.hprof
+
+# JRebel
+rebel.xml
+
+# JBoss
+*.jws
+
+# Oracle
+*.log
+
+# NetBeans
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+# Vim
+*.swp
+*.swo
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+# Gradle daemon
+.gradle/worker-daemon.jar
