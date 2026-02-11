@@ -1,0 +1,19 @@
+﻿
+  warning: unknown enum constant EnvType.CLIENT
+  warning: unknown enum constant EnvType.CLIENT
+  E:\multi-platform-cobbledollars-villagers-overhaul-rca\common\src\main\java\nl\streats1\cobbledollarsvillagersoverhaul\integration\CobbleDollarsConfigHelper.j
+ava:125: error: constructor ShopOfferEntry in record ShopOfferEntry cannot be applied to given types;
+                          out.add(new CobbleDollarsShopPayloads.ShopOfferEntry(new ItemStack(item, 1), price, empty, true));
+                                  ^
+>   required: ItemStack,int,ItemStack,boolean,String
+>   found:    ItemStack,int,ItemStack,boolean
+  Execution failed for task ':common:compileJava'.
+  > Compilation failed; see the compiler output below.
+    E:\multi-platform-cobbledollars-villagers-overhaul-rca\common\src\main\java\nl\streats1\cobbledollarsvillagersoverhaul\integration\CobbleDollarsConfigHelper
+.java:125: error: constructor ShopOfferEntry in record ShopOfferEntry cannot be applied to given types;
+                            out.add(new CobbleDollarsShopPayloads.ShopOfferEntry(new ItemStack(item, 1), price, empty, true));
+                                    ^
+>     required: ItemStack,int,ItemStack,boolean,String
+>     found:    ItemStack,int,ItemStack,boolean
+
+
