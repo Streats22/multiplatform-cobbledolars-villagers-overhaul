@@ -30,6 +30,6 @@ side = "BOTH"
 [[dependencies.cobbledollars_villagers_overhaul_rca]]
 modId = "cobblemon"
 mandatory = true
-versionRange = "[1.7.3,)"
+versionRange = "[1.7.1,)"
 ordering = "AFTER"
 side = "BOTH"

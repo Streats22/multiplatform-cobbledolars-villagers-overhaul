@@ -34,7 +34,7 @@ public final class NeoForgeNetworking {
                 Objects.requireNonNull(CobbleDollarsShopPayloads.ShopData.STREAM_CODEC),
                 (data, context) -> context.enqueueWork(() ->
                         CobbleDollarsShopScreen.openFromPayload(
-                                data.villagerId(), data.balance(), data.buyOffers(), data.sellOffers(), data.buyOffersFromConfig()))
+                                data.villagerId(), data.balance(), data.buyOffers(), data.sellOffers(), data.tradesOffers(), data.buyOffersFromConfig()))
         );
 
         registrar.playToClient(
@@ -50,7 +50,7 @@ public final class NeoForgeNetworking {
                 Objects.requireNonNull(CobbleDollarsShopPayloads.BuyWithCobbleDollars.STREAM_CODEC),
                 (data, context) -> context.enqueueWork(() -> {
                     if (context.player() instanceof ServerPlayer sp) {
-                        CobbleDollarsShopPayloadHandlers.handleBuy(sp, data.villagerId(), data.offerIndex(), data.quantity(), data.fromConfigShop());
+                        CobbleDollarsShopPayloadHandlers.handleBuy(sp, data.villagerId(), data.offerIndex(), data.quantity(), data.fromConfigShop(), data.tab());
                     }
                 })
         );

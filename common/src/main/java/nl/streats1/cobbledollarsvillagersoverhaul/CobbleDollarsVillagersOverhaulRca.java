@@ -28,21 +28,9 @@ public class CobbleDollarsVillagersOverhaulRca {
                                    Runnable cancelAction, java.util.function.IntSupplier getId) {
         if (!Config.USE_COBBLEDOLLARS_SHOP_UI || !CobbleDollarsIntegration.isModLoaded()) return false;
 
-        // Debug logging for RCTA detection
         if (RctTrainerAssociationCompat.isTrainerAssociation(target)) {
-            LOGGER.info("RCTA trainer interaction detected! Entity: {}, ClientSide: {}, Sneaking: {}", 
-                target.getClass().getSimpleName(), isClientSide, isSneaking);
-            
-            // On client side, cancel the default interaction and request shop data
-            if (isClientSide) {
-                cancelAction.run();
-                // Request shop data from server for this entity
-                PlatformNetwork.sendToServer(new CobbleDollarsShopPayloads.RequestShopData(getId.getAsInt()));
-                return true;
-            }
-            
-            // On server side, let the normal interaction happen so trades get processed
-            return false;
+            cancelAction.run();
+            return true;
         }
 
         if (target instanceof Villager villager) {

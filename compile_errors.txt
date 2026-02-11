@@ -1,0 +1,61 @@
+﻿
+  warning: unknown enum constant EnvType.CLIENT
+> E:\multi-platform-cobbledollars-villagers-overhaul-rca\common\src\main\java\nl\streats1\cobbledollarsvillagersoverhaul\integration\CobbleDollarsConfigHelper.j
+ava:125: error: constructor ShopOfferEntry in record ShopOfferEntry cannot be applied to given types;
+>                         out.add(new CobbleDollarsShopPayloads.ShopOfferEntry(new ItemStack(item, 1), price, empty, true));
+                                  ^
+>   required: ItemStack,int,ItemStack,boolean,String
+>   found:    ItemStack,int,ItemStack,boolean
+    reason: actual and formal argument lists differ in length
+> E:\multi-platform-cobbledollars-villagers-overhaul-rca\common\src\main\java\nl\streats1\cobbledollarsvillagersoverhaul\network\CobbleDollarsShopPayloadHandler
+s.java:680: error: constructor ShopOfferEntry in record ShopOfferEntry cannot be applied to given types;
+>                     sellOut.add(new CobbleDollarsShopPayloads.ShopOfferEntry(
+                                  ^
+>   required: ItemStack,int,ItemStack,boolean,String
+>   found:    ItemStack,int,ItemStack,boolean
+    reason: actual and formal argument lists differ in length
+> E:\multi-platform-cobbledollars-villagers-overhaul-rca\common\src\main\java\nl\streats1\cobbledollarsvillagersoverhaul\network\CobbleDollarsShopPayloadHandler
+s.java:737: error: constructor ShopOfferEntry in record ShopOfferEntry cannot be applied to given types;
+>                     buyOut.add(new CobbleDollarsShopPayloads.ShopOfferEntry(
+                                 ^
+>   required: ItemStack,int,ItemStack,boolean,String
+>   found:    ItemStack,int,ItemStack,boolean
+    reason: actual and formal argument lists differ in length
+> E:\multi-platform-cobbledollars-villagers-overhaul-rca\common\src\main\java\nl\streats1\cobbledollarsvillagersoverhaul\network\CobbleDollarsShopPayloadHandler
+s.java:749: error: constructor ShopOfferEntry in record ShopOfferEntry cannot be applied to given types;
+>                     sellOut.add(new CobbleDollarsShopPayloads.ShopOfferEntry(
+                                  ^
+>   required: ItemStack,int,ItemStack,boolean,String
+>   found:    ItemStack,int,ItemStack,boolean
+    reason: actual and formal argument lists differ in length
+  > Compilation failed; see the compiler output below.
+>   E:\multi-platform-cobbledollars-villagers-overhaul-rca\common\src\main\java\nl\streats1\cobbledollarsvillagersoverhaul\integration\CobbleDollarsConfigHelper
+.java:125: error: constructor ShopOfferEntry in record ShopOfferEntry cannot be applied to given types;
+>                           out.add(new CobbleDollarsShopPayloads.ShopOfferEntry(new ItemStack(item, 1), price, empty, true));
+                                    ^
+>     required: ItemStack,int,ItemStack,boolean,String
+>     found:    ItemStack,int,ItemStack,boolean
+      reason: actual and formal argument lists differ in length
+>   E:\multi-platform-cobbledollars-villagers-overhaul-rca\common\src\main\java\nl\streats1\cobbledollarsvillagersoverhaul\network\CobbleDollarsShopPayloadHandl
+ers.java:680: error: constructor ShopOfferEntry in record ShopOfferEntry cannot be applied to given types;
+>                       sellOut.add(new CobbleDollarsShopPayloads.ShopOfferEntry(
+                                    ^
+>     required: ItemStack,int,ItemStack,boolean,String
+>     found:    ItemStack,int,ItemStack,boolean
+      reason: actual and formal argument lists differ in length
+>   E:\multi-platform-cobbledollars-villagers-overhaul-rca\common\src\main\java\nl\streats1\cobbledollarsvillagersoverhaul\network\CobbleDollarsShopPayloadHandl
+ers.java:737: error: constructor ShopOfferEntry in record ShopOfferEntry cannot be applied to given types;
+>                       buyOut.add(new CobbleDollarsShopPayloads.ShopOfferEntry(
+                                   ^
+>     required: ItemStack,int,ItemStack,boolean,String
+>     found:    ItemStack,int,ItemStack,boolean
+      reason: actual and formal argument lists differ in length
+>   E:\multi-platform-cobbledollars-villagers-overhaul-rca\common\src\main\java\nl\streats1\cobbledollarsvillagersoverhaul\network\CobbleDollarsShopPayloadHandl
+ers.java:749: error: constructor ShopOfferEntry in record ShopOfferEntry cannot be applied to given types;
+>                       sellOut.add(new CobbleDollarsShopPayloads.ShopOfferEntry(
+                                    ^
+>     required: ItemStack,int,ItemStack,boolean,String
+>     found:    ItemStack,int,ItemStack,boolean
+      reason: actual and formal argument lists differ in length
+
+

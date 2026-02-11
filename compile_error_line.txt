@@ -1,0 +1,11 @@
+﻿
+                          out.add(new CobbleDollarsShopPayloads.ShopOfferEntry(new ItemStack(item, 1), price, empty, true));
+                                  ^
+    required: ItemStack,int,ItemStack,boolean,String
+>   found:    ItemStack,int,ItemStack,boolean
+                            out.add(new CobbleDollarsShopPayloads.ShopOfferEntry(new ItemStack(item, 1), price, empty, true));
+                                    ^
+      required: ItemStack,int,ItemStack,boolean,String
+>     found:    ItemStack,int,ItemStack,boolean
+
+

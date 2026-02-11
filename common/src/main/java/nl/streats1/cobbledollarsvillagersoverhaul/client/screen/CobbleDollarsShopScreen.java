@@ -19,6 +19,7 @@ import nl.streats1.cobbledollarsvillagersoverhaul.integration.RctTrainerAssociat
 import nl.streats1.cobbledollarsvillagersoverhaul.network.CobbleDollarsShopPayloads;
 import nl.streats1.cobbledollarsvillagersoverhaul.platform.PlatformNetwork;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -140,6 +141,7 @@ public class CobbleDollarsShopScreen extends Screen {
     private int balanceDeltaTicks;
     private final List<CobbleDollarsShopPayloads.ShopOfferEntry> buyOffers;
     private final List<CobbleDollarsShopPayloads.ShopOfferEntry> sellOffers;
+    private final List<CobbleDollarsShopPayloads.ShopOfferEntry> tradesOffers;
     private final boolean buyOffersFromConfig;
     private int selectedTab = 0;
     private int selectedIndex = -1;
@@ -154,12 +156,14 @@ public class CobbleDollarsShopScreen extends Screen {
     public CobbleDollarsShopScreen(int villagerId, long balance,
                                    List<CobbleDollarsShopPayloads.ShopOfferEntry> buyOffers,
                                    List<CobbleDollarsShopPayloads.ShopOfferEntry> sellOffers,
+                                   List<CobbleDollarsShopPayloads.ShopOfferEntry> tradesOffers,
                                    boolean buyOffersFromConfig) {
-        super(Component.translatable("gui.cobbledollars_villagers_overhaul_rca.cobbledollars_shop"));
+        super(Component.translatable("gui.cobbledollars_villagers_overhaul_rca.shop"));
         this.villagerId = villagerId;
         this.balance = balance;
         this.buyOffers = buyOffers != null ? buyOffers : List.of();
         this.sellOffers = sellOffers != null ? sellOffers : List.of();
+        this.tradesOffers = tradesOffers != null ? tradesOffers : List.of();
         this.buyOffersFromConfig = buyOffersFromConfig;
         if (!this.buyOffers.isEmpty()) {
             selectedTab = 0;
@@ -167,11 +171,14 @@ public class CobbleDollarsShopScreen extends Screen {
         } else if (!this.sellOffers.isEmpty()) {
             selectedTab = 1;
             selectedIndex = 0;
+        } else if (!this.tradesOffers.isEmpty()) {
+            selectedTab = 2;
+            selectedIndex = 0;
         }
     }
 
     private List<CobbleDollarsShopPayloads.ShopOfferEntry> currentOffers() {
-        return selectedTab == 0 ? buyOffers : sellOffers;
+        return selectedTab == 0 ? buyOffers : selectedTab == 1 ? sellOffers : tradesOffers;
     }
 
     private boolean isSellTab() {
@@ -181,10 +188,11 @@ public class CobbleDollarsShopScreen extends Screen {
     public static void openFromPayload(int villagerId, long balance,
                                        List<CobbleDollarsShopPayloads.ShopOfferEntry> buyOffers,
                                        List<CobbleDollarsShopPayloads.ShopOfferEntry> sellOffers,
+                                       List<CobbleDollarsShopPayloads.ShopOfferEntry> tradesOffers,
                                        boolean buyOffersFromConfig) {
         Minecraft mc = Minecraft.getInstance();
         if (mc.level == null) return;
-        mc.setScreen(new CobbleDollarsShopScreen(villagerId, balance, buyOffers, sellOffers, buyOffersFromConfig));
+        mc.setScreen(new CobbleDollarsShopScreen(villagerId, balance, buyOffers, sellOffers, tradesOffers, buyOffersFromConfig));
     }
 
     public static void updateBalanceFromServer(int villagerId, long newBalance) {
@@ -243,7 +251,7 @@ public class CobbleDollarsShopScreen extends Screen {
         } else {
             long total = (long) qty * price;
             if (balance < total || !hasRequiredBuyItems(entry, qty)) return;
-            PlatformNetwork.sendToServer(new CobbleDollarsShopPayloads.BuyWithCobbleDollars(villagerId, selectedIndex, qty, buyOffersFromConfig));
+            PlatformNetwork.sendToServer(new CobbleDollarsShopPayloads.BuyWithCobbleDollars(villagerId, selectedIndex, qty, buyOffersFromConfig, selectedTab));
             applyBalanceDelta(-price * qty, 100);
         }
         if (quantityBox != null) quantityBox.setValue("1");
@@ -329,20 +337,67 @@ public class CobbleDollarsShopScreen extends Screen {
         int tabGapY = 2;
         int buyY = tabY;
         int sellY = tabY + CATEGORY_ENTRY_H + tabGapY;
+        int tradesY = sellY + CATEGORY_ENTRY_H + tabGapY;
+        
         blitFull(guiGraphics, TEX_CATEGORY_BG, tabX, buyY, TEX_CATEGORY_BG_W, TEX_CATEGORY_BG_H);
         blitFull(guiGraphics, TEX_CATEGORY_BG, tabX, sellY, TEX_CATEGORY_BG_W, TEX_CATEGORY_BG_H);
+        blitFull(guiGraphics, TEX_CATEGORY_BG, tabX, tradesY, TEX_CATEGORY_BG_W, TEX_CATEGORY_BG_H);
+        
         if (selectedTab == 0) {
             blitStretched(guiGraphics, TEX_CATEGORY_OUTLINE, tabX + TAB_OUTLINE_OFFSET_X, buyY + TAB_OUTLINE_OFFSET_Y, TEX_CATEGORY_OUTLINE_W, TEX_CATEGORY_OUTLINE_H, TEX_CATEGORY_OUTLINE_W, TEX_CATEGORY_OUTLINE_H);
-        } else {
+        } else if (selectedTab == 1) {
             blitStretched(guiGraphics, TEX_CATEGORY_OUTLINE, tabX + TAB_OUTLINE_OFFSET_X, sellY + TAB_OUTLINE_OFFSET_Y, TEX_CATEGORY_OUTLINE_W, TEX_CATEGORY_OUTLINE_H, TEX_CATEGORY_OUTLINE_W, TEX_CATEGORY_OUTLINE_H);
+        } else {
+            blitStretched(guiGraphics, TEX_CATEGORY_OUTLINE, tabX + TAB_OUTLINE_OFFSET_X, tradesY + TAB_OUTLINE_OFFSET_Y, TEX_CATEGORY_OUTLINE_W, TEX_CATEGORY_OUTLINE_H, TEX_CATEGORY_OUTLINE_W, TEX_CATEGORY_OUTLINE_H);
         }
+        
         guiGraphics.drawString(font, Component.translatable("gui.cobbledollars_villagers_overhaul_rca.buy"), tabX + 4, buyY + (CATEGORY_ENTRY_H - font.lineHeight) / 2, selectedTab == 0 ? 0xFFE0E0E0 : 0xFFA0A0A0, false);
         guiGraphics.drawString(font, Component.translatable("gui.cobbledollars_villagers_overhaul_rca.sell"), tabX + 4, sellY + (CATEGORY_ENTRY_H - font.lineHeight) / 2, selectedTab == 1 ? 0xFFE0E0E0 : 0xFFA0A0A0, false);
+        guiGraphics.drawString(font, Component.translatable("gui.cobbledollars_villagers_overhaul_rca.trades"), tabX + 4, tradesY + (CATEGORY_ENTRY_H - font.lineHeight) / 2, selectedTab == 2 ? 0xFFE0E0E0 : 0xFFA0A0A0, false);
 
         Component professionLabel = getProfessionLabel();
         if (!professionLabel.getString().isEmpty()) {
             int headerLeft = left + 8;
-            guiGraphics.drawString(font, professionLabel, headerLeft, top + RIGHT_PANEL_HEADER_Y, 0xFFE0E0E0, false);
+            int headerWidth = 140; // Maximum width for profession label
+            int maxLabelWidth = headerWidth - 4; // Leave small margin
+            
+            String labelText = professionLabel.getString();
+            int textWidth = font.width(professionLabel);
+            
+            if (textWidth > maxLabelWidth) {
+                // Text is too long, need to wrap or truncate
+                List<String> lines = new ArrayList<>();
+                StringBuilder currentLine = new StringBuilder();
+                String[] words = labelText.split(" ");
+                
+                for (String word : words) {
+                    String testLine = currentLine.length() > 0 ? currentLine + " " + word : word;
+                    if (font.width(testLine) > maxLabelWidth) {
+                        if (currentLine.length() > 0) {
+                            lines.add(currentLine.toString());
+                            currentLine = new StringBuilder(word);
+                        } else {
+                            // Single word is too long, truncate it
+                            lines.add(word.substring(0, Math.min(word.length(), 15)) + "...");
+                        }
+                    } else {
+                        currentLine = new StringBuilder(testLine);
+                    }
+                }
+                if (currentLine.length() > 0) {
+                    lines.add(currentLine.toString());
+                }
+                
+                // Draw wrapped text (max 2 lines)
+                int lineY = top + RIGHT_PANEL_HEADER_Y;
+                for (int i = 0; i < Math.min(lines.size(), 2); i++) {
+                    guiGraphics.drawString(font, Component.literal(lines.get(i)), headerLeft, lineY, 0xFFE0E0E0, false);
+                    lineY += font.lineHeight;
+                }
+            } else {
+                // Text fits normally
+                guiGraphics.drawString(font, professionLabel, headerLeft, top + RIGHT_PANEL_HEADER_Y, 0xFFE0E0E0, false);
+            }
         }
 
         int listTop = top + LIST_TOP_OFFSET;
@@ -380,29 +435,39 @@ public class CobbleDollarsShopScreen extends Screen {
             String priceStr = formatPrice(price);
             int priceX = iconX + LIST_ITEM_ICON_SIZE + OFFER_ROW_GAP_AFTER_ICON;
             int priceY = textY + PRICE_TEXT_OFFSET_Y;
-            int badgeX = priceX + LIST_PRICE_BADGE_OFFSET_X;
-            int badgeY = priceY + LIST_PRICE_BADGE_OFFSET_Y - (TEX_COBBLEDOLLARS_LOGO_H - font.lineHeight) / 2;
-            blitFull(guiGraphics, TEX_COBBLEDOLLARS_LOGO, badgeX, badgeY, TEX_COBBLEDOLLARS_LOGO_W, TEX_COBBLEDOLLARS_LOGO_H);
+            
             boolean hasCostB = !isSellTab() && entry.hasCostB();
-            float priceScale = hasCostB ? LIST_COSTB_PRICE_SCALE : LIST_TEXT_SCALE;
-            guiGraphics.pose().pushPose();
-            guiGraphics.pose().scale(priceScale, priceScale, 1.0f);
-            int priceDrawX = Math.round(priceX / priceScale);
-            int priceDrawY = Math.round(priceY / priceScale);
-            int priceColor = isSellTab() ? 0xFF00DD00 : 0xFFFFFFFF;
-            guiGraphics.drawString(font, priceStr, priceDrawX, priceDrawY, priceColor, false);
-            guiGraphics.pose().popPose();
+            
+            // Only show price for buy/sell tabs, not trades tab (trades are item-to-item)
+            if (selectedTab != 2) {
+                int badgeX = priceX + LIST_PRICE_BADGE_OFFSET_X;
+                int badgeY = priceY + LIST_PRICE_BADGE_OFFSET_Y - (TEX_COBBLEDOLLARS_LOGO_H - font.lineHeight) / 2;
+                blitFull(guiGraphics, TEX_COBBLEDOLLARS_LOGO, badgeX, badgeY, TEX_COBBLEDOLLARS_LOGO_W, TEX_COBBLEDOLLARS_LOGO_H);
+                float priceScale = hasCostB ? LIST_COSTB_PRICE_SCALE : LIST_TEXT_SCALE;
+                guiGraphics.pose().pushPose();
+                guiGraphics.pose().scale(priceScale, priceScale, 1.0f);
+                int priceDrawX = Math.round(priceX / priceScale);
+                int priceDrawY = Math.round(priceY / priceScale);
+                int priceColor = isSellTab() ? 0xFF00DD00 : 0xFFFFFFFF;
+                guiGraphics.drawString(font, priceStr, priceDrawX, priceDrawY, priceColor, false);
+                guiGraphics.pose().popPose();
+            } else if (selectedTab == 2 && !entry.seriesName().isEmpty()) {
+                // For trades tab, show series name instead of price
+                guiGraphics.drawString(font, entry.seriesName(), priceX, priceY, 0xFFFFFF00, false); // Yellow text for series name
+            }
             if (!isSellTab()) {
                 ItemStack costB = costBStackFrom(entry);
                 if (!costB.isEmpty()) {
-                    int costBX = priceX + Math.round(font.width(priceStr) * LIST_TEXT_SCALE);
+                    int costBX = priceX + Math.round(font.width(priceStr) * LIST_TEXT_SCALE) + 4; // Add 4 pixels spacing
                     int costBY = iconY + 3;
                     guiGraphics.pose().pushPose();
                     float plusScale = hasCostB ? LIST_COSTB_PLUS_SCALE : LIST_TEXT_SCALE;
                     guiGraphics.pose().scale(plusScale, plusScale, 1.0f);
                     int plusDrawX = Math.round((costBX - 2) / plusScale);
                     int plusDrawY = Math.round((textY + PRICE_TEXT_OFFSET_Y) / plusScale);
-                    guiGraphics.drawString(font, "+", plusDrawX, plusDrawY, 0xFFAAAAAA, false);
+                    // Use "->" for trades tab, "+" for buy tab
+                    String separator = (selectedTab == 2) ? "->" : "+";
+                    guiGraphics.drawString(font, separator, plusDrawX, plusDrawY, 0xFFAAAAAA, false);
                     guiGraphics.pose().popPose();
                     guiGraphics.pose().pushPose();
                     guiGraphics.pose().scale(LIST_COSTB_SCALE, LIST_COSTB_SCALE, 1.0f);
@@ -454,7 +519,15 @@ public class CobbleDollarsShopScreen extends Screen {
             canSell = hasRequiredSellItems(entry, parseQuantity());
         }
         if (actionButton != null) {
-            actionButton.setMessage(Component.translatable(isSellTab() ? "gui.cobbledollars_villagers_overhaul_rca.sell" : "gui.cobbledollars_villagers_overhaul_rca.buy"));
+            String buttonKey;
+            if (isSellTab()) {
+                buttonKey = "gui.cobbledollars_villagers_overhaul_rca.sell";
+            } else if (selectedTab == 2) { // Trades tab
+                buttonKey = "gui.cobbledollars_villagers_overhaul_rca.trade";
+            } else {
+                buttonKey = "gui.cobbledollars_villagers_overhaul_rca.buy";
+            }
+            actionButton.setMessage(Component.translatable(buttonKey));
             actionButton.active = hasSelection && (isSellTab() ? canSell : canAfford);
             int btnX = left + LEFT_PANEL_BUY_X;
             int btnY = top + LEFT_PANEL_BUY_Y;
@@ -623,6 +696,13 @@ public class CobbleDollarsShopScreen extends Screen {
     private Component getProfessionLabel() {
         if (minecraft == null || minecraft.level == null) return Component.empty();
         var entity = minecraft.level.getEntity(villagerId);
+        if (entity == null) return Component.empty();
+        
+        // Check if entity has a custom name first
+        if (entity.hasCustomName()) {
+            return entity.getCustomName();
+        }
+        
         if (entity instanceof Villager villager) {
             var key = BuiltInRegistries.VILLAGER_PROFESSION.getKey(villager.getVillagerData().getProfession());
             if (key != null) {
@@ -631,10 +711,14 @@ public class CobbleDollarsShopScreen extends Screen {
             return Component.literal(villager.getVillagerData().getProfession().toString());
         }
         if (entity instanceof WanderingTrader) {
+            // Check if it's an RCT trainer association
+            if (RctTrainerAssociationCompat.isTrainerAssociation(entity)) {
+                return Component.translatable("gui.cobbledollars_villagers_overhaul_rca.trainer_association");
+            }
             return Component.translatable("entity.minecraft.wandering_trader");
         }
         if (RctTrainerAssociationCompat.isTrainerAssociation(entity)) {
-            return Component.literal("Trainer Association");
+            return Component.translatable("gui.cobbledollars_villagers_overhaul_rca.trainer_association");
         }
         return Component.empty();
     }
@@ -715,6 +799,13 @@ public class CobbleDollarsShopScreen extends Screen {
             }
             if (mouseY >= tabY + CATEGORY_ENTRY_H + tabGapY && mouseY < tabY + CATEGORY_ENTRY_H + tabGapY + CATEGORY_ENTRY_H) {
                 selectedTab = 1;
+                var off = currentOffers();
+                selectedIndex = off.isEmpty() ? -1 : 0;
+                scrollOffset = 0;
+                return true;
+            }
+            if (mouseY >= tabY + CATEGORY_ENTRY_H + tabGapY + CATEGORY_ENTRY_H + tabGapY && mouseY < tabY + CATEGORY_ENTRY_H + tabGapY + CATEGORY_ENTRY_H + tabGapY + CATEGORY_ENTRY_H) {
+                selectedTab = 2;
                 var off = currentOffers();
                 selectedIndex = off.isEmpty() ? -1 : 0;
                 scrollOffset = 0;

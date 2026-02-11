@@ -28,7 +28,7 @@ public final class CobbleDollarsShopPayloads {
     private static final StreamCodec<RegistryFriendlyByteBuf, Boolean> BOOL = (StreamCodec) ByteBufCodecs.BOOL;
     private static final StreamCodec<RegistryFriendlyByteBuf, ItemStack> ITEM_STACK = ItemStack.STREAM_CODEC;
 
-    public record ShopOfferEntry(ItemStack result, int emeraldCount, ItemStack costB, boolean directPrice) {
+    public record ShopOfferEntry(ItemStack result, int emeraldCount, ItemStack costB, boolean directPrice, String seriesName) {
         public static final StreamCodec<RegistryFriendlyByteBuf, ShopOfferEntry> STREAM_CODEC =
                 StreamCodec.composite(
                         ITEM_STACK,
@@ -52,11 +52,14 @@ public final class CobbleDollarsShopPayloads {
                         ShopOfferEntry::costB,
                         BOOL,
                         ShopOfferEntry::directPrice,
-                        (result, emeraldCount, costB, directPrice) -> new ShopOfferEntry(
-                                result,
-                                emeraldCount,
-                                costB,
-                                directPrice)
+                        ByteBufCodecs.STRING_UTF8,
+                        ShopOfferEntry::seriesName,
+                        (result, emeraldCount, costB, directPrice, seriesName) -> new ShopOfferEntry(
+                                Objects.requireNonNull(result),
+                                Objects.requireNonNull(emeraldCount),
+                                Objects.requireNonNull(costB),
+                                directPrice,
+                                seriesName != null ? seriesName : "")
                 );
 
         public boolean hasCostB() {
@@ -98,7 +101,7 @@ public final class CobbleDollarsShopPayloads {
         }
     }
 
-    public record ShopData(int villagerId, long balance, List<ShopOfferEntry> buyOffers, List<ShopOfferEntry> sellOffers, boolean buyOffersFromConfig) implements CustomPacketPayload {
+    public record ShopData(int villagerId, long balance, List<ShopOfferEntry> buyOffers, List<ShopOfferEntry> sellOffers, List<ShopOfferEntry> tradesOffers, boolean buyOffersFromConfig) implements CustomPacketPayload {
         public static final CustomPacketPayload.Type<ShopData> TYPE =
                 new CustomPacketPayload.Type<>(Objects.requireNonNull(id("shop_data")));
         public static final StreamCodec<RegistryFriendlyByteBuf, ShopData> STREAM_CODEC =
@@ -111,13 +114,16 @@ public final class CobbleDollarsShopPayloads {
                         ShopData::buyOffers,
                         OFFERS_LIST_CODEC,
                         ShopData::sellOffers,
+                        OFFERS_LIST_CODEC,
+                        ShopData::tradesOffers,
                         BOOL,
                         ShopData::buyOffersFromConfig,
-                        (villagerId, balance, buyOffers, sellOffers, buyOffersFromConfig) -> new ShopData(
+                        (villagerId, balance, buyOffers, sellOffers, tradesOffers, buyOffersFromConfig) -> new ShopData(
                                 Objects.requireNonNull(villagerId),
                                 Objects.requireNonNull(balance),
                                 Objects.requireNonNull(buyOffers),
                                 Objects.requireNonNull(sellOffers),
+                                Objects.requireNonNull(tradesOffers),
                                 buyOffersFromConfig)
                 ));
 
@@ -147,7 +153,7 @@ public final class CobbleDollarsShopPayloads {
         }
     }
 
-    public record BuyWithCobbleDollars(int villagerId, int offerIndex, int quantity, boolean fromConfigShop) implements CustomPacketPayload {
+    public record BuyWithCobbleDollars(int villagerId, int offerIndex, int quantity, boolean fromConfigShop, int tab) implements CustomPacketPayload {
         public static final CustomPacketPayload.Type<BuyWithCobbleDollars> TYPE =
                 new CustomPacketPayload.Type<>(Objects.requireNonNull(id("buy")));
         public static final StreamCodec<RegistryFriendlyByteBuf, BuyWithCobbleDollars> STREAM_CODEC =
@@ -160,11 +166,14 @@ public final class CobbleDollarsShopPayloads {
                         BuyWithCobbleDollars::quantity,
                         BOOL,
                         BuyWithCobbleDollars::fromConfigShop,
-                        (villagerId, offerIndex, quantity, fromConfigShop) -> new BuyWithCobbleDollars(
+                        VAR_INT,
+                        BuyWithCobbleDollars::tab,
+                        (villagerId, offerIndex, quantity, fromConfigShop, tab) -> new BuyWithCobbleDollars(
                                 Objects.requireNonNull(villagerId),
                                 Objects.requireNonNull(offerIndex),
                                 Objects.requireNonNull(quantity),
-                                fromConfigShop)
+                                fromConfigShop,
+                                Objects.requireNonNull(tab))
                 ));
 
         @Override

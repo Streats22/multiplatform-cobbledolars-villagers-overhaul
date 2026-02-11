@@ -20,7 +20,8 @@ public class CobbleDollarsVillagersOverhaulFabricClient implements ClientModInit
                         payload.villagerId(), 
                         payload.balance(), 
                         payload.buyOffers(), 
-                        payload.sellOffers(), 
+                        payload.sellOffers(),
+                        payload.tradesOffers(),
                         payload.buyOffersFromConfig()
                     );
                 });
