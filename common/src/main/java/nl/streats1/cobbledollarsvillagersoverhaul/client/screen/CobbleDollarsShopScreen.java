@@ -465,14 +465,16 @@ public class CobbleDollarsShopScreen extends Screen {
                     guiGraphics.pose().scale(plusScale, plusScale, 1.0f);
                     int plusDrawX = Math.round((costBX - 2) / plusScale);
                     int plusDrawY = Math.round((textY + PRICE_TEXT_OFFSET_Y) / plusScale);
-                    // Use "->" for trades tab, "+" for buy tab
-                    String separator = (selectedTab == 2) ? "->" : "+";
+                    // Use ">" for trades tab, "+" for buy tab
+                    String separator = (selectedTab == 2) ? "> " : "+";
                     guiGraphics.drawString(font, separator, plusDrawX, plusDrawY, 0xFFAAAAAA, false);
                     guiGraphics.pose().popPose();
                     guiGraphics.pose().pushPose();
-                    guiGraphics.pose().scale(LIST_COSTB_SCALE, LIST_COSTB_SCALE, 1.0f);
-                    int costDrawX = Math.round((costBX + 2) / LIST_COSTB_SCALE);
-                    int costDrawY = Math.round(costBY / LIST_COSTB_SCALE);
+                    // For trades tab, both items should be same size
+                    float costBScale = (selectedTab == 2) ? LIST_ICON_SCALE : LIST_COSTB_SCALE;
+                    guiGraphics.pose().scale(costBScale, costBScale, 1.0f);
+                    int costDrawX = Math.round((costBX + 2) / costBScale);
+                    int costDrawY = Math.round(costBY / costBScale);
                     guiGraphics.renderItem(costB, costDrawX, costDrawY);
                     guiGraphics.renderItemDecorations(font, costB, costDrawX, costDrawY);
                     guiGraphics.pose().popPose();
@@ -615,7 +617,7 @@ public class CobbleDollarsShopScreen extends Screen {
                         int priceY = y + (listItemHeight - font.lineHeight) / 2 + PRICE_TEXT_OFFSET_Y;
                         int costBX = priceX + Math.round(font.width(formatPrice(priceForDisplay(entry))) * LIST_TEXT_SCALE);
                         int costBY = y + (listItemHeight - LIST_ITEM_ICON_SIZE) / 2 + LIST_ICON_OFFSET_Y;
-                        int costBSize = Math.round(LIST_ITEM_ICON_SIZE * LIST_COSTB_SCALE);
+                        int costBSize = Math.round(LIST_ITEM_ICON_SIZE * ((selectedTab == 2) ? LIST_ICON_SCALE : LIST_COSTB_SCALE));
                         
                         if (mouseX >= costBX && mouseX < costBX + costBSize && 
                             mouseY >= costBY && mouseY < costBY + costBSize) {

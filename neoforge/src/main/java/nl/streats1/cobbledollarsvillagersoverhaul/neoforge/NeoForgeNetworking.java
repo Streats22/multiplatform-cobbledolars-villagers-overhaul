@@ -50,7 +50,7 @@ public final class NeoForgeNetworking {
                 Objects.requireNonNull(CobbleDollarsShopPayloads.BuyWithCobbleDollars.STREAM_CODEC),
                 (data, context) -> context.enqueueWork(() -> {
                     if (context.player() instanceof ServerPlayer sp) {
-                        CobbleDollarsShopPayloadHandlers.handleBuy(sp, data.villagerId(), data.offerIndex(), data.quantity(), data.fromConfigShop(), data.tab());
+                        CobbleDollarsShopPayloadHandlers.handleBuy(data, sp);
                     }
                 })
         );
@@ -60,7 +60,7 @@ public final class NeoForgeNetworking {
                 Objects.requireNonNull(CobbleDollarsShopPayloads.SellForCobbleDollars.STREAM_CODEC),
                 (data, context) -> context.enqueueWork(() -> {
                     if (context.player() instanceof ServerPlayer sp) {
-                        CobbleDollarsShopPayloadHandlers.handleSell(sp, data.villagerId(), data.offerIndex(), data.quantity());
+                        CobbleDollarsShopPayloadHandlers.handleSell(data, sp);
                     }
                 })
         );
@@ -69,7 +69,7 @@ public final class NeoForgeNetworking {
     private static void handleRequestShopData(CobbleDollarsShopPayloads.RequestShopData data, IPayloadContext context) {
         context.enqueueWork(() -> {
             if (context.player() instanceof ServerPlayer serverPlayer) {
-                CobbleDollarsShopPayloadHandlers.handleRequestShopData(serverPlayer, data.villagerId());
+                CobbleDollarsShopPayloadHandlers.handleRequestShopData(data, serverPlayer);
             }
         });
     }

@@ -23,19 +23,19 @@ public final class FabricNetworking {
 
         ServerPlayNetworking.registerGlobalReceiver(CobbleDollarsShopPayloads.RequestShopData.TYPE, (payload, context) -> {
             if (context.player() instanceof ServerPlayer sp) {
-                context.server().execute(() -> CobbleDollarsShopPayloadHandlers.handleRequestShopData(sp, payload.villagerId()));
+                context.server().execute(() -> CobbleDollarsShopPayloadHandlers.handleRequestShopData(payload, sp));
             }
         });
 
         ServerPlayNetworking.registerGlobalReceiver(CobbleDollarsShopPayloads.BuyWithCobbleDollars.TYPE, (payload, context) -> {
             if (context.player() instanceof ServerPlayer sp) {
-                context.server().execute(() -> CobbleDollarsShopPayloadHandlers.handleBuy(sp, payload.villagerId(), payload.offerIndex(), payload.quantity(), payload.fromConfigShop(), payload.tab()));
+                context.server().execute(() -> CobbleDollarsShopPayloadHandlers.handleBuy(payload, sp));
             }
         });
 
         ServerPlayNetworking.registerGlobalReceiver(CobbleDollarsShopPayloads.SellForCobbleDollars.TYPE, (payload, context) -> {
             if (context.player() instanceof ServerPlayer sp) {
-                context.server().execute(() -> CobbleDollarsShopPayloadHandlers.handleSell(sp, payload.villagerId(), payload.offerIndex(), payload.quantity()));
+                context.server().execute(() -> CobbleDollarsShopPayloadHandlers.handleSell(payload, sp));
             }
         });
     }
