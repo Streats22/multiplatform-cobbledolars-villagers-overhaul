@@ -532,9 +532,9 @@ public class CobbleDollarsShopScreen extends Screen {
                 if (!costB.isEmpty()) {
                     // Use same scale for both items on trades tab
                     float costBScale = (selectedTab == 2) ? LIST_ICON_SCALE : LIST_COSTB_SCALE;
-                    
-                    int costBX = priceX + Math.round(font.width(priceStr) * LIST_TEXT_SCALE) + 4; // Add 4 pixels spacing
-                    int costBY = iconY + 3;
+
+                    int costBX = priceX + Math.round(font.width(priceStr) * LIST_TEXT_SCALE) + (selectedTab == 0 ? 2 : 4); // Less spacing for buy tab
+                    int costBY = selectedTab == 2 ? iconY : iconY + 3;
                     guiGraphics.pose().pushPose();
                     float plusScale = hasCostB ? LIST_COSTB_PLUS_SCALE : LIST_TEXT_SCALE;
                     guiGraphics.pose().scale(plusScale, plusScale, 1.0f);
@@ -548,7 +548,8 @@ public class CobbleDollarsShopScreen extends Screen {
                         float arrowScale = hasCostB ? LIST_COSTB_PLUS_SCALE : LIST_TEXT_SCALE;
                         guiGraphics.pose().scale(arrowScale, arrowScale, 1.0f);
                         int arrowDrawX = Math.round((costBX - 2) / arrowScale);
-                        int arrowDrawY = Math.round((textY + PRICE_TEXT_OFFSET_Y - 8) / arrowScale);
+                        // Center arrow vertically by using iconY position instead of textY
+                        int arrowDrawY = Math.round((iconY + (LIST_ITEM_ICON_SIZE - font.lineHeight) / 2) / arrowScale);
                         guiGraphics.drawString(font, "→", arrowDrawX, arrowDrawY, 0xFFAAAAAA, false);
                     } else {
                         // Use "+" for buy/sell tabs

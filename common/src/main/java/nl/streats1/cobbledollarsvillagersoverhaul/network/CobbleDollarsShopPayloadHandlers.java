@@ -242,12 +242,71 @@ public final class CobbleDollarsShopPayloadHandlers {
                     LOGGER.info("Player has {} available series from RCT API: {}", availableSeries.size(), availableSeries.stream().map(SeriesDisplay::title).toList());
                 } catch (NoSuchMethodException e) {
                     LOGGER.warn("RCT TrainerPlayerData#getAvailableSeries not found: {}", e.getMessage());
+                    // Fallback: try to get all series from SeriesManager as fallback
+                    try {
+                        var rctModClassFallback = Class.forName("com.gitlab.srcmc.rctmod.api.RCTMod");
+                        var getInstanceMethodFallback = rctModClassFallback.getMethod("getInstance");
+                        var rctModInstanceFallback = getInstanceMethodFallback.invoke(null);
+
+                        var seriesManagerClassFallback = Class.forName("com.gitlab.srcmc.rctmod.api.service.SeriesManager");
+                        var getSeriesManagerMethodFallback = rctModClassFallback.getMethod("getSeriesManager");
+                        var seriesManagerFallback = getSeriesManagerMethodFallback.invoke(rctModInstanceFallback);
+
+                        var getSeriesIdsMethodFallback = seriesManagerClassFallback.getMethod("getSeriesIds");
+                        var seriesIdsFallback = getSeriesIdsMethodFallback.invoke(seriesManagerFallback);
+
+                        if (seriesIdsFallback instanceof Iterable) {
+                            for (Object seriesIdObj : (Iterable<?>) seriesIdsFallback) {
+                                String seriesId = seriesIdObj.toString();
+                                if (!seriesId.isEmpty()) {
+                                    String titleKey = "series.rctmod." + seriesId + ".title";
+                                    String tooltipKey = "series.rctmod." + seriesId + ".description";
+                                    availableSeries.add(new SeriesDisplay(seriesId, titleKey, tooltipKey, 1, 0));
+                                }
+                            }
+                            LOGGER.info("Fell back to SeriesManager - found {} series", availableSeries.size());
+                        }
+                    } catch (Exception fallbackEx) {
+                        LOGGER.warn("SeriesManager fallback also failed: {}", fallbackEx.getMessage());
+                    }
+                } catch (Exception e) {
+                    LOGGER.warn("Could not get player available series via RCT API: {} - Exception type: {}", e.getMessage(), e.getClass().getName());
+                    e.printStackTrace();
                 }
             }
         } catch (ClassNotFoundException e) {
             LOGGER.debug("RCT API classes not found, falling back to data files for series list");
         } catch (Exception e) {
-            LOGGER.warn("Could not get player available series via RCT API: {}", e.getMessage());
+            LOGGER.warn("Could not get player available series via RCT API outer: {} - Exception type: {}", e.getMessage(), e.getClass().getName());
+        }
+
+        // Fallback: read all series definitions from data files (not player‑specific).
+        if (availableSeries.isEmpty()) {
+            try {
+                var resourceManager = serverPlayer.serverLevel().getServer().getResourceManager();
+
+                var seriesFiles = resourceManager.listResources("series", path -> path.getPath().endsWith(".json"));
+                for (var resourceLocation : seriesFiles.keySet()) {
+                    if ("rctmod".equals(resourceLocation.getNamespace())) {
+                        String filename = resourceLocation.getPath();
+                        if (filename.endsWith(".json") && filename.startsWith("series/")) {
+                            String seriesId = filename.substring(7, filename.length() - 5); // "series/" + id + ".json"
+
+                            // Use translation keys - client will translate them
+                            String titleKey = "series.rctmod." + seriesId + ".title";
+                            String tooltipKey = "series.rctmod." + seriesId + ".description";
+                            // Try to get difficulty from series data file
+                            int difficulty = getSeriesDifficultyFromData(seriesId, serverPlayer);
+                            int completed = getSeriesCompletedFromData(seriesId, serverPlayer);
+                            availableSeries.add(new SeriesDisplay(seriesId, titleKey, tooltipKey, difficulty, completed));
+                        }
+                    }
+                }
+
+                LOGGER.info("Read {} series from RCT data files as fallback: {}", availableSeries.size(), availableSeries.stream().map(SeriesDisplay::title).toList());
+            } catch (Exception e) {
+                LOGGER.warn("Could not read RCT series data files for fallback: {}", e.getMessage());
+            }
         }
 
         // Cache result even if empty
