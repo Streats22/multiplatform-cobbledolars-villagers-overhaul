@@ -29,6 +29,15 @@ public class CobbleDollarsVillagersOverhaulRca {
         if (!Config.USE_COBBLEDOLLARS_SHOP_UI || !CobbleDollarsIntegration.isModLoaded()) return false;
 
         if (RctTrainerAssociationCompat.isTrainerAssociation(target)) {
+            // For Radical Cobblemon Trainer Association NPCs, default behaviour should remain RCT's own UI.
+            // To avoid fighting over the screen (their association trades vs our CobbleDollars shop),
+            // only override when the player is sneaking (shift‑right‑click).
+            if (!isSneaking) {
+                // Let RCT handle normal right‑clicks completely.
+                return false;
+            }
+
+            // Sneak‑right‑click: explicitly open our CobbleDollars shop instead of RCT's UI.
             cancelAction.run();
             return true;
         }

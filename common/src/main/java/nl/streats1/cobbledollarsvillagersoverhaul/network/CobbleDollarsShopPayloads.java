@@ -28,7 +28,19 @@ public final class CobbleDollarsShopPayloads {
     private static final StreamCodec<RegistryFriendlyByteBuf, Boolean> BOOL = (StreamCodec) ByteBufCodecs.BOOL;
     private static final StreamCodec<RegistryFriendlyByteBuf, ItemStack> ITEM_STACK = ItemStack.STREAM_CODEC;
 
-    public record ShopOfferEntry(ItemStack result, int emeraldCount, ItemStack costB, boolean directPrice, String seriesName) {
+    /**
+     * One logical shop entry.
+     *
+     * For RCT trainer association trades, {@code seriesName} is the human‑readable series label
+     * (e.g. "Freeroam", "Radical Red") and {@code seriesTooltip} is the descriptive text that
+     * RCT normally shows in its own UI when you hover that series (looked up via their API).
+     */
+    public record ShopOfferEntry(ItemStack result,
+                                 int emeraldCount,
+                                 ItemStack costB,
+                                 boolean directPrice,
+                                 String seriesName,
+                                 String seriesTooltip) {
         public static final StreamCodec<RegistryFriendlyByteBuf, ShopOfferEntry> STREAM_CODEC =
                 StreamCodec.composite(
                         ITEM_STACK,
@@ -54,12 +66,15 @@ public final class CobbleDollarsShopPayloads {
                         ShopOfferEntry::directPrice,
                         ByteBufCodecs.STRING_UTF8,
                         ShopOfferEntry::seriesName,
-                        (result, emeraldCount, costB, directPrice, seriesName) -> new ShopOfferEntry(
+                        ByteBufCodecs.STRING_UTF8,
+                        ShopOfferEntry::seriesTooltip,
+                        (result, emeraldCount, costB, directPrice, seriesName, seriesTooltip) -> new ShopOfferEntry(
                                 Objects.requireNonNull(result),
                                 Objects.requireNonNull(emeraldCount),
                                 Objects.requireNonNull(costB),
                                 directPrice,
-                                seriesName != null ? seriesName : "")
+                                seriesName != null ? seriesName : "",
+                                seriesTooltip != null ? seriesTooltip : "")
                 );
 
         public boolean hasCostB() {

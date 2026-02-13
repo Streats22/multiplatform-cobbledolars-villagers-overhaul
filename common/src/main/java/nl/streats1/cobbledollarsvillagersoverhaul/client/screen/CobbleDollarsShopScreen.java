@@ -6,8 +6,10 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.world.entity.npc.Villager;
 import net.minecraft.world.entity.npc.WanderingTrader;
 import net.minecraft.world.item.ItemStack;
@@ -145,6 +147,8 @@ public class CobbleDollarsShopScreen extends Screen {
     private final boolean buyOffersFromConfig;
     private int selectedTab = 0;
     private int selectedIndex = -1;
+    private String selectedSeries = "";
+    private boolean showSeriesTooltip = false;
     private int scrollOffset = 0;
     private EditBox quantityBox;
     private Button actionButton;
@@ -453,7 +457,14 @@ public class CobbleDollarsShopScreen extends Screen {
                 guiGraphics.pose().popPose();
             } else if (selectedTab == 2 && !entry.seriesName().isEmpty()) {
                 // For trades tab, show series name instead of price
-                guiGraphics.drawString(font, entry.seriesName(), priceX, priceY, 0xFFFFFF00, false); // Yellow text for series name
+                guiGraphics.drawString(font, entry.seriesName(), priceX, priceY, 0xFFFFFF00, false);
+        // Series tooltip when hovering over series name
+        if (selectedTab == 2 && !entry.seriesName().isEmpty()) {
+            int seriesWidth = font.width(entry.seriesName());
+            if (mouseX >= priceX && mouseX <= priceX + seriesWidth && mouseY >= priceY - font.lineHeight && mouseY <= priceY) {
+                guiGraphics.renderTooltip(font, entry.seriesTooltip() != null ? Component.literal(entry.seriesTooltip()) : Component.empty(), mouseX, mouseY);
+            }
+        } // Yellow text for series name
             }
             if (!isSellTab()) {
                 ItemStack costB = costBStackFrom(entry);
@@ -617,9 +628,22 @@ public class CobbleDollarsShopScreen extends Screen {
                         int costBY = y + (listItemHeight - LIST_ITEM_ICON_SIZE) / 2 + LIST_ICON_OFFSET_Y;
                         int costBSize = Math.round(LIST_ITEM_ICON_SIZE * LIST_COSTB_SCALE);
                         
-                        if (mouseX >= costBX && mouseX < costBX + costBSize && 
+                        if (mouseX >= costBX && mouseX < costBX + costBSize &&
                             mouseY >= costBY && mouseY < costBY + costBSize) {
-                            guiGraphics.renderTooltip(font, costB, mouseX, mouseY);
+                            // For trades tab, prefer our own series tooltip built from RCT data.
+                            if (selectedTab == 2 && entry.seriesTooltip() != null && !entry.seriesTooltip().isEmpty()) {
+                                List<FormattedCharSequence> tooltipLines = new ArrayList<>();
+                                tooltipLines.add(Component.literal(entry.seriesName()).getVisualOrderText());
+                                // Split on explicit newlines if present to mimic multi‑line descriptions.
+                                for (String part : entry.seriesTooltip().split("\n")) {
+                                    if (part.isEmpty()) continue;
+                                    tooltipLines.add(Component.literal(part).withStyle(ChatFormatting.LIGHT_PURPLE, ChatFormatting.ITALIC).getVisualOrderText());
+                                }
+                                guiGraphics.renderTooltip(font, tooltipLines, mouseX, mouseY);
+                            } else {
+                                // Fallback: vanilla tooltip for the costB item.
+                                guiGraphics.renderTooltip(font, costB, mouseX, mouseY);
+                            }
                         }
                     }
                 }
@@ -794,6 +818,10 @@ public class CobbleDollarsShopScreen extends Screen {
                 selectedTab = 0;
                 var off = currentOffers();
                 selectedIndex = off.isEmpty() ? -1 : 0;
+                if (selectedTab == 2 && selectedIndex >=0) {
+                    CobbleDollarsShopPayloads.ShopOfferEntry selEntry = currentOffers().get(selectedIndex);
+                    selectedSeries = selEntry.seriesName();
+                }
                 scrollOffset = 0;
                 return true;
             }
@@ -801,6 +829,10 @@ public class CobbleDollarsShopScreen extends Screen {
                 selectedTab = 1;
                 var off = currentOffers();
                 selectedIndex = off.isEmpty() ? -1 : 0;
+                if (selectedTab == 2 && selectedIndex >=0) {
+                    CobbleDollarsShopPayloads.ShopOfferEntry selEntry = currentOffers().get(selectedIndex);
+                    selectedSeries = selEntry.seriesName();
+                }
                 scrollOffset = 0;
                 return true;
             }
@@ -808,6 +840,10 @@ public class CobbleDollarsShopScreen extends Screen {
                 selectedTab = 2;
                 var off = currentOffers();
                 selectedIndex = off.isEmpty() ? -1 : 0;
+                if (selectedTab == 2 && selectedIndex >=0) {
+                    CobbleDollarsShopPayloads.ShopOfferEntry selEntry = currentOffers().get(selectedIndex);
+                    selectedSeries = selEntry.seriesName();
+                }
                 scrollOffset = 0;
                 return true;
             }
@@ -822,6 +858,10 @@ public class CobbleDollarsShopScreen extends Screen {
             int y = listTop + i * listItemHeight;
             if (mouseX >= rowL && mouseX < rowR && mouseY >= y && mouseY < y + listItemHeight) {
                 selectedIndex = idx;
+                if (selectedTab == 2) {
+                    CobbleDollarsShopPayloads.ShopOfferEntry selEntry = currentOffers().get(idx);
+                    selectedSeries = selEntry.seriesName();
+                }
                 return true;
             }
         }

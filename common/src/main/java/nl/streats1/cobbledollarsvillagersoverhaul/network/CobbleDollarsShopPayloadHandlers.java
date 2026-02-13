@@ -166,44 +166,88 @@ public final class CobbleDollarsShopPayloadHandlers {
     }
     
     /**
-     * Get the player's available series by reading RCT series data files directly
-     * This reads from data/rctmod/series/ directory and works with datapacks
+     * Lightweight DTO for per‑series UI metadata.
      */
-    private static List<String> getPlayerAvailableSeries(ServerPlayer serverPlayer) {
-        List<String> availableSeries = new ArrayList<>();
-        
+    private record SeriesDisplay(String name, String tooltip) {}
+
+    /**
+     * Get the player's available series in the same way RCT's own UI does.
+     *
+     * Primary source: RCT API (TrainerManager / TrainerPlayerData#getAvailableSeries),
+     * so we only show series that are actually available to this player and use the
+     * proper display names and description text. If that fails for any reason, we
+     * fall back to reading series data files from data/rctmod/series to at least
+     * provide something sane.
+     */
+    private static List<SeriesDisplay> getPlayerAvailableSeries(ServerPlayer serverPlayer) {
+        List<SeriesDisplay> availableSeries = new ArrayList<>();
+
+        // Try via RCT API first – this should match the in‑game Trainer Association UI.
         try {
-            // Read series files from RCT mod data directory
-            // The series files are in data/rctmod/series/ directory
+            var rctModClass = Class.forName("com.gitlab.srcmc.rctmod.api.RCTMod");
+            var getInstanceMethod = rctModClass.getMethod("getInstance");
+            var rctModInstance = getInstanceMethod.invoke(null);
+
+            var trainerManagerClass = Class.forName("com.gitlab.srcmc.rctmod.api.service.TrainerManager");
+            var getTrainerManagerMethod = rctModClass.getMethod("getTrainerManager");
+            var trainerManager = getTrainerManagerMethod.invoke(rctModInstance);
+
+            var trainerPlayerDataClass = Class.forName("com.gitlab.srcmc.rctmod.api.data.save.TrainerPlayerData");
+            var getDataMethod = trainerManagerClass.getMethod("getData", Player.class);
+            var trainerPlayerData = getDataMethod.invoke(trainerManager, serverPlayer);
+
+            if (trainerPlayerData != null) {
+                try {
+                    var getAvailableSeriesMethod = trainerPlayerDataClass.getMethod("getAvailableSeries");
+                    var availableSeriesObj = getAvailableSeriesMethod.invoke(trainerPlayerData);
+
+                    if (availableSeriesObj instanceof Iterable<?> iterable) {
+                        for (Object seriesObj : iterable) {
+                            String displayName = getSeriesDisplayName(seriesObj);
+                            String tooltip = getSeriesTooltip(seriesObj);
+                            if (!displayName.isEmpty()) {
+                                availableSeries.add(new SeriesDisplay(displayName, tooltip));
+                            }
+                        }
+                    }
+
+                    LOGGER.info("Player has {} available series from RCT API: {}", availableSeries.size(), availableSeries.stream().map(SeriesDisplay::name).toList());
+                } catch (NoSuchMethodException e) {
+                    LOGGER.warn("RCT TrainerPlayerData#getAvailableSeries not found: {}", e.getMessage());
+                }
+            }
+        } catch (ClassNotFoundException e) {
+            // RCT not installed – nothing to do here, fall through to data‑file approach.
+            LOGGER.debug("RCT API classes not found, falling back to data files for series list");
+        } catch (Exception e) {
+            LOGGER.warn("Could not get player available series via RCT API: {}", e.getMessage());
+        }
+
+        if (!availableSeries.isEmpty()) {
+            return availableSeries;
+        }
+
+        // Fallback: read all series definitions from data files (not player‑specific).
+        try {
             var resourceManager = serverPlayer.serverLevel().getServer().getResourceManager();
-            
-            // Get all series files from rctmod namespace
+
             var seriesFiles = resourceManager.listResources("series", path -> path.getPath().endsWith(".json"));
-            
             for (var resourceLocation : seriesFiles.keySet()) {
-                if (resourceLocation.getNamespace().equals("rctmod")) {
-                    // Extract series name from filename (remove .json extension)
+                if ("rctmod".equals(resourceLocation.getNamespace())) {
                     String filename = resourceLocation.getPath();
                     if (filename.endsWith(".json") && filename.startsWith("series/")) {
-                        String seriesName = filename.substring(7, filename.length() - 5); // Remove "series/" prefix and ".json" suffix
-                        availableSeries.add(getSeriesDisplayName(seriesName));
+                        String seriesId = filename.substring(7, filename.length() - 5); // "series/" + id + ".json"
+                        String displayName = getSeriesDisplayName(seriesId);
+                        availableSeries.add(new SeriesDisplay(displayName, ""));
                     }
                 }
             }
-            
-            LOGGER.info("Read {} series from RCT data files: {}", availableSeries.size(), availableSeries);
-            
+
+            LOGGER.info("Read {} series from RCT data files as fallback: {}", availableSeries.size(), availableSeries.stream().map(SeriesDisplay::name).toList());
         } catch (Exception e) {
-            LOGGER.warn("Could not read RCT series data files: {}", e.getMessage());
+            LOGGER.warn("Could not read RCT series data files for fallback: {}", e.getMessage());
         }
-        
-        // If no series found, this is an error - RCT mod should have series files
-        if (availableSeries.isEmpty()) {
-            LOGGER.error("No series files found! RCT mod may not be installed correctly or data files are missing.");
-            // Return empty list to avoid showing invalid trades
-            return availableSeries;
-        }
-        
+
         return availableSeries;
     }
 
@@ -240,6 +284,52 @@ public final class CobbleDollarsShopPayloadHandlers {
         }
         
         return capitalizeSeriesName(seriesString);
+    }
+
+    /**
+     * Try to obtain a descriptive tooltip / info text for a series object, similar
+     * to what RCT shows when hovering a series in its own Trainer Association UI.
+     */
+    private static String getSeriesTooltip(Object seriesObj) {
+        if (seriesObj == null) return "";
+
+        try {
+            // First, look for an obvious "getDescription"/"getTooltip"/"getInfo" style method.
+            for (var method : seriesObj.getClass().getMethods()) {
+                if (method.getParameterCount() != 0) continue;
+                String name = method.getName().toLowerCase();
+                if (!(name.contains("description") || name.contains("tooltip") || name.contains("info"))) {
+                    continue;
+                }
+                try {
+                    Object val = method.invoke(seriesObj);
+                    if (val == null) continue;
+
+                    if (val instanceof net.minecraft.network.chat.Component comp) {
+                        return comp.getString();
+                    }
+                    if (val instanceof Iterable<?> iterable) {
+                        StringBuilder sb = new StringBuilder();
+                        for (Object o : iterable) {
+                            if (o instanceof net.minecraft.network.chat.Component c) {
+                                if (!sb.isEmpty()) sb.append("\n");
+                                sb.append(c.getString());
+                            }
+                        }
+                        if (!sb.isEmpty()) return sb.toString();
+                    }
+                    if (val instanceof String s) {
+                        return s;
+                    }
+                } catch (Exception ignored) {
+                    // Try the next candidate method.
+                }
+            }
+        } catch (Exception e) {
+            LOGGER.debug("Could not read series tooltip: {}", e.getMessage());
+        }
+
+        return "";
     }
 
     /**
@@ -342,22 +432,15 @@ public final class CobbleDollarsShopPayloadHandlers {
             LOGGER.info("Entity is RCTA trainer - entering RCTA processing branch");
             // RCTA trainers use custom MerchantOffers system - improved trade generation
             LOGGER.info("RCTA trainer detected: {} at position {}", entity.getClass().getSimpleName(), entity.position());
-            
-            // Try calling mobInteract to simulate player interaction (this should initialize offers)
-            try {
-                var mobInteractMethod = entity.getClass().getMethod("mobInteract", 
-                    net.minecraft.world.entity.player.Player.class, 
-                    net.minecraft.world.InteractionHand.class);
-                mobInteractMethod.setAccessible(true);
-                
-                // Create a fake interaction hand (MAIN_HAND)
-                var mainHand = net.minecraft.world.InteractionHand.class.getDeclaredField("MAIN_HAND").get(null);
-                
-                var result = mobInteractMethod.invoke(entity, serverPlayer, mainHand);
-                LOGGER.info("Called mobInteract, returned: {}", result);
-            } catch (Exception e) {
-                LOGGER.debug("Could not call mobInteract: {}", e.getMessage());
-            }
+            // IMPORTANT:
+            // Do NOT call mobInteract here – RCT's mobInteract implementation is responsible
+            // for opening its own trainer GUI / battle flow. Invoking it reflectively from
+            // our shop handler would cause the Radical Cobblemon Trainers UI to open on top
+            // of (or immediately after) our CobbleDollars shop screen, which results in the
+            // shop briefly flashing and then closing when talking to an RCT villager.
+            // We only need the trade offers, which can be generated via updateTrades /
+            // updateOffersFor and then read via itemOffers / getOffers(), without ever
+            // triggering RCT's UI side effects.
             
             // Try to initialize trainer card offers by calling updateTrades method
             try {
@@ -604,7 +687,8 @@ public final class CobbleDollarsShopPayloadHandlers {
                         result.getCount(),
                         ItemStack.EMPTY,
                         false,
-                        "" // No series name for sell offers
+                        "", // No series name for sell offers
+                        ""  // No tooltip for non‑series offers
                 ));
             }
         }
@@ -618,8 +702,9 @@ public final class CobbleDollarsShopPayloadHandlers {
         LOGGER.info("buildRctaOfferLists called with {} offers", allOffers.size());
         
         // Get player's available series for trade offers
-        List<String> availableSeries = getPlayerAvailableSeries(serverPlayer);
-        LOGGER.info("Player has {} available series for trades: {}", availableSeries.size(), availableSeries);
+        List<SeriesDisplay> availableSeries = getPlayerAvailableSeries(serverPlayer);
+        LOGGER.info("Player has {} available series for trades: {}", availableSeries.size(),
+                availableSeries.stream().map(SeriesDisplay::name).toList());
         
         int processed = 0;
         int tradeIndex = 0; // Track index within trade offers
@@ -646,11 +731,14 @@ public final class CobbleDollarsShopPayloadHandlers {
             // Check if this is a series switching offer (trainer card cost)
             boolean isSeriesTrade = isTrainerCard(costA.getItem()) && isTrainerCard(result.getItem());
             String seriesName = "";
+            String seriesTooltip = "";
             
             if (isSeriesTrade) {
                 // Assign series name based on trade index
                 if (tradeIndex < availableSeries.size()) {
-                    seriesName = availableSeries.get(tradeIndex);
+                    SeriesDisplay info = availableSeries.get(tradeIndex);
+                    seriesName = info.name();
+                    seriesTooltip = info.tooltip();
                     LOGGER.info("Assigned series '{}' to trade offer {}", seriesName, tradeIndex);
                 } else {
                     seriesName = "Unknown Series";
@@ -673,7 +761,8 @@ public final class CobbleDollarsShopPayloadHandlers {
                             costA.getCount(),
                             safeCostB,
                             false,
-                            "" // No series name for buy offers
+                            "", // No series name for buy offers
+                            ""  // No tooltip for non‑series offers
                     ));
                 }
                 
@@ -687,7 +776,8 @@ public final class CobbleDollarsShopPayloadHandlers {
                             result.getCount(),
                             ItemStack.EMPTY,
                             false,
-                            "" // No series name for sell offers
+                            "", // No series name for sell offers
+                            ""  // No tooltip for non‑series offers
                     ));
                 }
                 
@@ -709,7 +799,8 @@ public final class CobbleDollarsShopPayloadHandlers {
                             0, // 0 emeralds = item-for-item trade
                             safeCostA,
                             false,
-                            seriesName
+                            seriesName,
+                            seriesTooltip
                     ));
                     
                     if (isTrainerCardTrade) {
@@ -747,7 +838,8 @@ public final class CobbleDollarsShopPayloadHandlers {
                             costA.getCount(),
                             safeCostB,
                             false,
-                            "" // No series name for regular buy offers
+                            "", // No series name for regular buy offers
+                            ""  // No tooltip for non‑series offers
                     ));
                 }
                 continue;
@@ -760,7 +852,8 @@ public final class CobbleDollarsShopPayloadHandlers {
                             result.getCount(),
                             ItemStack.EMPTY,
                             false,
-                            "" // No series name for regular sell offers
+                            "", // No series name for regular sell offers
+                            ""  // No tooltip for non‑series offers
                     ));
                 }
             }
@@ -950,22 +1043,11 @@ public final class CobbleDollarsShopPayloadHandlers {
         } else if (RctTrainerAssociationCompat.isTrainerAssociation(entity)) {
             // RCTA trainers - ensure offers are initialized
             LOGGER.info("RCTA trade execution - ensuring offers are current");
-            
-            // Try calling mobInteract to simulate player interaction
-            try {
-                var mobInteractMethod = entity.getClass().getMethod("mobInteract", 
-                    net.minecraft.world.entity.player.Player.class, 
-                    net.minecraft.world.InteractionHand.class);
-                mobInteractMethod.setAccessible(true);
-                
-                var mainHand = net.minecraft.world.InteractionHand.class.getDeclaredField("MAIN_HAND").get(null);
-                var result = mobInteractMethod.invoke(entity, serverPlayer, mainHand);
-                LOGGER.info("Called mobInteract for trade execution: {}", result);
-            } catch (Exception e) {
-                LOGGER.debug("Could not call mobInteract in trade execution: {}", e.getMessage());
-            }
-            
-            // Call updateOffersFor to ensure current offers
+
+            // Call updateOffersFor to ensure current offers without triggering RCT's own UI.
+            // Calling mobInteract here would open the Radical Cobblemon Trainers GUI / battle
+            // flow on top of our CobbleDollars shop whenever a trade is executed. We only
+            // need the up-to-date MerchantOffers, which updateOffersFor provides.
             try {
                 var updateOffersForMethod = entity.getClass().getMethod("updateOffersFor", net.minecraft.world.entity.player.Player.class);
                 updateOffersForMethod.setAccessible(true);
