@@ -109,11 +109,10 @@ public final class CobbleDollarsShopPayloadHandlers {
                     } catch (Exception e) {
                         LOGGER.warn("Could not get available series: {}", e.getMessage());
                     }
-                    
-                    // Fallback: return a known valid series
-                    String fallbackSeries = "bdsp"; // Known valid series from logs
-                    LOGGER.info("Using fallback series: {}", fallbackSeries);
-                    return fallbackSeries;
+
+                    // Fallback: return null to indicate no series could be identified
+                    LOGGER.warn("Could not identify series - returning null, player will keep current series");
+                    return null;
                     
                 } catch (Exception e) {
                     LOGGER.warn("Could not get current series: {}", e.getMessage());
@@ -246,46 +245,12 @@ public final class CobbleDollarsShopPayloadHandlers {
                 }
             }
         } catch (ClassNotFoundException e) {
-            // RCT not installed – nothing to do here, fall through to data‑file approach.
             LOGGER.debug("RCT API classes not found, falling back to data files for series list");
         } catch (Exception e) {
             LOGGER.warn("Could not get player available series via RCT API: {}", e.getMessage());
         }
 
-        if (!availableSeries.isEmpty()) {
-            // Cache the result
-            SERIES_CACHE.put(serverPlayer.getUUID(), new SeriesCacheEntry(availableSeries));
-            return availableSeries;
-        }
-
-        // Fallback: read all series definitions from data files (not player‑specific).
-        try {
-            var resourceManager = serverPlayer.serverLevel().getServer().getResourceManager();
-
-            var seriesFiles = resourceManager.listResources("series", path -> path.getPath().endsWith(".json"));
-            for (var resourceLocation : seriesFiles.keySet()) {
-                if ("rctmod".equals(resourceLocation.getNamespace())) {
-                    String filename = resourceLocation.getPath();
-                    if (filename.endsWith(".json") && filename.startsWith("series/")) {
-                        String seriesId = filename.substring(7, filename.length() - 5); // "series/" + id + ".json"
-
-                        // Use translation keys - client will translate them
-                        String titleKey = "series.rctmod." + seriesId + ".title";
-                        String tooltipKey = "series.rctmod." + seriesId + ".description";
-                        // Try to get difficulty from series data file
-                        int difficulty = getSeriesDifficultyFromData(seriesId, serverPlayer);
-                        int completed = getSeriesCompletedFromData(seriesId, serverPlayer);
-                        availableSeries.add(new SeriesDisplay(seriesId, titleKey, tooltipKey, difficulty, completed));
-                    }
-                }
-            }
-
-            LOGGER.info("Read {} series from RCT data files as fallback: {}", availableSeries.size(), availableSeries.stream().map(SeriesDisplay::title).toList());
-        } catch (Exception e) {
-            LOGGER.warn("Could not read RCT series data files for fallback: {}", e.getMessage());
-        }
-
-        // Cache the result even if empty or from fallback
+        // Cache result even if empty
         SERIES_CACHE.put(serverPlayer.getUUID(), new SeriesCacheEntry(availableSeries));
         return availableSeries;
     }

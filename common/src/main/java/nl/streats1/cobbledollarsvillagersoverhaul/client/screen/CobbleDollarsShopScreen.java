@@ -1,5 +1,6 @@
 package nl.streats1.cobbledollarsvillagersoverhaul.client.screen;
 
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
@@ -492,6 +493,12 @@ public class CobbleDollarsShopScreen extends Screen {
                     tooltipComponents.add(net.minecraft.network.chat.Component.translatable("gui.rctmod.trainer_association.important")
                             .withStyle(net.minecraft.ChatFormatting.RED, net.minecraft.ChatFormatting.BOLD));
 
+                    // Series reset warning (italic RED) - split into 2 lines
+                    tooltipComponents.add(net.minecraft.network.chat.Component.translatable("gui.cobbledollars_villagers_overhaul_rca.series_reset_1")
+                            .withStyle(ChatFormatting.RED, net.minecraft.ChatFormatting.ITALIC));
+                    tooltipComponents.add(net.minecraft.network.chat.Component.translatable("gui.cobbledollars_villagers_overhaul_rca.series_reset_2")
+                            .withStyle(ChatFormatting.RED, net.minecraft.ChatFormatting.ITALIC));
+
                     // Difficulty with stars (like RCT does: ★★★☆☆ or ★★☆)
                     // Difficulty is 1-10, but we display 5 stars max, so divide by 2
                     // Half stars supported: difficulty 5 = 2.5 stars
@@ -503,7 +510,7 @@ public class CobbleDollarsShopScreen extends Screen {
                         if (difficulty / 2f >= star + 1) {
                             stars.append("\u2605"); // ★ Full star
                         } else if (difficulty / 2f >= star + 0.5f) {
-                            stars.append("\u2afa"); // ⯪ Half star
+                            stars.append("\u2b50"); // ⯪ Half star
                         } else {
                             stars.append("\u2606"); // ☆ Empty star
                         }
@@ -707,6 +714,13 @@ public class CobbleDollarsShopScreen extends Screen {
                                 if (entry.seriesTooltip() != null && !entry.seriesTooltip().isEmpty()) {
                                     tooltipLines.add(net.minecraft.network.chat.Component.translatable(entry.seriesTooltip()).withStyle(net.minecraft.ChatFormatting.LIGHT_PURPLE, net.minecraft.ChatFormatting.ITALIC).getVisualOrderText());
                                 }
+                                // Empty line
+                                tooltipLines.add(net.minecraft.network.chat.Component.literal("").getVisualOrderText());
+                                // Important label (red)
+                                tooltipLines.add(net.minecraft.network.chat.Component.translatable("gui.rctmod.trainer_association.important").withStyle(net.minecraft.ChatFormatting.RED, net.minecraft.ChatFormatting.BOLD).getVisualOrderText());
+                                // Series reset warning (italic gray) - split into 2 lines
+                                tooltipLines.add(net.minecraft.network.chat.Component.translatable("gui.cobbledollars_villagers_overhaul_rca.series_reset_1").withStyle(net.minecraft.ChatFormatting.GRAY, net.minecraft.ChatFormatting.ITALIC).getVisualOrderText());
+                                tooltipLines.add(net.minecraft.network.chat.Component.translatable("gui.cobbledollars_villagers_overhaul_rca.series_reset_2").withStyle(net.minecraft.ChatFormatting.GRAY, net.minecraft.ChatFormatting.ITALIC).getVisualOrderText());
                                 guiGraphics.renderTooltip(font, tooltipLines, mouseX, mouseY);
                             } else {
                                 // Fallback: vanilla tooltip for the costB item.

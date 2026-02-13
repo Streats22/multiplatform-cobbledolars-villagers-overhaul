@@ -7,5 +7,7 @@
   "gui.cobbledollars_villagers_overhaul_rca.trades": "Trades",
   "gui.cobbledollars_villagers_overhaul_rca.trainer_association": "Trainer Association",
   "gui.cobbledollars_villagers_overhaul_rca.no_trades": "No Trades",
-  "gui.cobbledollars_villagers_overhaul_rca.no_trades_line2": "Available"
+  "gui.cobbledollars_villagers_overhaul_rca.no_trades_line2": "Available",
+  "gui.cobbledollars_villagers_overhaul_rca.series_reset_1": "Starting a new series will reset your progress!",
+  "gui.cobbledollars_villagers_overhaul_rca.series_reset_2": "Completing a series permanently increases luck."
 }

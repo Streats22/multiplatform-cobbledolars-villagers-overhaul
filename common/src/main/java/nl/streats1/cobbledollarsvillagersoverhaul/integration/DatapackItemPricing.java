@@ -24,7 +24,6 @@ public class DatapackItemPricing {
 
     /**
      * Initialize the pricing system with custom prices from config
-     *
      * @param jsonConfig JSON string containing custom item prices in format: {"minecraft:diamond": 100, "minecraft:iron_ingot": 10}
      */
     public static void loadCustomPrices(String jsonConfig) {
@@ -95,8 +94,8 @@ public class DatapackItemPricing {
             return customPrices.get(itemId);
         }
 
-        // Default fallback price - adjusted to be higher as requested
-        return 2;
+        // Default fallback price
+        return 1;
     }
 
     /**
