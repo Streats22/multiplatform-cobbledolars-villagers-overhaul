@@ -53,13 +53,24 @@ public final class CobbleDollarsShopPayloads {
                 new StreamCodec<>() {
                     @Override
                     public void encode(RegistryFriendlyByteBuf buf, ShopOfferEntry entry) {
-                        ITEM_STACK.encode(buf, entry.result());
+                        // Defensive null checks for encoding
+                        ItemStack result = entry.result();
+                        if (result == null || result.isEmpty()) result = new ItemStack(Items.BREAD);
+
+                        ItemStack costB = entry.costB();
+                        // If costB is null or empty, use a placeholder item that we'll detect on decode
+                        // Using STONE with count 1 as a sentinel value for "no costB"
+                        if (costB == null || costB.isEmpty() || costB.is(Items.AIR)) {
+                            costB = new ItemStack(Items.STONE);  // Sentinel value
+                        }
+
+                        ITEM_STACK.encode(buf, result);
                         VAR_INT.encode(buf, entry.emeraldCount());
-                        ITEM_STACK.encode(buf, entry.costB());
+                        ITEM_STACK.encode(buf, costB);
                         BOOL.encode(buf, entry.directPrice());
-                        STRING_UTF8.encode(buf, entry.seriesId());
-                        STRING_UTF8.encode(buf, entry.seriesName());
-                        STRING_UTF8.encode(buf, entry.seriesTooltip());
+                        STRING_UTF8.encode(buf, entry.seriesId() != null ? entry.seriesId() : "");
+                        STRING_UTF8.encode(buf, entry.seriesName() != null ? entry.seriesName() : "");
+                        STRING_UTF8.encode(buf, entry.seriesTooltip() != null ? entry.seriesTooltip() : "");
                         buf.writeFloat(entry.seriesDifficulty());
                         VAR_INT.encode(buf, entry.seriesCompleted());
                     }
@@ -69,6 +80,10 @@ public final class CobbleDollarsShopPayloads {
                         ItemStack result = ITEM_STACK.decode(buf);
                         int emeraldCount = VAR_INT.decode(buf);
                         ItemStack costB = ITEM_STACK.decode(buf);
+                        // Check for sentinel value (STONE with count 1 means "no costB")
+                        if (costB != null && costB.is(Items.STONE) && costB.getCount() == 1) {
+                            costB = ItemStack.EMPTY;
+                        }
                         boolean directPrice = BOOL.decode(buf);
                         String seriesId = STRING_UTF8.decode(buf);
                         String seriesName = STRING_UTF8.decode(buf);

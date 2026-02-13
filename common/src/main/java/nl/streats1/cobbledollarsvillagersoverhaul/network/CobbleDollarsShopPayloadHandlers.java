@@ -853,9 +853,14 @@ public final class CobbleDollarsShopPayloadHandlers {
         if (entity instanceof WanderingTrader trader) {
             buildSellOffersOnly(trader.getOffers(), sellOffers);
         }
+        // Final defensive checks before sending
+        List<CobbleDollarsShopPayloads.ShopOfferEntry> safeBuyOffers = buyOffers != null ? buyOffers : List.of();
+        List<CobbleDollarsShopPayloads.ShopOfferEntry> safeSellOffers = sellOffers != null ? sellOffers : List.of();
+        List<CobbleDollarsShopPayloads.ShopOfferEntry> safeTradesOffers = tradesOffers != null ? tradesOffers : List.of();
+        
         try {
             PlatformNetwork.sendToPlayer(serverPlayer,
-                    new CobbleDollarsShopPayloads.ShopData(villagerId, balance, buyOffers, sellOffers, tradesOffers, buyOffersFromConfig));
+                    new CobbleDollarsShopPayloads.ShopData(villagerId, balance, safeBuyOffers, safeSellOffers, safeTradesOffers, buyOffersFromConfig));
             LOGGER.info("Sent shop data to player {}: villager={}, buyOffers={}, sellOffers={}, tradesOffers={}, fromConfig={}", 
                 serverPlayer.getName().getString(), villagerId, buyOffers.size(), sellOffers.size(), tradesOffers.size(), buyOffersFromConfig);
         } catch (Exception e) {
