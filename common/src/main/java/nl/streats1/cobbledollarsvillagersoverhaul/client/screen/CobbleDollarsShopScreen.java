@@ -13,6 +13,7 @@ import net.minecraft.world.entity.npc.Villager;
 import net.minecraft.world.entity.npc.WanderingTrader;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import nl.streats1.cobbledollarsvillagersoverhaul.Config;
 import nl.streats1.cobbledollarsvillagersoverhaul.client.screen.widget.InvisibleButton;
 import nl.streats1.cobbledollarsvillagersoverhaul.client.screen.widget.TextureOnlyButton;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.CobbleDollarsConfigHelper;
@@ -532,9 +533,20 @@ public class CobbleDollarsShopScreen extends Screen {
                     guiGraphics.pose().scale(plusScale, plusScale, 1.0f);
                     int plusDrawX = Math.round((costBX - 2) / plusScale);
                     int plusDrawY = Math.round((textY + PRICE_TEXT_OFFSET_Y) / plusScale);
-                    // Use "->" for trades tab, "+" for buy tab
-                    String separator = (selectedTab == 2) ? "->" : "+";
-                    guiGraphics.drawString(font, separator, plusDrawX, plusDrawY, 0xFFAAAAAA, false);
+
+                    if (selectedTab == 2) {
+                        // Use arrow character for trades tab instead of text - more like vanilla GUI
+                        guiGraphics.pose().popPose();
+                        guiGraphics.pose().pushPose();
+                        float arrowScale = hasCostB ? LIST_COSTB_PLUS_SCALE : LIST_TEXT_SCALE;
+                        guiGraphics.pose().scale(arrowScale, arrowScale, 1.0f);
+                        int arrowDrawX = Math.round((costBX - 2) / arrowScale);
+                        int arrowDrawY = Math.round((textY + PRICE_TEXT_OFFSET_Y - 8) / arrowScale);
+                        guiGraphics.drawString(font, "→", arrowDrawX, arrowDrawY, 0xFFAAAAAA, false);
+                    } else {
+                        // Use "+" for buy/sell tabs
+                        guiGraphics.drawString(font, "+", plusDrawX, plusDrawY, 0xFFAAAAAA, false);
+                    }
                     guiGraphics.pose().popPose();
                     guiGraphics.pose().pushPose();
                     guiGraphics.pose().scale(costBScale, costBScale, 1.0f);
@@ -792,12 +804,12 @@ public class CobbleDollarsShopScreen extends Screen {
         }
         if (entity instanceof WanderingTrader) {
             // Check if it's an RCT trainer association
-            if (RctTrainerAssociationCompat.isTrainerAssociation(entity)) {
+            if (Config.USE_RCT_TRADES_OVERHAUL && RctTrainerAssociationCompat.isTrainerAssociation(entity)) {
                 return Component.translatable("gui.cobbledollars_villagers_overhaul_rca.trainer_association");
             }
             return Component.translatable("entity.minecraft.wandering_trader");
         }
-        if (RctTrainerAssociationCompat.isTrainerAssociation(entity)) {
+        if (Config.USE_RCT_TRADES_OVERHAUL && RctTrainerAssociationCompat.isTrainerAssociation(entity)) {
             return Component.translatable("gui.cobbledollars_villagers_overhaul_rca.trainer_association");
         }
         return Component.empty();

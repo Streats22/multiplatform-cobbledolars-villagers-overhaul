@@ -1,8 +1,6 @@
 package nl.streats1.cobbledollarsvillagersoverhaul;
 
 import com.mojang.logging.LogUtils;
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.npc.Villager;
 import net.minecraft.world.entity.npc.VillagerProfession;
@@ -11,8 +9,6 @@ import nl.streats1.cobbledollarsvillagersoverhaul.integration.CobbleDollarsInteg
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.RctTrainerAssociationCompat;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.VillagerCobbleDollarsHandler;
 import nl.streats1.cobbledollarsvillagersoverhaul.network.CobbleDollarsShopPayloadHandlers;
-import nl.streats1.cobbledollarsvillagersoverhaul.network.CobbleDollarsShopPayloads;
-import nl.streats1.cobbledollarsvillagersoverhaul.platform.PlatformNetwork;
 import org.slf4j.Logger;
 
 public class CobbleDollarsVillagersOverhaulRca {
@@ -29,15 +25,12 @@ public class CobbleDollarsVillagersOverhaulRca {
         if (!Config.USE_COBBLEDOLLARS_SHOP_UI || !CobbleDollarsIntegration.isModLoaded()) return false;
 
         if (RctTrainerAssociationCompat.isTrainerAssociation(target)) {
-            // For Radical Cobblemon Trainer Association NPCs, default behaviour should remain RCT's own UI.
-            // To avoid fighting over the screen (their association trades vs our CobbleDollars shop),
-            // only override when the player is sneaking (shift‑right‑click).
-            if (!isSneaking) {
-                // Let RCT handle normal right‑clicks completely.
+            // If RCT trades overhaul is disabled in config, let RCT handle everything
+            if (!Config.USE_RCT_TRADES_OVERHAUL) {
                 return false;
             }
 
-            // Sneak‑right‑click: explicitly open our CobbleDollars shop instead of RCT's UI.
+            // Open our CobbleDollars shop instead of RCT's UI.
             cancelAction.run();
             return true;
         }

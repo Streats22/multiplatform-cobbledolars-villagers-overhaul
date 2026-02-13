@@ -644,7 +644,7 @@ public final class CobbleDollarsShopPayloadHandlers {
             LOGGER.info("Entity is Villager, processing villager trades");
             allOffers = villager.getOffers();
             buildOfferLists(allOffers, buyOffers, sellOffers);
-        } else if (RctTrainerAssociationCompat.isTrainerAssociation(entity)) {
+        } else if (Config.USE_RCT_TRADES_OVERHAUL && RctTrainerAssociationCompat.isTrainerAssociation(entity)) {
             LOGGER.info("Entity is RCTA trainer - entering RCTA processing branch");
             // RCTA trainers use custom MerchantOffers system - improved trade generation
             LOGGER.info("RCTA trainer detected: {} at position {}", entity.getClass().getSimpleName(), entity.position());
@@ -836,8 +836,8 @@ public final class CobbleDollarsShopPayloadHandlers {
             LOGGER.info("Entity {} is not a supported type", entity.getClass().getSimpleName());
             return;
         }
-        
-        // Only show config offers if RCTA trainer had no offers at all
+
+        // Only show config offers if the entity had no offers at all
         // This supports villagers from datapacks like CobbleTowns that have predetermined trades
         // that don't use emeralds (e.g., item-for-item trades)
         if (buyOffers.isEmpty() && sellOffers.isEmpty() && tradesOffers.isEmpty() && !RctTrainerAssociationCompat.isTrainerAssociation(entity)) {
