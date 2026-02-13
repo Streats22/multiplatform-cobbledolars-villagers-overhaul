@@ -104,7 +104,7 @@ public final class CobbleDollarsConfigHelper {
                                 if (id == null) continue;
                                 var item = BuiltInRegistries.ITEM.get(id);
                                 if (item == null || item == Items.AIR) continue;
-                                out.add(new CobbleDollarsShopPayloads.ShopOfferEntry(new ItemStack(item, 1), price, empty, true, "", "", ""));
+                                out.add(new CobbleDollarsShopPayloads.ShopOfferEntry(new ItemStack(item, 1), price, empty, true, "", "", "", 0, 0));
                             }
                         }
                     }
@@ -122,7 +122,7 @@ public final class CobbleDollarsConfigHelper {
                         if (id == null) continue;
                         var item = BuiltInRegistries.ITEM.get(id);
                         if (item == null || item == Items.AIR) continue;
-                        out.add(new CobbleDollarsShopPayloads.ShopOfferEntry(new ItemStack(item, 1), price, empty, true, "", "", ""));
+                        out.add(new CobbleDollarsShopPayloads.ShopOfferEntry(new ItemStack(item, 1), price, empty, true, "", "", "", 0, 0));
                     }
                 }
             }

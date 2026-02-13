@@ -183,7 +183,7 @@ public final class CobbleDollarsShopPayloadHandlers {
     /**
      * Lightweight DTO for per‑series UI metadata.
      */
-    private record SeriesDisplay(String id, String title, String tooltip) {
+    private record SeriesDisplay(String id, String title, String tooltip, int difficulty, int completed) {
     }
 
     /**
@@ -232,7 +232,10 @@ public final class CobbleDollarsShopPayloadHandlers {
                                 // Use translation keys - client will translate them
                                 String titleKey = "series.rctmod." + seriesId + ".title";
                                 String tooltipKey = "series.rctmod." + seriesId + ".description";
-                                availableSeries.add(new SeriesDisplay(seriesId, titleKey, tooltipKey));
+                                // Try to get difficulty and completed count from series metadata
+                                int difficulty = getSeriesDifficulty(seriesObj);
+                                int completed = getSeriesCompletedCount(trainerPlayerData, seriesId);
+                                availableSeries.add(new SeriesDisplay(seriesId, titleKey, tooltipKey, difficulty, completed));
                             }
                         }
                     }
@@ -269,7 +272,10 @@ public final class CobbleDollarsShopPayloadHandlers {
                         // Use translation keys - client will translate them
                         String titleKey = "series.rctmod." + seriesId + ".title";
                         String tooltipKey = "series.rctmod." + seriesId + ".description";
-                        availableSeries.add(new SeriesDisplay(seriesId, titleKey, tooltipKey));
+                        // Try to get difficulty from series data file
+                        int difficulty = getSeriesDifficultyFromData(seriesId, serverPlayer);
+                        int completed = getSeriesCompletedFromData(seriesId, serverPlayer);
+                        availableSeries.add(new SeriesDisplay(seriesId, titleKey, tooltipKey, difficulty, completed));
                     }
                 }
             }
@@ -413,6 +419,133 @@ public final class CobbleDollarsShopPayloadHandlers {
         }
 
         return "";
+    }
+
+    /**
+     * Get the difficulty rating from a series object.
+     */
+    private static int getSeriesDifficulty(Object seriesObj) {
+        if (seriesObj == null) return 5; // Default difficulty
+
+        try {
+            // Try to get difficulty using getDifficulty() method
+            var getDifficultyMethod = seriesObj.getClass().getMethod("getDifficulty");
+            var difficulty = getDifficultyMethod.invoke(seriesObj);
+            if (difficulty instanceof Integer) {
+                return (Integer) difficulty;
+            }
+            if (difficulty instanceof Number) {
+                return ((Number) difficulty).intValue();
+            }
+        } catch (Exception e) {
+            // Try other methods
+        }
+
+        try {
+            // Try to get from metadata
+            var getMetaDataMethod = seriesObj.getClass().getMethod("getMetaData");
+            var metadata = getMetaDataMethod.invoke(seriesObj);
+            if (metadata != null) {
+                var getDifficultyMethod = metadata.getClass().getMethod("difficulty");
+                var difficulty = getDifficultyMethod.invoke(metadata);
+                if (difficulty instanceof Integer) {
+                    return (Integer) difficulty;
+                }
+                if (difficulty instanceof Number) {
+                    return ((Number) difficulty).intValue();
+                }
+            }
+        } catch (Exception e) {
+            LOGGER.debug("Could not get difficulty from metadata: {}", e.getMessage());
+        }
+
+        return 5; // Default difficulty
+    }
+
+    /**
+     * Get the difficulty from series data files.
+     */
+    private static int getSeriesDifficultyFromData(String seriesId, ServerPlayer serverPlayer) {
+        try {
+            var resourceManager = serverPlayer.serverLevel().getServer().getResourceManager();
+            var resourceLocation = net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("rctmod", "series/" + seriesId + ".json");
+
+            var resource = resourceManager.getResource(resourceLocation);
+            if (resource.isPresent()) {
+                try (var reader = new java.io.BufferedReader(new java.io.InputStreamReader(resource.get().open()))) {
+                    com.google.gson.JsonElement jsonElement = com.google.gson.JsonParser.parseReader(reader);
+                    if (jsonElement != null && jsonElement.isJsonObject()) {
+                        var json = jsonElement.getAsJsonObject();
+                        if (json.has("difficulty")) {
+                            return json.get("difficulty").getAsInt();
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            LOGGER.debug("Could not read series difficulty from data: {}", e.getMessage());
+        }
+        return 5; // Default difficulty
+    }
+
+    /**
+     * Get the completed count from player data.
+     */
+    private static int getSeriesCompletedCount(Object trainerPlayerData, String seriesId) {
+        if (trainerPlayerData == null || seriesId == null) return 0;
+
+        try {
+            // Try to get completed count via getCompletedCount method
+            var method = trainerPlayerData.getClass().getMethod("getCompletedCount", String.class);
+            var result = method.invoke(trainerPlayerData, seriesId);
+            if (result instanceof Integer) {
+                return (Integer) result;
+            }
+            if (result instanceof Number) {
+                return ((Number) result).intValue();
+            }
+        } catch (Exception e) {
+            LOGGER.debug("Could not get completed count via getCompletedCount(String): {}", e.getMessage());
+        }
+
+        try {
+            // Try getCompleted method
+            var method = trainerPlayerData.getClass().getMethod("getCompleted", String.class);
+            var result = method.invoke(trainerPlayerData, seriesId);
+            if (result instanceof Boolean) {
+                return ((Boolean) result) ? 1 : 0;
+            }
+        } catch (Exception e) {
+            LOGGER.debug("Could not get completed count via getCompleted(String): {}", e.getMessage());
+        }
+
+        try {
+            // Try getCompletedSeries method that returns a list/set
+            var method = trainerPlayerData.getClass().getMethod("getCompletedSeries");
+            var result = method.invoke(trainerPlayerData);
+            if (result instanceof Iterable<?>) {
+                int count = 0;
+                for (Object obj : (Iterable<?>) result) {
+                    if (obj != null && obj.toString().equalsIgnoreCase(seriesId)) {
+                        count++;
+                    }
+                }
+                return count;
+            }
+        } catch (Exception e) {
+            LOGGER.debug("Could not get completed series: {}", e.getMessage());
+        }
+
+        return 0;
+    }
+
+    /**
+     * Get the completed count from series data files (fallback).
+     */
+    private static int getSeriesCompletedFromData(String seriesId, ServerPlayer serverPlayer) {
+        // This would need player save data which we don't have access to in the fallback
+        // Return 0 for now - in a real implementation you'd read from player data files
+        return 0;
     }
 
     /**
@@ -772,7 +905,9 @@ public final class CobbleDollarsShopPayloadHandlers {
                         false,
                         "", // No series ID
                         "", // No series name for sell offers
-                        ""  // No tooltip for non‑series offers
+                        "",  // No tooltip for non‑series offers
+                        0,
+                        0
                 ));
             }
         }
@@ -817,6 +952,8 @@ public final class CobbleDollarsShopPayloadHandlers {
             String seriesId = "";
             String seriesName = "";
             String seriesTooltip = "";
+            int seriesDifficulty = 5;
+            int seriesCompleted = 0;
             
             if (isSeriesTrade) {
                 // Assign series name based on trade index
@@ -826,7 +963,9 @@ public final class CobbleDollarsShopPayloadHandlers {
                     seriesId = info.id();
                     seriesName = info.title();
                     seriesTooltip = info.tooltip();
-                    LOGGER.info("Assigned series '{}' (Title: {}) to trade offer {}", info.id(), info.title(), tradeIndex);
+                    seriesDifficulty = info.difficulty();
+                    seriesCompleted = info.completed();
+                    LOGGER.info("Assigned series '{}' (Title: {}, Difficulty: {}, Completed: {}) to trade offer {}", info.id(), info.title(), info.difficulty(), info.completed(), tradeIndex);
                 } else {
                     seriesName = "Unknown Series";
                     LOGGER.warn("No available series for trade offer {}", tradeIndex);
@@ -850,7 +989,9 @@ public final class CobbleDollarsShopPayloadHandlers {
                             false,
                             "", // No series ID for buy offers
                             "", // No series name for buy offers
-                            ""  // No tooltip for non‑series offers
+                            "",  // No tooltip for non‑series offers
+                            0,   // No difficulty for non-series offers
+                            0    // No completed count for non-series offers
                     ));
                 }
                 
@@ -866,11 +1007,11 @@ public final class CobbleDollarsShopPayloadHandlers {
                             false,
                             "", // No series ID for sell offers
                             "", // No series name for sell offers
-                            ""  // No tooltip for non‑series offers
+                            "",  // No tooltip for non‑series offers
+                            0,   // No difficulty for non-series offers
+                            0    // No completed count for non-series offers
                     ));
                 }
-                
-                // DO NOT add to sell tab - we don't want to show trainer card → emerald
             } else if (!costA.isEmpty() && !result.isEmpty() && 
                        !costA.is(Items.EMERALD) && !result.is(Items.EMERALD)) {
                 // Item-for-item trade (no emeralds) - includes trainer card → series item
@@ -890,7 +1031,9 @@ public final class CobbleDollarsShopPayloadHandlers {
                             false,
                             seriesId,
                             seriesName,
-                            seriesTooltip
+                            seriesTooltip,
+                            seriesDifficulty,
+                            seriesCompleted
                     ));
                     
                     if (isTrainerCardTrade) {
@@ -930,7 +1073,9 @@ public final class CobbleDollarsShopPayloadHandlers {
                             false,
                             "",
                             "",
-                            ""
+                            "",
+                            0,
+                            0
                     ));
                 }
                 continue;
@@ -945,7 +1090,9 @@ public final class CobbleDollarsShopPayloadHandlers {
                             false,
                             "",
                             "",
-                            ""
+                            "",
+                            0,
+                            0
                     ));
                 }
             }

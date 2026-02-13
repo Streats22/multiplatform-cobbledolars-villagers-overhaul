@@ -461,22 +461,57 @@ public class CobbleDollarsShopScreen extends Screen {
                 guiGraphics.drawString(font, priceStr, priceDrawX, priceDrawY, priceColor, false);
                 guiGraphics.pose().popPose();
             }
-            // For trades tab, display series name (yellow) and show tooltip on hover
+            // For trades tab, show tooltip on hover with series info
             if (selectedTab == 2 && !entry.seriesName().isEmpty()) {
-                // Draw series name in yellow using translatable key
-                net.minecraft.network.chat.Component seriesTitle = net.minecraft.network.chat.Component.translatable(entry.seriesName());
-                guiGraphics.drawString(font, seriesTitle.getString(), priceX, priceY, 0xFFFFFF00, false);
-
+                // Check if mouse is hovering over where the series would be displayed (use price area)
                 // Show tooltip on hover
-                int seriesWidth = font.width(seriesTitle.getString());
-                if (mouseX >= priceX && mouseX <= priceX + seriesWidth && mouseY >= priceY - font.lineHeight && mouseY <= priceY) {
-                    // Build tooltip with title (yellow) and description (light purple)
+                if (mouseX >= priceX && mouseX <= priceX + 60 && mouseY >= priceY - font.lineHeight && mouseY <= priceY + font.lineHeight) {
+                    // Build enhanced tooltip matching RCT style:
+                    // - Title (yellow)
+                    // - Description (light purple)
+                    // - Important message (from translation)
+                    // - Difficulty stars
+                    // - Series continue notice
                     java.util.List<net.minecraft.network.chat.Component> tooltipComponents = new java.util.ArrayList<>();
-                    tooltipComponents.add(net.minecraft.network.chat.Component.translatable(entry.seriesName()).withStyle(net.minecraft.ChatFormatting.YELLOW));
+
+                    // Title in yellow
+                    tooltipComponents.add(net.minecraft.network.chat.Component.translatable(entry.seriesName())
+                            .withStyle(net.minecraft.ChatFormatting.YELLOW));
+
+                    // Description in light purple/italic
                     if (entry.seriesTooltip() != null && !entry.seriesTooltip().isEmpty()) {
-                        tooltipComponents.add(net.minecraft.network.chat.Component.translatable(entry.seriesTooltip()).withStyle(net.minecraft.ChatFormatting.LIGHT_PURPLE, net.minecraft.ChatFormatting.ITALIC));
+                        tooltipComponents.add(net.minecraft.network.chat.Component.translatable(entry.seriesTooltip())
+                                .withStyle(net.minecraft.ChatFormatting.LIGHT_PURPLE, net.minecraft.ChatFormatting.ITALIC));
                     }
-                    // Convert to FormattedCharSequence list
+
+                    // Empty line
+                    tooltipComponents.add(net.minecraft.network.chat.Component.literal(""));
+
+                    // Important label (red)
+                    tooltipComponents.add(net.minecraft.network.chat.Component.translatable("gui.rctmod.trainer_association.important")
+                            .withStyle(net.minecraft.ChatFormatting.RED, net.minecraft.ChatFormatting.BOLD));
+
+                    // Difficulty with stars (like RCT does: ★★★☆☆ or ★★☆)
+                    // Difficulty is 1-10, but we display 5 stars max, so divide by 2
+                    // Half stars supported: difficulty 5 = 2.5 stars
+                    float difficulty = entry.seriesDifficulty();
+                    int maxStars = 5;
+                    StringBuilder stars = new StringBuilder();
+                    for (int star = 0; star < maxStars; star++) {
+                        float starThreshold = star + 0.5f; // 0.5, 1.5, 2.5, 3.5, 4.5
+                        if (difficulty / 2f >= star + 1) {
+                            stars.append("\u2605"); // ★ Full star
+                        } else if (difficulty / 2f >= star + 0.5f) {
+                            stars.append("\u2afa"); // ⯪ Half star
+                        } else {
+                            stars.append("\u2606"); // ☆ Empty star
+                        }
+                    }
+                    String difficultyText = net.minecraft.network.chat.Component.translatable("gui.rctmod.trainer_association.difficulty").getString() + ": " + stars.toString();
+                    tooltipComponents.add(net.minecraft.network.chat.Component.literal(difficultyText)
+                            .withStyle(net.minecraft.ChatFormatting.GOLD));
+
+                    // Convert to FormattedCharSequence list for renderTooltip
                     List<FormattedCharSequence> tooltipLines = new ArrayList<>();
                     for (net.minecraft.network.chat.Component c : tooltipComponents) {
                         tooltipLines.add(c.getVisualOrderText());

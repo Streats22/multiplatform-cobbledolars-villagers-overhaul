@@ -37,6 +37,8 @@ public final class CobbleDollarsShopPayloads {
      * - {@code seriesId} is the series identifier (e.g. "bdsp", "radicalred") for server communication
      * - {@code seriesName} is the translatable key for the title (e.g. "series.rctmod.bdsp.title")
      * - {@code seriesTooltip} is the translatable key for the description (e.g. "series.rctmod.bdsp.description")
+     * - {@code seriesDifficulty} is the difficulty rating (can be fractional for half stars, e.g. 4.5)
+     * - {@code seriesCompleted} is the number of times the player has completed this series
      */
     public record ShopOfferEntry(ItemStack result,
                                  int emeraldCount,
@@ -44,7 +46,9 @@ public final class CobbleDollarsShopPayloads {
                                  boolean directPrice,
                                  String seriesId,
                                  String seriesName,
-                                 String seriesTooltip) {
+                                 String seriesTooltip,
+                                 float seriesDifficulty,
+                                 int seriesCompleted) {
         public static final StreamCodec<RegistryFriendlyByteBuf, ShopOfferEntry> STREAM_CODEC =
                 new StreamCodec<>() {
                     @Override
@@ -56,6 +60,8 @@ public final class CobbleDollarsShopPayloads {
                         STRING_UTF8.encode(buf, entry.seriesId());
                         STRING_UTF8.encode(buf, entry.seriesName());
                         STRING_UTF8.encode(buf, entry.seriesTooltip());
+                        buf.writeFloat(entry.seriesDifficulty());
+                        VAR_INT.encode(buf, entry.seriesCompleted());
                     }
 
                     @Override
@@ -67,6 +73,8 @@ public final class CobbleDollarsShopPayloads {
                         String seriesId = STRING_UTF8.decode(buf);
                         String seriesName = STRING_UTF8.decode(buf);
                         String seriesTooltip = STRING_UTF8.decode(buf);
+                        float seriesDifficulty = buf.readFloat();
+                        int seriesCompleted = VAR_INT.decode(buf);
                         return new ShopOfferEntry(
                                 result,
                                 emeraldCount,
@@ -74,7 +82,9 @@ public final class CobbleDollarsShopPayloads {
                                 directPrice,
                                 seriesId != null ? seriesId : "",
                                 seriesName != null ? seriesName : "",
-                                seriesTooltip != null ? seriesTooltip : "");
+                                seriesTooltip != null ? seriesTooltip : "",
+                                seriesDifficulty,
+                                seriesCompleted);
                     }
                 };
 
