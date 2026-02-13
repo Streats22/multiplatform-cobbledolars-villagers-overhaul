@@ -1,13 +1,14 @@
 package nl.streats1.cobbledollarsvillagersoverhaul.client.screen;
 
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.world.entity.npc.Villager;
@@ -366,8 +367,8 @@ public class CobbleDollarsShopScreen extends Screen {
         guiGraphics.drawString(font, Component.translatable("gui.cobbledollars_villagers_overhaul_rca.trades"), tabX + 4, tradesY + (CATEGORY_ENTRY_H - font.lineHeight) / 2, selectedTab == 2 ? 0xFFE0E0E0 : 0xFFA0A0A0, false);
 
         Component professionLabel = getProfessionLabel();
+        int headerLeft = left + 8;
         if (!professionLabel.getString().isEmpty()) {
-            int headerLeft = left + 8;
             int headerWidth = 140; // Maximum width for profession label
             int maxLabelWidth = headerWidth - 4; // Leave small margin
             
@@ -407,6 +408,59 @@ public class CobbleDollarsShopScreen extends Screen {
             } else {
                 // Text fits normally
                 guiGraphics.drawString(font, professionLabel, headerLeft, top + RIGHT_PANEL_HEADER_Y, 0xFFE0E0E0, false);
+            }
+        }
+
+        // Show series name with hover tooltip when on trades tab
+        if (selectedTab == 2) {
+            int seriesHeaderY = top + RIGHT_PANEL_HEADER_Y + 20;
+
+            // Get series info from selected offer
+            String seriesTitle = "";
+            String tooltipText = "";
+            var offers = currentOffers();
+            if (selectedIndex >= 0 && selectedIndex < offers.size()) {
+                CobbleDollarsShopPayloads.ShopOfferEntry entry = offers.get(selectedIndex);
+                seriesTitle = entry.seriesName();
+                tooltipText = entry.seriesTooltip();
+            }
+
+            // Use selectedSeries as fallback if no offer selected
+            if (seriesTitle.isEmpty()) {
+                seriesTitle = selectedSeries;
+            }
+
+            if (!seriesTitle.isEmpty()) {
+                // Build tooltip with description and warnings
+                net.minecraft.network.chat.MutableComponent tooltipComponent = Component.empty();
+
+                // Add description if available
+                if (tooltipText != null && !tooltipText.isEmpty()) {
+                    if (tooltipText.contains(".")) {
+                        tooltipComponent.append(Component.translatable(tooltipText).withStyle(ChatFormatting.LIGHT_PURPLE, ChatFormatting.ITALIC));
+                    } else {
+                        tooltipComponent.append(Component.literal(tooltipText).withStyle(ChatFormatting.LIGHT_PURPLE, ChatFormatting.ITALIC));
+                    }
+                    tooltipComponent.append(Component.literal("\n\n"));
+                }
+
+                // Add warnings
+                tooltipComponent.append(Component.translatable("gui.rctmod.trainer_association.important").withStyle(ChatFormatting.RED, ChatFormatting.BOLD));
+                tooltipComponent.append(Component.literal("\n"));
+                tooltipComponent.append(Component.translatable("gui.rctmod.trainer_association.series_reset").withStyle(ChatFormatting.GRAY));
+
+                // Create series component with hover
+                net.minecraft.network.chat.MutableComponent seriesComponent;
+                if (seriesTitle.contains(".")) {
+                    seriesComponent = Component.translatable(seriesTitle).withStyle(ChatFormatting.YELLOW);
+                } else {
+                    seriesComponent = Component.literal(seriesTitle).withStyle(ChatFormatting.YELLOW);
+                }
+
+                final net.minecraft.network.chat.Component finalTooltip = tooltipComponent;
+                seriesComponent.withStyle(style -> style.withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, finalTooltip)));
+
+                guiGraphics.drawString(font, seriesComponent, headerLeft, seriesHeaderY, 0xFFFFFF00, false);
             }
         }
 
@@ -475,6 +529,9 @@ public class CobbleDollarsShopScreen extends Screen {
             if (!isSellTab()) {
                 ItemStack costB = costBStackFrom(entry);
                 if (!costB.isEmpty()) {
+                    // Use same scale for both items on trades tab
+                    float costBScale = (selectedTab == 2) ? LIST_ICON_SCALE : LIST_COSTB_SCALE;
+                    
                     int costBX = priceX + Math.round(font.width(priceStr) * LIST_TEXT_SCALE) + 4; // Add 4 pixels spacing
                     int costBY = iconY + 3;
                     guiGraphics.pose().pushPose();
@@ -487,9 +544,9 @@ public class CobbleDollarsShopScreen extends Screen {
                     guiGraphics.drawString(font, separator, plusDrawX, plusDrawY, 0xFFAAAAAA, false);
                     guiGraphics.pose().popPose();
                     guiGraphics.pose().pushPose();
-                    guiGraphics.pose().scale(LIST_COSTB_SCALE, LIST_COSTB_SCALE, 1.0f);
-                    int costDrawX = Math.round((costBX + 2) / LIST_COSTB_SCALE);
-                    int costDrawY = Math.round(costBY / LIST_COSTB_SCALE);
+                    guiGraphics.pose().scale(costBScale, costBScale, 1.0f);
+                    int costDrawX = Math.round((costBX + 2) / costBScale);
+                    int costDrawY = Math.round(costBY / costBScale);
                     guiGraphics.renderItem(costB, costDrawX, costDrawY);
                     guiGraphics.renderItemDecorations(font, costB, costDrawX, costDrawY);
                     guiGraphics.pose().popPose();

@@ -2,7 +2,6 @@ package nl.streats1.cobbledollarsvillagersoverhaul.network;
 
 import com.mojang.logging.LogUtils;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
@@ -21,9 +20,7 @@ import nl.streats1.cobbledollarsvillagersoverhaul.integration.RctTrainerAssociat
 import nl.streats1.cobbledollarsvillagersoverhaul.platform.PlatformNetwork;
 import org.slf4j.Logger;
 
-import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
@@ -168,7 +165,8 @@ public final class CobbleDollarsShopPayloadHandlers {
     /**
      * Lightweight DTO for per‑series UI metadata.
      */
-    private record SeriesDisplay(String id, String name, String tooltip) {}
+    private record SeriesDisplay(String id, String title, String tooltip) {
+    }
 
     /**
      * Get the player's available series in the same way RCT's own UI does.
@@ -207,12 +205,14 @@ public final class CobbleDollarsShopPayloadHandlers {
                             String displayName = getSeriesDisplayName(seriesObj);
                             String tooltip = getSeriesTooltip(seriesObj);
                             if (!displayName.isEmpty() && !seriesId.isEmpty()) {
-                                availableSeries.add(new SeriesDisplay(seriesId, displayName, tooltip));
+                                // Use translatable key for title: series.rctmod.{id}.title
+                                String titleKey = "series.rctmod." + seriesId + ".title";
+                                availableSeries.add(new SeriesDisplay(seriesId, titleKey, tooltip));
                             }
                         }
                     }
 
-                    LOGGER.info("Player has {} available series from RCT API: {}", availableSeries.size(), availableSeries.stream().map(SeriesDisplay::name).toList());
+                    LOGGER.info("Player has {} available series from RCT API: {}", availableSeries.size(), availableSeries.stream().map(SeriesDisplay::title).toList());
                 } catch (NoSuchMethodException e) {
                     LOGGER.warn("RCT TrainerPlayerData#getAvailableSeries not found: {}", e.getMessage());
                 }
@@ -238,13 +238,37 @@ public final class CobbleDollarsShopPayloadHandlers {
                     String filename = resourceLocation.getPath();
                     if (filename.endsWith(".json") && filename.startsWith("series/")) {
                         String seriesId = filename.substring(7, filename.length() - 5); // "series/" + id + ".json"
+
+                        // Try to read the description from the JSON file
+                        String description = "";
+                        try {
+                            var resource = seriesFiles.get(resourceLocation);
+                            if (resource != null) {
+                                java.io.InputStream stream = resource.open();
+                                String content = new String(stream.readAllBytes());
+                                stream.close();
+
+                                com.google.gson.JsonObject json = com.google.gson.JsonParser.parseString(content).getAsJsonObject();
+                                if (json.has("description")) {
+                                    com.google.gson.JsonObject descObj = json.getAsJsonObject("description");
+                                    if (descObj.has("translatable")) {
+                                        description = descObj.get("translatable").getAsString();
+                                    }
+                                }
+                            }
+                        } catch (Exception e) {
+                            LOGGER.debug("Could not read description from series JSON: {}", e.getMessage());
+                        }
+                        
                         String displayName = getSeriesDisplayName(seriesId);
-                        availableSeries.add(new SeriesDisplay(seriesId, displayName, ""));
+                        // Use translatable key for title: series.rctmod.{id}.title
+                        String titleKey = "series.rctmod." + seriesId + ".title";
+                        availableSeries.add(new SeriesDisplay(seriesId, titleKey, description));
                     }
                 }
             }
 
-            LOGGER.info("Read {} series from RCT data files as fallback: {}", availableSeries.size(), availableSeries.stream().map(SeriesDisplay::name).toList());
+            LOGGER.info("Read {} series from RCT data files as fallback: {}", availableSeries.size(), availableSeries.stream().map(SeriesDisplay::title).toList());
         } catch (Exception e) {
             LOGGER.warn("Could not read RCT series data files for fallback: {}", e.getMessage());
         }
@@ -755,7 +779,7 @@ public final class CobbleDollarsShopPayloadHandlers {
         // Get player's available series for trade offers
         List<SeriesDisplay> availableSeries = getPlayerAvailableSeries(serverPlayer);
         LOGGER.info("Player has {} available series for trades: {}", availableSeries.size(),
-                availableSeries.stream().map(SeriesDisplay::name).toList());
+                availableSeries.stream().map(SeriesDisplay::title).toList());
         
         int processed = 0;
         int tradeIndex = 0; // Track index within trade offers
@@ -788,10 +812,10 @@ public final class CobbleDollarsShopPayloadHandlers {
                 // Assign series name based on trade index
                 if (tradeIndex < availableSeries.size()) {
                     SeriesDisplay info = availableSeries.get(tradeIndex);
-                    // Use series ID (lowercase, no spaces) for setting the series in RCT
-                    seriesName = info.id();
+                    // Use title translatable key for display in UI
+                    seriesName = info.title();
                     seriesTooltip = info.tooltip();
-                    LOGGER.info("Assigned series '{}' (ID: {}) to trade offer {}", info.name(), seriesName, tradeIndex);
+                    LOGGER.info("Assigned series '{}' (Title: {}) to trade offer {}", info.id(), info.title(), tradeIndex);
                 } else {
                     seriesName = "Unknown Series";
                     LOGGER.warn("No available series for trade offer {}", tradeIndex);
