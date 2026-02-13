@@ -178,6 +178,10 @@ public class CobbleDollarsShopScreen extends Screen {
         } else if (!this.tradesOffers.isEmpty()) {
             selectedTab = 2;
             selectedIndex = 0;
+            // Set the initial series from the first trade offer
+            if (selectedIndex >= 0 && !tradesOffers.isEmpty()) {
+                selectedSeries = tradesOffers.get(0).seriesName();
+            }
         }
     }
 
@@ -255,7 +259,9 @@ public class CobbleDollarsShopScreen extends Screen {
         } else {
             long total = (long) qty * price;
             if (balance < total || !hasRequiredBuyItems(entry, qty)) return;
-            PlatformNetwork.sendToServer(new CobbleDollarsShopPayloads.BuyWithCobbleDollars(villagerId, selectedIndex, qty, buyOffersFromConfig, selectedTab));
+            // For trades tab (tab == 2), include the selected series
+            String seriesToSend = (selectedTab == 2) ? selectedSeries : "";
+            PlatformNetwork.sendToServer(new CobbleDollarsShopPayloads.BuyWithCobbleDollars(villagerId, selectedIndex, qty, buyOffersFromConfig, selectedTab, seriesToSend));
             applyBalanceDelta(-price * qty, 100);
         }
         if (quantityBox != null) quantityBox.setValue("1");
@@ -818,10 +824,6 @@ public class CobbleDollarsShopScreen extends Screen {
                 selectedTab = 0;
                 var off = currentOffers();
                 selectedIndex = off.isEmpty() ? -1 : 0;
-                if (selectedTab == 2 && selectedIndex >=0) {
-                    CobbleDollarsShopPayloads.ShopOfferEntry selEntry = currentOffers().get(selectedIndex);
-                    selectedSeries = selEntry.seriesName();
-                }
                 scrollOffset = 0;
                 return true;
             }
@@ -829,10 +831,6 @@ public class CobbleDollarsShopScreen extends Screen {
                 selectedTab = 1;
                 var off = currentOffers();
                 selectedIndex = off.isEmpty() ? -1 : 0;
-                if (selectedTab == 2 && selectedIndex >=0) {
-                    CobbleDollarsShopPayloads.ShopOfferEntry selEntry = currentOffers().get(selectedIndex);
-                    selectedSeries = selEntry.seriesName();
-                }
                 scrollOffset = 0;
                 return true;
             }
@@ -840,7 +838,7 @@ public class CobbleDollarsShopScreen extends Screen {
                 selectedTab = 2;
                 var off = currentOffers();
                 selectedIndex = off.isEmpty() ? -1 : 0;
-                if (selectedTab == 2 && selectedIndex >=0) {
+                if (selectedIndex >= 0) {
                     CobbleDollarsShopPayloads.ShopOfferEntry selEntry = currentOffers().get(selectedIndex);
                     selectedSeries = selEntry.seriesName();
                 }

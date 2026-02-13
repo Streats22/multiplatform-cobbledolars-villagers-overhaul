@@ -168,7 +168,7 @@ public final class CobbleDollarsShopPayloads {
         }
     }
 
-    public record BuyWithCobbleDollars(int villagerId, int offerIndex, int quantity, boolean fromConfigShop, int tab) implements CustomPacketPayload {
+    public record BuyWithCobbleDollars(int villagerId, int offerIndex, int quantity, boolean fromConfigShop, int tab, String selectedSeries) implements CustomPacketPayload {
         public static final CustomPacketPayload.Type<BuyWithCobbleDollars> TYPE =
                 new CustomPacketPayload.Type<>(Objects.requireNonNull(id("buy")));
         public static final StreamCodec<RegistryFriendlyByteBuf, BuyWithCobbleDollars> STREAM_CODEC =
@@ -183,12 +183,15 @@ public final class CobbleDollarsShopPayloads {
                         BuyWithCobbleDollars::fromConfigShop,
                         VAR_INT,
                         BuyWithCobbleDollars::tab,
-                        (villagerId, offerIndex, quantity, fromConfigShop, tab) -> new BuyWithCobbleDollars(
+                        ByteBufCodecs.STRING_UTF8,
+                        BuyWithCobbleDollars::selectedSeries,
+                        (villagerId, offerIndex, quantity, fromConfigShop, tab, selectedSeries) -> new BuyWithCobbleDollars(
                                 Objects.requireNonNull(villagerId),
                                 Objects.requireNonNull(offerIndex),
                                 Objects.requireNonNull(quantity),
                                 fromConfigShop,
-                                Objects.requireNonNull(tab))
+                                Objects.requireNonNull(tab),
+                                selectedSeries != null ? selectedSeries : "")
                 ));
 
         @Override

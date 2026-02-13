@@ -168,7 +168,7 @@ public final class CobbleDollarsShopPayloadHandlers {
     /**
      * Lightweight DTO for per‑series UI metadata.
      */
-    private record SeriesDisplay(String name, String tooltip) {}
+    private record SeriesDisplay(String id, String name, String tooltip) {}
 
     /**
      * Get the player's available series in the same way RCT's own UI does.
@@ -203,10 +203,11 @@ public final class CobbleDollarsShopPayloadHandlers {
 
                     if (availableSeriesObj instanceof Iterable<?> iterable) {
                         for (Object seriesObj : iterable) {
+                            String seriesId = getSeriesId(seriesObj);
                             String displayName = getSeriesDisplayName(seriesObj);
                             String tooltip = getSeriesTooltip(seriesObj);
-                            if (!displayName.isEmpty()) {
-                                availableSeries.add(new SeriesDisplay(displayName, tooltip));
+                            if (!displayName.isEmpty() && !seriesId.isEmpty()) {
+                                availableSeries.add(new SeriesDisplay(seriesId, displayName, tooltip));
                             }
                         }
                     }
@@ -238,7 +239,7 @@ public final class CobbleDollarsShopPayloadHandlers {
                     if (filename.endsWith(".json") && filename.startsWith("series/")) {
                         String seriesId = filename.substring(7, filename.length() - 5); // "series/" + id + ".json"
                         String displayName = getSeriesDisplayName(seriesId);
-                        availableSeries.add(new SeriesDisplay(displayName, ""));
+                        availableSeries.add(new SeriesDisplay(seriesId, displayName, ""));
                     }
                 }
             }
@@ -249,6 +250,56 @@ public final class CobbleDollarsShopPayloadHandlers {
         }
 
         return availableSeries;
+    }
+
+    /**
+     * Get the series ID from a series object (used for setting the series in RCT).
+     * Returns the ID in lowercase without spaces (e.g., "radicalred", "bdsp").
+     */
+    private static String getSeriesId(Object seriesObj) {
+        if (seriesObj == null) return "";
+        
+        // Try to get the ID using various methods that RCT might provide
+        try {
+            // Try getId() method
+            var getIdMethod = seriesObj.getClass().getMethod("getId");
+            var id = getIdMethod.invoke(seriesObj);
+            if (id instanceof String) {
+                return ((String) id).toLowerCase();
+            }
+        } catch (Exception e) {
+            // Try other methods
+        }
+        
+        try {
+            // Try getSeriesId() method
+            var getSeriesIdMethod = seriesObj.getClass().getMethod("getSeriesId");
+            var id = getSeriesIdMethod.invoke(seriesObj);
+            if (id instanceof String) {
+                return ((String) id).toLowerCase();
+            }
+        } catch (Exception e) {
+            // Try other methods
+        }
+        
+        try {
+            // Try getName() which might return the ID
+            var getNameMethod = seriesObj.getClass().getMethod("getName");
+            var name = getNameMethod.invoke(seriesObj);
+            if (name instanceof String) {
+                return ((String) name).toLowerCase();
+            }
+        } catch (Exception e) {
+            // Try other methods
+        }
+        
+        // Fall back to toString() and clean it up
+        String seriesString = seriesObj.toString().toLowerCase();
+        // Remove any path prefix if it's a ResourceLocation
+        if (seriesString.contains(":")) {
+            seriesString = seriesString.substring(seriesString.indexOf(":") + 1);
+        }
+        return seriesString;
     }
 
     /**
@@ -737,9 +788,10 @@ public final class CobbleDollarsShopPayloadHandlers {
                 // Assign series name based on trade index
                 if (tradeIndex < availableSeries.size()) {
                     SeriesDisplay info = availableSeries.get(tradeIndex);
-                    seriesName = info.name();
+                    // Use series ID (lowercase, no spaces) for setting the series in RCT
+                    seriesName = info.id();
                     seriesTooltip = info.tooltip();
-                    LOGGER.info("Assigned series '{}' to trade offer {}", seriesName, tradeIndex);
+                    LOGGER.info("Assigned series '{}' (ID: {}) to trade offer {}", info.name(), seriesName, tradeIndex);
                 } else {
                     seriesName = "Unknown Series";
                     LOGGER.warn("No available series for trade offer {}", tradeIndex);
@@ -1021,10 +1073,12 @@ public final class CobbleDollarsShopPayloadHandlers {
         }
     }
 
-    public static void handleBuy(ServerPlayer serverPlayer, int villagerId, int offerIndex, int quantity, boolean fromConfigShop, int tab) {
+    public static void handleBuy(ServerPlayer serverPlayer, int villagerId, int offerIndex, int quantity, boolean fromConfigShop, int tab, String selectedSeries) {
         if (!Config.VILLAGERS_ACCEPT_COBBLEDOLLARS) return;
         if (!CobbleDollarsIntegration.isAvailable()) return;
         if (quantity < 1) return;
+
+        LOGGER.info("handleBuy called with selectedSeries: {}", selectedSeries);
 
         if (fromConfigShop) {
             handleBuyFromConfig(serverPlayer, villagerId, offerIndex, quantity);
@@ -1183,9 +1237,13 @@ public final class CobbleDollarsShopPayloadHandlers {
                 }
             }
             
-            // Try to identify the series and set it for the player
-            String targetSeries = identifySeriesFromOffer(offer, serverPlayer, offerIndex);
-            LOGGER.info("Identified target series: {}", targetSeries != null ? targetSeries : "null");
+            // Try to use the provided selected series from client, fallback to identification if not provided
+            String targetSeries = selectedSeries;
+            if (targetSeries == null || targetSeries.isEmpty()) {
+                LOGGER.warn("No series provided from client, attempting to identify from offer");
+                targetSeries = identifySeriesFromOffer(offer, serverPlayer, offerIndex);
+            }
+            LOGGER.info("Using target series: {}", targetSeries != null ? targetSeries : "null");
             
             if (targetSeries != null) {
                 try {

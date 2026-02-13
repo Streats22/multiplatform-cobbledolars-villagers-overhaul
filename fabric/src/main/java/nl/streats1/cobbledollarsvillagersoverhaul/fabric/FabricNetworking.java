@@ -29,7 +29,7 @@ public final class FabricNetworking {
 
         ServerPlayNetworking.registerGlobalReceiver(CobbleDollarsShopPayloads.BuyWithCobbleDollars.TYPE, (payload, context) -> {
             if (context.player() instanceof ServerPlayer sp) {
-                context.server().execute(() -> CobbleDollarsShopPayloadHandlers.handleBuy(sp, payload.villagerId(), payload.offerIndex(), payload.quantity(), payload.fromConfigShop(), payload.tab()));
+                context.server().execute(() -> CobbleDollarsShopPayloadHandlers.handleBuy(sp, payload.villagerId(), payload.offerIndex(), payload.quantity(), payload.fromConfigShop(), payload.tab(), payload.selectedSeries()));
             }
         });
 
