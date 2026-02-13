@@ -26,56 +26,57 @@ public final class CobbleDollarsShopPayloads {
             ByteBufCodecs.STRING_UTF8.map(ResourceLocation::parse, ResourceLocation::toString);
     @SuppressWarnings({"unchecked", "rawtypes"})
     private static final StreamCodec<RegistryFriendlyByteBuf, Boolean> BOOL = (StreamCodec) ByteBufCodecs.BOOL;
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static final StreamCodec<RegistryFriendlyByteBuf, String> STRING_UTF8 = (StreamCodec) ByteBufCodecs.STRING_UTF8;
     private static final StreamCodec<RegistryFriendlyByteBuf, ItemStack> ITEM_STACK = ItemStack.STREAM_CODEC;
 
     /**
      * One logical shop entry.
-     *
-     * For RCT trainer association trades, {@code seriesName} is the human‑readable series label
-     * (e.g. "Freeroam", "Radical Red") and {@code seriesTooltip} is the descriptive text that
-     * RCT normally shows in its own UI when you hover that series (looked up via their API).
+     * <p>
+     * For RCT trainer association trades:
+     * - {@code seriesId} is the series identifier (e.g. "bdsp", "radicalred") for server communication
+     * - {@code seriesName} is the translatable key for the title (e.g. "series.rctmod.bdsp.title")
+     * - {@code seriesTooltip} is the translatable key for the description (e.g. "series.rctmod.bdsp.description")
      */
     public record ShopOfferEntry(ItemStack result,
                                  int emeraldCount,
                                  ItemStack costB,
                                  boolean directPrice,
+                                 String seriesId,
                                  String seriesName,
                                  String seriesTooltip) {
         public static final StreamCodec<RegistryFriendlyByteBuf, ShopOfferEntry> STREAM_CODEC =
-                StreamCodec.composite(
-                        ITEM_STACK,
-                        ShopOfferEntry::result,
-                        VAR_INT,
-                        ShopOfferEntry::emeraldCount,
-                        // Use optional ItemStack codec for costB to handle empty items
-                        StreamCodec.of(
-                                (buf, stack) -> {
-                                    boolean hasCostB = stack != null && !stack.isEmpty();
-                                    BOOL.encode(buf, hasCostB);
-                                    if (hasCostB) {
-                                        ITEM_STACK.encode(buf, stack);
-                                    }
-                                },
-                                buf -> {
-                                    boolean hasCostB = BOOL.decode(buf);
-                                    return hasCostB ? ITEM_STACK.decode(buf) : ItemStack.EMPTY;
-                                }
-                        ),
-                        ShopOfferEntry::costB,
-                        BOOL,
-                        ShopOfferEntry::directPrice,
-                        ByteBufCodecs.STRING_UTF8,
-                        ShopOfferEntry::seriesName,
-                        ByteBufCodecs.STRING_UTF8,
-                        ShopOfferEntry::seriesTooltip,
-                        (result, emeraldCount, costB, directPrice, seriesName, seriesTooltip) -> new ShopOfferEntry(
-                                Objects.requireNonNull(result),
-                                Objects.requireNonNull(emeraldCount),
-                                Objects.requireNonNull(costB),
+                new StreamCodec<>() {
+                    @Override
+                    public void encode(RegistryFriendlyByteBuf buf, ShopOfferEntry entry) {
+                        ITEM_STACK.encode(buf, entry.result());
+                        VAR_INT.encode(buf, entry.emeraldCount());
+                        ITEM_STACK.encode(buf, entry.costB());
+                        BOOL.encode(buf, entry.directPrice());
+                        STRING_UTF8.encode(buf, entry.seriesId());
+                        STRING_UTF8.encode(buf, entry.seriesName());
+                        STRING_UTF8.encode(buf, entry.seriesTooltip());
+                    }
+
+                    @Override
+                    public ShopOfferEntry decode(RegistryFriendlyByteBuf buf) {
+                        ItemStack result = ITEM_STACK.decode(buf);
+                        int emeraldCount = VAR_INT.decode(buf);
+                        ItemStack costB = ITEM_STACK.decode(buf);
+                        boolean directPrice = BOOL.decode(buf);
+                        String seriesId = STRING_UTF8.decode(buf);
+                        String seriesName = STRING_UTF8.decode(buf);
+                        String seriesTooltip = STRING_UTF8.decode(buf);
+                        return new ShopOfferEntry(
+                                result,
+                                emeraldCount,
+                                costB,
                                 directPrice,
+                                seriesId != null ? seriesId : "",
                                 seriesName != null ? seriesName : "",
-                                seriesTooltip != null ? seriesTooltip : "")
-                );
+                                seriesTooltip != null ? seriesTooltip : "");
+                    }
+                };
 
         public boolean hasCostB() {
             return costB != null && !costB.isEmpty() && !costB.is(Items.AIR);

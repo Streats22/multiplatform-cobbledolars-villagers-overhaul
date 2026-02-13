@@ -1,6 +1,5 @@
 package nl.streats1.cobbledollarsvillagersoverhaul.client.screen;
 
-import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
@@ -8,7 +7,6 @@ import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.world.entity.npc.Villager;
@@ -181,7 +179,7 @@ public class CobbleDollarsShopScreen extends Screen {
             selectedIndex = 0;
             // Set the initial series from the first trade offer
             if (selectedIndex >= 0 && !tradesOffers.isEmpty()) {
-                selectedSeries = tradesOffers.get(0).seriesName();
+                selectedSeries = tradesOffers.get(0).seriesId();
             }
         }
     }
@@ -411,59 +409,6 @@ public class CobbleDollarsShopScreen extends Screen {
             }
         }
 
-        // Show series name with hover tooltip when on trades tab
-        if (selectedTab == 2) {
-            int seriesHeaderY = top + RIGHT_PANEL_HEADER_Y + 20;
-
-            // Get series info from selected offer
-            String seriesTitle = "";
-            String tooltipText = "";
-            var offers = currentOffers();
-            if (selectedIndex >= 0 && selectedIndex < offers.size()) {
-                CobbleDollarsShopPayloads.ShopOfferEntry entry = offers.get(selectedIndex);
-                seriesTitle = entry.seriesName();
-                tooltipText = entry.seriesTooltip();
-            }
-
-            // Use selectedSeries as fallback if no offer selected
-            if (seriesTitle.isEmpty()) {
-                seriesTitle = selectedSeries;
-            }
-
-            if (!seriesTitle.isEmpty()) {
-                // Build tooltip with description and warnings
-                net.minecraft.network.chat.MutableComponent tooltipComponent = Component.empty();
-
-                // Add description if available
-                if (tooltipText != null && !tooltipText.isEmpty()) {
-                    if (tooltipText.contains(".")) {
-                        tooltipComponent.append(Component.translatable(tooltipText).withStyle(ChatFormatting.LIGHT_PURPLE, ChatFormatting.ITALIC));
-                    } else {
-                        tooltipComponent.append(Component.literal(tooltipText).withStyle(ChatFormatting.LIGHT_PURPLE, ChatFormatting.ITALIC));
-                    }
-                    tooltipComponent.append(Component.literal("\n\n"));
-                }
-
-                // Add warnings
-                tooltipComponent.append(Component.translatable("gui.rctmod.trainer_association.important").withStyle(ChatFormatting.RED, ChatFormatting.BOLD));
-                tooltipComponent.append(Component.literal("\n"));
-                tooltipComponent.append(Component.translatable("gui.rctmod.trainer_association.series_reset").withStyle(ChatFormatting.GRAY));
-
-                // Create series component with hover
-                net.minecraft.network.chat.MutableComponent seriesComponent;
-                if (seriesTitle.contains(".")) {
-                    seriesComponent = Component.translatable(seriesTitle).withStyle(ChatFormatting.YELLOW);
-                } else {
-                    seriesComponent = Component.literal(seriesTitle).withStyle(ChatFormatting.YELLOW);
-                }
-
-                final net.minecraft.network.chat.Component finalTooltip = tooltipComponent;
-                seriesComponent.withStyle(style -> style.withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, finalTooltip)));
-
-                guiGraphics.drawString(font, seriesComponent, headerLeft, seriesHeaderY, 0xFFFFFF00, false);
-            }
-        }
-
         int listTop = top + LIST_TOP_OFFSET;
         int rowL = left + LIST_LEFT_OFFSET - 10;
         int rowR = rowL + LIST_WIDTH;
@@ -515,16 +460,29 @@ public class CobbleDollarsShopScreen extends Screen {
                 int priceColor = isSellTab() ? 0xFF00DD00 : 0xFFFFFFFF;
                 guiGraphics.drawString(font, priceStr, priceDrawX, priceDrawY, priceColor, false);
                 guiGraphics.pose().popPose();
-            } else if (selectedTab == 2 && !entry.seriesName().isEmpty()) {
-                // For trades tab, show series name instead of price
-                guiGraphics.drawString(font, entry.seriesName(), priceX, priceY, 0xFFFFFF00, false);
-        // Series tooltip when hovering over series name
-        if (selectedTab == 2 && !entry.seriesName().isEmpty()) {
-            int seriesWidth = font.width(entry.seriesName());
-            if (mouseX >= priceX && mouseX <= priceX + seriesWidth && mouseY >= priceY - font.lineHeight && mouseY <= priceY) {
-                guiGraphics.renderTooltip(font, entry.seriesTooltip() != null ? Component.literal(entry.seriesTooltip()) : Component.empty(), mouseX, mouseY);
             }
-        } // Yellow text for series name
+            // For trades tab, display series name (yellow) and show tooltip on hover
+            if (selectedTab == 2 && !entry.seriesName().isEmpty()) {
+                // Draw series name in yellow using translatable key
+                net.minecraft.network.chat.Component seriesTitle = net.minecraft.network.chat.Component.translatable(entry.seriesName());
+                guiGraphics.drawString(font, seriesTitle.getString(), priceX, priceY, 0xFFFFFF00, false);
+
+                // Show tooltip on hover
+                int seriesWidth = font.width(seriesTitle.getString());
+                if (mouseX >= priceX && mouseX <= priceX + seriesWidth && mouseY >= priceY - font.lineHeight && mouseY <= priceY) {
+                    // Build tooltip with title (yellow) and description (light purple)
+                    java.util.List<net.minecraft.network.chat.Component> tooltipComponents = new java.util.ArrayList<>();
+                    tooltipComponents.add(net.minecraft.network.chat.Component.translatable(entry.seriesName()).withStyle(net.minecraft.ChatFormatting.YELLOW));
+                    if (entry.seriesTooltip() != null && !entry.seriesTooltip().isEmpty()) {
+                        tooltipComponents.add(net.minecraft.network.chat.Component.translatable(entry.seriesTooltip()).withStyle(net.minecraft.ChatFormatting.LIGHT_PURPLE, net.minecraft.ChatFormatting.ITALIC));
+                    }
+                    // Convert to FormattedCharSequence list
+                    List<FormattedCharSequence> tooltipLines = new ArrayList<>();
+                    for (net.minecraft.network.chat.Component c : tooltipComponents) {
+                        tooltipLines.add(c.getVisualOrderText());
+                    }
+                    guiGraphics.renderTooltip(font, tooltipLines, mouseX, mouseY);
+                }
             }
             if (!isSellTab()) {
                 ItemStack costB = costBStackFrom(entry);
@@ -693,14 +651,14 @@ public class CobbleDollarsShopScreen extends Screen {
                         
                         if (mouseX >= costBX && mouseX < costBX + costBSize &&
                             mouseY >= costBY && mouseY < costBY + costBSize) {
-                            // For trades tab, prefer our own series tooltip built from RCT data.
-                            if (selectedTab == 2 && entry.seriesTooltip() != null && !entry.seriesTooltip().isEmpty()) {
+                            // For trades tab, use translatable keys for series tooltip
+                            if (selectedTab == 2 && entry.seriesName() != null && !entry.seriesName().isEmpty()) {
                                 List<FormattedCharSequence> tooltipLines = new ArrayList<>();
-                                tooltipLines.add(Component.literal(entry.seriesName()).getVisualOrderText());
-                                // Split on explicit newlines if present to mimic multi‑line descriptions.
-                                for (String part : entry.seriesTooltip().split("\n")) {
-                                    if (part.isEmpty()) continue;
-                                    tooltipLines.add(Component.literal(part).withStyle(ChatFormatting.LIGHT_PURPLE, ChatFormatting.ITALIC).getVisualOrderText());
+                                // Title in yellow
+                                tooltipLines.add(net.minecraft.network.chat.Component.translatable(entry.seriesName()).withStyle(net.minecraft.ChatFormatting.YELLOW).getVisualOrderText());
+                                // Description in light purple italic
+                                if (entry.seriesTooltip() != null && !entry.seriesTooltip().isEmpty()) {
+                                    tooltipLines.add(net.minecraft.network.chat.Component.translatable(entry.seriesTooltip()).withStyle(net.minecraft.ChatFormatting.LIGHT_PURPLE, net.minecraft.ChatFormatting.ITALIC).getVisualOrderText());
                                 }
                                 guiGraphics.renderTooltip(font, tooltipLines, mouseX, mouseY);
                             } else {
@@ -897,7 +855,7 @@ public class CobbleDollarsShopScreen extends Screen {
                 selectedIndex = off.isEmpty() ? -1 : 0;
                 if (selectedIndex >= 0) {
                     CobbleDollarsShopPayloads.ShopOfferEntry selEntry = currentOffers().get(selectedIndex);
-                    selectedSeries = selEntry.seriesName();
+                    selectedSeries = selEntry.seriesId();
                 }
                 scrollOffset = 0;
                 return true;
@@ -915,7 +873,7 @@ public class CobbleDollarsShopScreen extends Screen {
                 selectedIndex = idx;
                 if (selectedTab == 2) {
                     CobbleDollarsShopPayloads.ShopOfferEntry selEntry = currentOffers().get(idx);
-                    selectedSeries = selEntry.seriesName();
+                    selectedSeries = selEntry.seriesId();
                 }
                 return true;
             }

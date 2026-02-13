@@ -27,6 +27,24 @@ import java.util.Objects;
 public final class CobbleDollarsShopPayloadHandlers {
     private static final Logger LOGGER = LogUtils.getLogger();
 
+    // Cache for player's available series (player UUID -> cache data)
+    private static final java.util.Map<java.util.UUID, SeriesCacheEntry> SERIES_CACHE = new java.util.concurrent.ConcurrentHashMap<>();
+    private static final long CACHE_TIMEOUT_MS = 30_000; // 30 seconds cache
+
+    private static class SeriesCacheEntry {
+        final List<SeriesDisplay> series;
+        final long timestamp;
+
+        SeriesCacheEntry(List<SeriesDisplay> series) {
+            this.series = series;
+            this.timestamp = System.currentTimeMillis();
+        }
+
+        boolean isExpired() {
+            return System.currentTimeMillis() - timestamp > CACHE_TIMEOUT_MS;
+        }
+    }
+
     /**
      * Try to identify the series from an RCT offer using index-based mapping
      */
@@ -178,6 +196,14 @@ public final class CobbleDollarsShopPayloadHandlers {
      * provide something sane.
      */
     private static List<SeriesDisplay> getPlayerAvailableSeries(ServerPlayer serverPlayer) {
+        // Check cache first
+        java.util.UUID playerId = serverPlayer.getUUID();
+        SeriesCacheEntry cached = SERIES_CACHE.get(playerId);
+        if (cached != null && !cached.isExpired()) {
+            LOGGER.info("Using cached series for player {}", playerId);
+            return cached.series;
+        }
+
         List<SeriesDisplay> availableSeries = new ArrayList<>();
 
         // Try via RCT API first – this should match the in‑game Trainer Association UI.
@@ -202,12 +228,11 @@ public final class CobbleDollarsShopPayloadHandlers {
                     if (availableSeriesObj instanceof Iterable<?> iterable) {
                         for (Object seriesObj : iterable) {
                             String seriesId = getSeriesId(seriesObj);
-                            String displayName = getSeriesDisplayName(seriesObj);
-                            String tooltip = getSeriesTooltip(seriesObj);
-                            if (!displayName.isEmpty() && !seriesId.isEmpty()) {
-                                // Use translatable key for title: series.rctmod.{id}.title
+                            if (!seriesId.isEmpty()) {
+                                // Use translation keys - client will translate them
                                 String titleKey = "series.rctmod." + seriesId + ".title";
-                                availableSeries.add(new SeriesDisplay(seriesId, titleKey, tooltip));
+                                String tooltipKey = "series.rctmod." + seriesId + ".description";
+                                availableSeries.add(new SeriesDisplay(seriesId, titleKey, tooltipKey));
                             }
                         }
                     }
@@ -225,6 +250,8 @@ public final class CobbleDollarsShopPayloadHandlers {
         }
 
         if (!availableSeries.isEmpty()) {
+            // Cache the result
+            SERIES_CACHE.put(serverPlayer.getUUID(), new SeriesCacheEntry(availableSeries));
             return availableSeries;
         }
 
@@ -239,31 +266,10 @@ public final class CobbleDollarsShopPayloadHandlers {
                     if (filename.endsWith(".json") && filename.startsWith("series/")) {
                         String seriesId = filename.substring(7, filename.length() - 5); // "series/" + id + ".json"
 
-                        // Try to read the description from the JSON file
-                        String description = "";
-                        try {
-                            var resource = seriesFiles.get(resourceLocation);
-                            if (resource != null) {
-                                java.io.InputStream stream = resource.open();
-                                String content = new String(stream.readAllBytes());
-                                stream.close();
-
-                                com.google.gson.JsonObject json = com.google.gson.JsonParser.parseString(content).getAsJsonObject();
-                                if (json.has("description")) {
-                                    com.google.gson.JsonObject descObj = json.getAsJsonObject("description");
-                                    if (descObj.has("translatable")) {
-                                        description = descObj.get("translatable").getAsString();
-                                    }
-                                }
-                            }
-                        } catch (Exception e) {
-                            LOGGER.debug("Could not read description from series JSON: {}", e.getMessage());
-                        }
-                        
-                        String displayName = getSeriesDisplayName(seriesId);
-                        // Use translatable key for title: series.rctmod.{id}.title
+                        // Use translation keys - client will translate them
                         String titleKey = "series.rctmod." + seriesId + ".title";
-                        availableSeries.add(new SeriesDisplay(seriesId, titleKey, description));
+                        String tooltipKey = "series.rctmod." + seriesId + ".description";
+                        availableSeries.add(new SeriesDisplay(seriesId, titleKey, tooltipKey));
                     }
                 }
             }
@@ -273,6 +279,8 @@ public final class CobbleDollarsShopPayloadHandlers {
             LOGGER.warn("Could not read RCT series data files for fallback: {}", e.getMessage());
         }
 
+        // Cache the result even if empty or from fallback
+        SERIES_CACHE.put(serverPlayer.getUUID(), new SeriesCacheEntry(availableSeries));
         return availableSeries;
     }
 
@@ -762,6 +770,7 @@ public final class CobbleDollarsShopPayloadHandlers {
                         result.getCount(),
                         ItemStack.EMPTY,
                         false,
+                        "", // No series ID
                         "", // No series name for sell offers
                         ""  // No tooltip for non‑series offers
                 ));
@@ -805,6 +814,7 @@ public final class CobbleDollarsShopPayloadHandlers {
             
             // Check if this is a series switching offer (trainer card cost)
             boolean isSeriesTrade = isTrainerCard(costA.getItem()) && isTrainerCard(result.getItem());
+            String seriesId = "";
             String seriesName = "";
             String seriesTooltip = "";
             
@@ -812,7 +822,8 @@ public final class CobbleDollarsShopPayloadHandlers {
                 // Assign series name based on trade index
                 if (tradeIndex < availableSeries.size()) {
                     SeriesDisplay info = availableSeries.get(tradeIndex);
-                    // Use title translatable key for display in UI
+                    // Use series ID for server communication, translatable keys for display
+                    seriesId = info.id();
                     seriesName = info.title();
                     seriesTooltip = info.tooltip();
                     LOGGER.info("Assigned series '{}' (Title: {}) to trade offer {}", info.id(), info.title(), tradeIndex);
@@ -837,6 +848,7 @@ public final class CobbleDollarsShopPayloadHandlers {
                             costA.getCount(),
                             safeCostB,
                             false,
+                            "", // No series ID for buy offers
                             "", // No series name for buy offers
                             ""  // No tooltip for non‑series offers
                     ));
@@ -852,6 +864,7 @@ public final class CobbleDollarsShopPayloadHandlers {
                             result.getCount(),
                             ItemStack.EMPTY,
                             false,
+                            "", // No series ID for sell offers
                             "", // No series name for sell offers
                             ""  // No tooltip for non‑series offers
                     ));
@@ -875,6 +888,7 @@ public final class CobbleDollarsShopPayloadHandlers {
                             0, // 0 emeralds = item-for-item trade
                             safeCostA,
                             false,
+                            seriesId,
                             seriesName,
                             seriesTooltip
                     ));
@@ -914,8 +928,9 @@ public final class CobbleDollarsShopPayloadHandlers {
                             costA.getCount(),
                             safeCostB,
                             false,
-                            "", // No series name for regular buy offers
-                            ""  // No tooltip for non‑series offers
+                            "",
+                            "",
+                            ""
                     ));
                 }
                 continue;
@@ -928,8 +943,9 @@ public final class CobbleDollarsShopPayloadHandlers {
                             result.getCount(),
                             ItemStack.EMPTY,
                             false,
-                            "", // No series name for regular sell offers
-                            ""  // No tooltip for non‑series offers
+                            "",
+                            "",
+                            ""
                     ));
                 }
             }
