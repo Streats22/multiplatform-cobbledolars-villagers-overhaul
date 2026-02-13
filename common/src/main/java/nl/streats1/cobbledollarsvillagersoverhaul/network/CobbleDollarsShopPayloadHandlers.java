@@ -16,6 +16,7 @@ import net.minecraft.world.item.trading.MerchantOffer;
 import nl.streats1.cobbledollarsvillagersoverhaul.Config;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.CobbleDollarsConfigHelper;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.CobbleDollarsIntegration;
+import nl.streats1.cobbledollarsvillagersoverhaul.integration.DatapackItemPricing;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.RctTrainerAssociationCompat;
 import nl.streats1.cobbledollarsvillagersoverhaul.platform.PlatformNetwork;
 import org.slf4j.Logger;
@@ -187,10 +188,10 @@ public final class CobbleDollarsShopPayloadHandlers {
     }
 
     /**
-     * Get the player's available series in the same way RCT's own UI does.
+     * Get player's available series in same way RCT's own UI does.
      *
      * Primary source: RCT API (TrainerManager / TrainerPlayerData#getAvailableSeries),
-     * so we only show series that are actually available to this player and use the
+     * so we only show series that are actually available to this player and use
      * proper display names and description text. If that fails for any reason, we
      * fall back to reading series data files from data/rctmod/series to at least
      * provide something sane.
@@ -200,13 +201,12 @@ public final class CobbleDollarsShopPayloadHandlers {
         java.util.UUID playerId = serverPlayer.getUUID();
         SeriesCacheEntry cached = SERIES_CACHE.get(playerId);
         if (cached != null && !cached.isExpired()) {
-            LOGGER.info("Using cached series for player {}", playerId);
             return cached.series;
         }
 
         List<SeriesDisplay> availableSeries = new ArrayList<>();
 
-        // Try via RCT API first – this should match the in‑game Trainer Association UI.
+        // Try via RCT API first – this should match in‑game Trainer Association UI.
         try {
             var rctModClass = Class.forName("com.gitlab.srcmc.rctmod.api.RCTMod");
             var getInstanceMethod = rctModClass.getMethod("getInstance");
@@ -644,6 +644,10 @@ public final class CobbleDollarsShopPayloadHandlers {
             LOGGER.info("Entity is Villager, processing villager trades");
             allOffers = villager.getOffers();
             buildOfferLists(allOffers, buyOffers, sellOffers);
+            // Also process datapack item-for-item trades
+            if (Config.USE_DATAPACK_TRADES) {
+                buildDatapackOffers(allOffers, buyOffers, sellOffers);
+            }
         } else if (Config.USE_RCT_TRADES_OVERHAUL && RctTrainerAssociationCompat.isTrainerAssociation(entity)) {
             LOGGER.info("Entity is RCTA trainer - entering RCTA processing branch");
             // RCTA trainers use custom MerchantOffers system - improved trade generation
@@ -832,6 +836,10 @@ public final class CobbleDollarsShopPayloadHandlers {
             LOGGER.info("Entity is WanderingTrader, processing trader trades");
             allOffers = trader.getOffers();
             buildOfferLists(allOffers, buyOffers, sellOffers);
+            // Also process datapack item-for-item trades
+            if (Config.USE_DATAPACK_TRADES) {
+                buildDatapackOffers(allOffers, buyOffers, sellOffers);
+            }
         } else {
             LOGGER.info("Entity {} is not a supported type", entity.getClass().getSimpleName());
             return;
@@ -1100,6 +1108,57 @@ public final class CobbleDollarsShopPayloadHandlers {
                             0
                     ));
                 }
+            }
+        }
+    }
+
+    /**
+     * Build shop offers from datapack item-for-item trades.
+     * These are trades where neither costA nor result is emerald, like custom datapack trades.
+     * The price is calculated based on the costA item value using DatapackItemPricing.
+     */
+    private static void buildDatapackOffers(List<MerchantOffer> allOffers,
+                                            List<CobbleDollarsShopPayloads.ShopOfferEntry> buyOut,
+                                            List<CobbleDollarsShopPayloads.ShopOfferEntry> sellOut) {
+        if (!Config.USE_DATAPACK_TRADES) {
+            return;
+        }
+
+        for (MerchantOffer o : allOffers) {
+            if (o == null) continue;
+            ItemStack costA = o.getCostA();
+            ItemStack costB = o.getCostB();
+            ItemStack result = o.getResult();
+
+            // Skip null or empty items
+            if (costA == null || result == null) continue;
+            if (costA.isEmpty() || result.isEmpty()) continue;
+
+            // Skip emerald trades - those are handled by buildOfferLists
+            if (costA.is(Items.EMERALD) || result.is(Items.EMERALD)) {
+                continue;
+            }
+
+            // This is an item-for-item trade (datapack trade)
+            // Calculate price based on costA value
+            int price = DatapackItemPricing.getPrice(costA);
+
+            if (price > 0) {
+                // This is a buy offer - player pays with items (costA) to get result
+                ItemStack safeResult = result.copy();
+                ItemStack safeCostB = (costB != null && !costB.isEmpty()) ? costB.copy() : ItemStack.EMPTY;
+
+                buyOut.add(new CobbleDollarsShopPayloads.ShopOfferEntry(
+                        safeResult,
+                        price,
+                        safeCostB,
+                        false,
+                        "", // No series
+                        "", // No series name
+                        "", // No tooltip
+                        0,
+                        0
+                ));
             }
         }
     }
