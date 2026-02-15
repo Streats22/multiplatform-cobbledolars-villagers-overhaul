@@ -7,6 +7,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.npc.Villager;
 import net.minecraft.world.entity.npc.VillagerProfession;
 import net.minecraft.world.entity.npc.WanderingTrader;
+import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -14,13 +15,12 @@ import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.config.ModConfig;
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
+import net.neoforged.fml.loading.FMLEnvironment;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
 import nl.streats1.cobbledollarsvillagersoverhaul.CobbleDollarsVillagersOverhaulRca;
 import nl.streats1.cobbledollarsvillagersoverhaul.Config;
-import nl.streats1.cobbledollarsvillagersoverhaul.integration.CobbleDollarsIntegration;
-import nl.streats1.cobbledollarsvillagersoverhaul.integration.VillagerCobbleDollarsHandler;
 import nl.streats1.cobbledollarsvillagersoverhaul.network.CobbleDollarsShopPayloadHandlers;
 import nl.streats1.cobbledollarsvillagersoverhaul.network.CobbleDollarsShopPayloads;
 
@@ -41,9 +41,15 @@ public class CobbleDollarsVillagersOverhaulNeoForge {
         // Register networking
         NeoForgeNetworking.register(modEventBus);
         
+        // CRITICAL: Register client-side setup for client-to-server networking
+        // This was missing and caused buy/sell packets to never be sent!
+        if (FMLEnvironment.dist == Dist.CLIENT) {
+            CobbleDollarsVillagersOverhaulRca.LOGGER.info("Registering NeoForge client setup listener");
+            modEventBus.addListener(CobbleDollarsVillagersOverhaulNeoForgeClient::initializeClient);
+        }
+        
         // Register NeoForge events
         NeoForge.EVENT_BUS.register(this);
-        NeoForge.EVENT_BUS.register(VillagerCobbleDollarsHandler.class);
         
         // Register config
         modContainer.registerConfig(ModConfig.Type.COMMON, ConfigNeoForge.SPEC);
