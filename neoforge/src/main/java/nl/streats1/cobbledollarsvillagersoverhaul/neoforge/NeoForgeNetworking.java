@@ -5,6 +5,7 @@ import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import nl.streats1.cobbledollarsvillagersoverhaul.client.screen.CobbleDollarsShopScreen;
+import nl.streats1.cobbledollarsvillagersoverhaul.client.screen.ShopEditScreen;
 import nl.streats1.cobbledollarsvillagersoverhaul.network.CobbleDollarsShopPayloadHandlers;
 import nl.streats1.cobbledollarsvillagersoverhaul.network.CobbleDollarsShopPayloads;
 import nl.streats1.cobbledollarsvillagersoverhaul.platform.PlatformNetwork;
@@ -45,6 +46,13 @@ public final class NeoForgeNetworking {
                                 data.villagerId(), data.balance()))
         );
 
+        registrar.playToClient(
+                Objects.requireNonNull(CobbleDollarsShopPayloads.EditData.TYPE),
+                Objects.requireNonNull(CobbleDollarsShopPayloads.EditData.STREAM_CODEC),
+                (data, context) -> context.enqueueWork(() ->
+                        ShopEditScreen.openFromPayload(data.shopConfigJson(), data.bankConfigJson()))
+        );
+
         registrar.playToServer(
                 Objects.requireNonNull(CobbleDollarsShopPayloads.BuyWithCobbleDollars.TYPE),
                 Objects.requireNonNull(CobbleDollarsShopPayloads.BuyWithCobbleDollars.STREAM_CODEC),
@@ -61,6 +69,16 @@ public final class NeoForgeNetworking {
                 (data, context) -> context.enqueueWork(() -> {
                     if (context.player() instanceof ServerPlayer sp) {
                         CobbleDollarsShopPayloadHandlers.handleSell(sp, data.villagerId(), data.offerIndex(), data.quantity());
+                    }
+                })
+        );
+
+        registrar.playToServer(
+                Objects.requireNonNull(CobbleDollarsShopPayloads.SaveEditData.TYPE),
+                Objects.requireNonNull(CobbleDollarsShopPayloads.SaveEditData.STREAM_CODEC),
+                (data, context) -> context.enqueueWork(() -> {
+                    if (context.player() instanceof ServerPlayer sp) {
+                        CobbleDollarsShopPayloadHandlers.handleSaveEditData(sp, data.shopConfigJson(), data.bankConfigJson());
                     }
                 })
         );

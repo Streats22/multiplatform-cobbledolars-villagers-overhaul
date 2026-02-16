@@ -132,6 +132,39 @@ public final class CobbleDollarsConfigHelper {
         }
     }
 
+    /**
+     * Bank sell offers: items the player can sell for CobbleDollars (from bank.json "bank" array).
+     */
+    public static List<CobbleDollarsShopPayloads.ShopOfferEntry> getBankSellOffers() {
+        Path configDir = getConfigDirectory();
+        if (configDir == null) return List.of();
+        Path bankFile = configDir.resolve(COBBLEDOLLARS_CONFIG_SUBDIR).resolve(BANK_FILE);
+        if (!Files.isRegularFile(bankFile)) return List.of();
+        try {
+            String content = Files.readString(bankFile);
+            JsonObject root = JsonParser.parseString(content).getAsJsonObject();
+            List<CobbleDollarsShopPayloads.ShopOfferEntry> out = new ArrayList<>();
+            if (!root.has("bank") || !root.get("bank").isJsonArray()) return out;
+            JsonArray bank = root.getAsJsonArray("bank");
+            for (JsonElement entry : bank) {
+                if (!entry.isJsonObject()) continue;
+                JsonObject obj = entry.getAsJsonObject();
+                String itemId = obj.has("item") ? obj.get("item").getAsString() : null;
+                if (itemId == null || itemId.isEmpty()) continue;
+                int price = parsePrice(obj.has("price") ? obj.get("price") : null);
+                if (price <= 0) continue;
+                ResourceLocation id = ResourceLocation.tryParse(itemId);
+                if (id == null) continue;
+                var item = BuiltInRegistries.ITEM.get(id);
+                if (item == null || item == Items.AIR) continue;
+                out.add(new CobbleDollarsShopPayloads.ShopOfferEntry(new ItemStack(item, 1), price, ItemStack.EMPTY, true, "", "", "", 0, 0));
+            }
+            return out;
+        } catch (Exception e) {
+            return List.of();
+        }
+    }
+
     private static int parsePrice(JsonElement el) {
         if (el == null || el.isJsonNull()) return 0;
         if (el.isJsonPrimitive()) {
@@ -159,7 +192,69 @@ public final class CobbleDollarsConfigHelper {
     }
 
     private static Path getConfigDirectory() {
-        // Platform-specific implementation will be provided
         return Path.of("config").toAbsolutePath();
+    }
+
+    /**
+     * Raw JSON string for default_shop.json (for edit screen / EditData).
+     */
+    public static String getShopConfigJson() {
+        Path configDir = getConfigDirectory();
+        if (configDir == null) return "{\"defaultShop\":[]}";
+        Path shopFile = configDir.resolve(COBBLEDOLLARS_CONFIG_SUBDIR).resolve(DEFAULT_SHOP_FILE);
+        if (!Files.isRegularFile(shopFile)) return "{\"defaultShop\":[]}";
+        try {
+            return Files.readString(shopFile);
+        } catch (Exception e) {
+            return "{\"defaultShop\":[]}";
+        }
+    }
+
+    /**
+     * Raw JSON string for bank.json (for edit screen / EditData).
+     */
+    public static String getBankConfigJson() {
+        Path configDir = getConfigDirectory();
+        if (configDir == null) return "{\"bank\":[]}";
+        Path bankFile = configDir.resolve(COBBLEDOLLARS_CONFIG_SUBDIR).resolve(BANK_FILE);
+        if (!Files.isRegularFile(bankFile)) return "{\"bank\":[]}";
+        try {
+            return Files.readString(bankFile);
+        } catch (Exception e) {
+            return "{\"bank\":[]}";
+        }
+    }
+
+    /**
+     * Write shop config JSON (server-side; after SaveEditData).
+     */
+    public static boolean writeShopConfig(String json) {
+        Path configDir = getConfigDirectory();
+        if (configDir == null) return false;
+        Path dir = configDir.resolve(COBBLEDOLLARS_CONFIG_SUBDIR);
+        try {
+            Files.createDirectories(dir);
+            Files.writeString(dir.resolve(DEFAULT_SHOP_FILE), json != null ? json : "{\"defaultShop\":[]}");
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Write bank config JSON (server-side; after SaveEditData).
+     */
+    public static boolean writeBankConfig(String json) {
+        Path configDir = getConfigDirectory();
+        if (configDir == null) return false;
+        Path dir = configDir.resolve(COBBLEDOLLARS_CONFIG_SUBDIR);
+        try {
+            Files.createDirectories(dir);
+            Files.writeString(dir.resolve(BANK_FILE), json != null ? json : "{\"bank\":[]}");
+            cachedBankEmeraldPrice = -1; // invalidate cache
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
     }
 }

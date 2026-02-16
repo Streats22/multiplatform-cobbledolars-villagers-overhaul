@@ -249,4 +249,50 @@ public final class CobbleDollarsShopPayloads {
             return TYPE;
         }
     }
+
+    /**
+     * S2C: open config editor with current shop and bank JSON (CobbleDollars-style see-and-edit support).
+     */
+    public record EditData(String shopConfigJson, String bankConfigJson) implements CustomPacketPayload {
+        public static final CustomPacketPayload.Type<EditData> TYPE =
+                new CustomPacketPayload.Type<>(Objects.requireNonNull(id("edit_data")));
+        public static final StreamCodec<RegistryFriendlyByteBuf, EditData> STREAM_CODEC =
+                Objects.requireNonNull(StreamCodec.composite(
+                        STRING_UTF8,
+                        EditData::shopConfigJson,
+                        STRING_UTF8,
+                        EditData::bankConfigJson,
+                        (shopConfigJson, bankConfigJson) -> new EditData(
+                                shopConfigJson != null ? shopConfigJson : "{}",
+                                bankConfigJson != null ? bankConfigJson : "{}")
+                ));
+
+        @Override
+        public Type<? extends CustomPacketPayload> type() {
+            return TYPE;
+        }
+    }
+
+    /**
+     * C2S: save config (after editing in ShopEditScreen).
+     */
+    public record SaveEditData(String shopConfigJson, String bankConfigJson) implements CustomPacketPayload {
+        public static final CustomPacketPayload.Type<SaveEditData> TYPE =
+                new CustomPacketPayload.Type<>(Objects.requireNonNull(id("save_edit_data")));
+        public static final StreamCodec<RegistryFriendlyByteBuf, SaveEditData> STREAM_CODEC =
+                Objects.requireNonNull(StreamCodec.composite(
+                        STRING_UTF8,
+                        SaveEditData::shopConfigJson,
+                        STRING_UTF8,
+                        SaveEditData::bankConfigJson,
+                        (shopConfigJson, bankConfigJson) -> new SaveEditData(
+                                shopConfigJson != null ? shopConfigJson : "{}",
+                                bankConfigJson != null ? bankConfigJson : "{}")
+                ));
+
+        @Override
+        public Type<? extends CustomPacketPayload> type() {
+            return TYPE;
+        }
+    }
 }

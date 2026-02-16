@@ -28,6 +28,15 @@ import java.util.Objects;
 public final class CobbleDollarsShopPayloadHandlers {
     private static final Logger LOGGER = LogUtils.getLogger();
 
+    /**
+     * Virtual entity ID for command "open shop" (no real entity).
+     */
+    public static final int VIRTUAL_SHOP_ID = -1;
+    /**
+     * Virtual entity ID for command "open bank" (no real entity).
+     */
+    public static final int VIRTUAL_BANK_ID = -2;
+
     // Cache for player's available series (player UUID -> cache data)
     private static final java.util.Map<java.util.UUID, SeriesCacheEntry> SERIES_CACHE = new java.util.concurrent.ConcurrentHashMap<>();
     private static final long CACHE_TIMEOUT_MS = 30_000; // 30 seconds cache
@@ -678,9 +687,28 @@ public final class CobbleDollarsShopPayloadHandlers {
         ServerLevel level = serverPlayer.serverLevel();
         Entity entity = level.getEntity(villagerId);
 
-        LOGGER.info("Retrieved entity: {} (class: {})",
-                entity != null ? entity.getName().getString() : "null",
-                entity != null ? entity.getClass().getName() : "null");
+        // Virtual IDs: open shop/bank from command (no entity)
+        if (entity == null && (villagerId == VIRTUAL_SHOP_ID || villagerId == VIRTUAL_BANK_ID)) {
+            List<CobbleDollarsShopPayloads.ShopOfferEntry> virtualBuy = new ArrayList<>();
+            List<CobbleDollarsShopPayloads.ShopOfferEntry> virtualSell = new ArrayList<>();
+            if (villagerId == VIRTUAL_SHOP_ID) {
+                virtualBuy.addAll(CobbleDollarsConfigHelper.getDefaultShopBuyOffers());
+            } else {
+                virtualSell.addAll(CobbleDollarsConfigHelper.getBankSellOffers());
+            }
+            List<CobbleDollarsShopPayloads.ShopOfferEntry> safeBuy = virtualBuy != null ? virtualBuy : List.of();
+            List<CobbleDollarsShopPayloads.ShopOfferEntry> safeSell = virtualSell != null ? virtualSell : List.of();
+            try {
+                PlatformNetwork.sendToPlayer(serverPlayer,
+                        new CobbleDollarsShopPayloads.ShopData(villagerId, balance, safeBuy, safeSell, List.of(), villagerId == VIRTUAL_SHOP_ID));
+                LOGGER.info("Sent virtual shop data to player {}: villagerId={}", serverPlayer.getName().getString(), villagerId);
+            } catch (Exception e) {
+                LOGGER.error("Failed to send virtual shop data: {}", e.getMessage());
+                PlatformNetwork.sendToPlayer(serverPlayer,
+                        new CobbleDollarsShopPayloads.ShopData(villagerId, 0L, List.of(), List.of(), List.of(), false));
+            }
+            return;
+        }
 
         if (entity == null) {
             LOGGER.warn("Entity {} not found for player {}", villagerId, serverPlayer.getName().getString());
@@ -912,12 +940,10 @@ public final class CobbleDollarsShopPayloadHandlers {
             LOGGER.info("Sent shop data to player {}: villager={}, buyOffers={}, sellOffers={}, tradesOffers={}, fromConfig={}",
                     serverPlayer.getName().getString(), villagerId, buyOffers.size(), sellOffers.size(), tradesOffers.size(), buyOffersFromConfig);
         } catch (Exception e) {
-            LOGGER.error("Failed to send shop data packet for villager {}: {}", villagerId, e.getMessage());
-            // Send empty data to prevent crash
+            LOGGER.error("Failed to send shop data for villager {}: {}", villagerId, e.getMessage());
             PlatformNetwork.sendToPlayer(serverPlayer,
                     new CobbleDollarsShopPayloads.ShopData(villagerId, 0L, List.of(), List.of(), List.of(), false));
         }
-
     }
 
     private static void handleBuyFromConfig(ServerPlayer serverPlayer, int villagerId, int offerIndex, int quantity) {
@@ -971,6 +997,50 @@ public final class CobbleDollarsShopPayloadHandlers {
         
         sendBalanceUpdate(serverPlayer, villagerId);
         LOGGER.info("========== handleBuyFromConfig END ==========");
+    }
+
+    private static void handleSellFromBankConfig(ServerPlayer serverPlayer, int offerIndex, int quantity) {
+        LOGGER.info("========== handleSellFromBankConfig START ==========");
+        List<CobbleDollarsShopPayloads.ShopOfferEntry> bankOffers = CobbleDollarsConfigHelper.getBankSellOffers();
+        if (offerIndex < 0 || offerIndex >= bankOffers.size()) {
+            LOGGER.warn("OfferIndex {} out of range for bank (0-{}), aborting", offerIndex, bankOffers.size() - 1);
+            return;
+        }
+        CobbleDollarsShopPayloads.ShopOfferEntry entry = bankOffers.get(offerIndex);
+        ItemStack costA = entry.result();
+        if (costA == null || costA.isEmpty()) {
+            LOGGER.warn("Bank offer has no item, aborting");
+            return;
+        }
+        int perUnit = costA.getCount();
+        int totalNeeded = perUnit * quantity;
+        var inv = serverPlayer.getInventory();
+        int have = 0;
+        for (int slot = 0; slot < inv.getContainerSize(); slot++) {
+            ItemStack stack = inv.getItem(slot);
+            if (!stack.isEmpty() && ItemStack.isSameItemSameComponents(stack, costA)) have += stack.getCount();
+        }
+        if (have < totalNeeded) {
+            LOGGER.warn("Not enough items to sell to bank: has {}, needs {}", have, totalNeeded);
+            return;
+        }
+        long toAdd = (long) entry.emeraldCount() * quantity;
+        if (!CobbleDollarsIntegration.addBalance(serverPlayer, toAdd)) {
+            LOGGER.error("Failed to add {} CobbleDollars for bank sell", toAdd);
+            return;
+        }
+        int remaining = totalNeeded;
+        for (int slot = 0; slot < inv.getContainerSize() && remaining > 0; slot++) {
+            ItemStack stack = inv.getItem(slot);
+            if (stack.isEmpty() || !ItemStack.isSameItemSameComponents(stack, costA)) continue;
+            int take = Math.min(remaining, stack.getCount());
+            stack.shrink(take);
+            remaining -= take;
+        }
+        serverPlayer.containerMenu.broadcastChanges();
+        serverPlayer.inventoryMenu.broadcastChanges();
+        sendBalanceUpdate(serverPlayer, VIRTUAL_BANK_ID);
+        LOGGER.info("========== handleSellFromBankConfig END ==========");
     }
 
     private static void buildSellOffersOnly(List<MerchantOffer> allOffers, List<CobbleDollarsShopPayloads.ShopOfferEntry> sellOut) {
@@ -1773,6 +1843,11 @@ public final class CobbleDollarsShopPayloadHandlers {
         Entity entity = level.getEntity(villagerId);
         LOGGER.info("Entity found: {} (type: {})", entity != null ? entity.getName().getString() : "null", 
             entity != null ? entity.getClass().getSimpleName() : "null");
+
+        if (villagerId == VIRTUAL_BANK_ID) {
+            handleSellFromBankConfig(serverPlayer, offerIndex, quantity);
+            return;
+        }
         
         if (!(entity instanceof Villager) && !(entity instanceof WanderingTrader) && !RctTrainerAssociationCompat.isTrainerAssociation(entity)) {
             LOGGER.warn("Entity is not a valid merchant type, aborting");
@@ -1936,5 +2011,15 @@ public final class CobbleDollarsShopPayloadHandlers {
         return ItemStack.matches(offer1.getCostA(), offer2.getCostA()) &&
                 ItemStack.matches(offer1.getCostB(), offer2.getCostB()) &&
                 ItemStack.matches(offer1.getResult(), offer2.getResult());
+    }
+
+    /**
+     * Handle SaveEditData from client: write shop and bank JSON to config (CobbleDollars-style see-and-edit). Requires op (permission); /cvm edit already requires level 2.
+     */
+    public static void handleSaveEditData(ServerPlayer player, String shopConfigJson, String bankConfigJson) {
+        if (player.getServer() == null) return;
+        if (!player.getServer().getPlayerList().isOp(player.getGameProfile())) return;
+        CobbleDollarsConfigHelper.writeShopConfig(shopConfigJson);
+        CobbleDollarsConfigHelper.writeBankConfig(bankConfigJson);
     }
 }

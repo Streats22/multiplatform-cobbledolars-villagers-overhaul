@@ -17,9 +17,11 @@ public final class FabricNetworking {
         PayloadTypeRegistry.playC2S().register(CobbleDollarsShopPayloads.RequestShopData.TYPE, CobbleDollarsShopPayloads.RequestShopData.STREAM_CODEC);
         PayloadTypeRegistry.playC2S().register(CobbleDollarsShopPayloads.BuyWithCobbleDollars.TYPE, CobbleDollarsShopPayloads.BuyWithCobbleDollars.STREAM_CODEC);
         PayloadTypeRegistry.playC2S().register(CobbleDollarsShopPayloads.SellForCobbleDollars.TYPE, CobbleDollarsShopPayloads.SellForCobbleDollars.STREAM_CODEC);
+        PayloadTypeRegistry.playC2S().register(CobbleDollarsShopPayloads.SaveEditData.TYPE, CobbleDollarsShopPayloads.SaveEditData.STREAM_CODEC);
 
         PayloadTypeRegistry.playS2C().register(CobbleDollarsShopPayloads.ShopData.TYPE, CobbleDollarsShopPayloads.ShopData.STREAM_CODEC);
         PayloadTypeRegistry.playS2C().register(CobbleDollarsShopPayloads.BalanceUpdate.TYPE, CobbleDollarsShopPayloads.BalanceUpdate.STREAM_CODEC);
+        PayloadTypeRegistry.playS2C().register(CobbleDollarsShopPayloads.EditData.TYPE, CobbleDollarsShopPayloads.EditData.STREAM_CODEC);
 
         ServerPlayNetworking.registerGlobalReceiver(CobbleDollarsShopPayloads.RequestShopData.TYPE, (payload, context) -> {
             if (context.player() instanceof ServerPlayer sp) {
@@ -36,6 +38,12 @@ public final class FabricNetworking {
         ServerPlayNetworking.registerGlobalReceiver(CobbleDollarsShopPayloads.SellForCobbleDollars.TYPE, (payload, context) -> {
             if (context.player() instanceof ServerPlayer sp) {
                 context.server().execute(() -> CobbleDollarsShopPayloadHandlers.handleSell(sp, payload.villagerId(), payload.offerIndex(), payload.quantity()));
+            }
+        });
+
+        ServerPlayNetworking.registerGlobalReceiver(CobbleDollarsShopPayloads.SaveEditData.TYPE, (payload, context) -> {
+            if (context.player() instanceof ServerPlayer sp) {
+                context.server().execute(() -> CobbleDollarsShopPayloadHandlers.handleSaveEditData(sp, payload.shopConfigJson(), payload.bankConfigJson()));
             }
         });
     }

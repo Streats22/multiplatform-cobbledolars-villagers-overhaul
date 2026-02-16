@@ -4,9 +4,6 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.npc.Villager;
-import net.minecraft.world.entity.npc.VillagerProfession;
-import net.minecraft.world.entity.npc.WanderingTrader;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.IEventBus;
@@ -17,11 +14,12 @@ import net.neoforged.fml.config.ModConfig;
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.neoforged.fml.loading.FMLEnvironment;
 import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
 import nl.streats1.cobbledollarsvillagersoverhaul.CobbleDollarsVillagersOverhaulRca;
 import nl.streats1.cobbledollarsvillagersoverhaul.Config;
-import nl.streats1.cobbledollarsvillagersoverhaul.network.CobbleDollarsShopPayloadHandlers;
+import nl.streats1.cobbledollarsvillagersoverhaul.command.CobbleMerchantCommands;
 import nl.streats1.cobbledollarsvillagersoverhaul.network.CobbleDollarsShopPayloads;
 
 @Mod(CobbleDollarsVillagersOverhaulNeoForge.MOD_ID)
@@ -58,6 +56,13 @@ public class CobbleDollarsVillagersOverhaulNeoForge {
     private void commonSetup(FMLCommonSetupEvent event) {
         // Load config
         Config.loadConfig();
+        // Register shop menu type and opener (so server can open menu; client gets slots for moving items)
+        NeoForgeMenuRegistration.register();
+    }
+
+    @SubscribeEvent
+    public void onRegisterCommands(RegisterCommandsEvent event) {
+        CobbleMerchantCommands.register(event.getDispatcher());
     }
 
     /** When CobbleDollars shop UI is enabled, right-clicking a villager opens our shop screen instead of vanilla trading. */
@@ -90,7 +95,7 @@ public class CobbleDollarsVillagersOverhaulNeoForge {
 
     private void handleVillagerShopInteract(Entity target, boolean isClientSide, boolean isSneaking, Runnable cancelAction) {
         boolean handled = common.onEntityInteract(target, isClientSide, isSneaking, cancelAction, target::getId);
-        if (handled && isClientSide) {
+        if (handled && common.shouldSendShopRequest(isClientSide)) {
             PacketDistributor.sendToServer(new CobbleDollarsShopPayloads.RequestShopData(target.getId()));
         }
     }
