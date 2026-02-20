@@ -931,10 +931,12 @@ public final class CobbleDollarsShopPayloadHandlers {
         }
         
         CobbleDollarsShopPayloads.ShopOfferEntry entry = configOffers.get(offerIndex);
-        int rate = CobbleDollarsConfigHelper.getEffectiveEmeraldRate();
-        long cost = (long) entry.emeraldCount() * quantity * rate;
-        LOGGER.info("Buy from config: emeraldCount={}, rate={}, quantity={}, total cost={}", 
-            entry.emeraldCount(), rate, quantity, cost);
+        // Config shop prices are in CobbleDollars (directPrice=true); do not multiply by emerald rate
+        long cost = entry.directPrice()
+                ? (long) entry.emeraldCount() * quantity
+                : (long) entry.emeraldCount() * quantity * CobbleDollarsConfigHelper.getEffectiveEmeraldRate();
+        LOGGER.info("Buy from config: emeraldCount={}, directPrice={}, quantity={}, total cost={}",
+                entry.emeraldCount(), entry.directPrice(), quantity, cost);
 
         long balanceBefore = CobbleDollarsIntegration.getBalance(serverPlayer);
         LOGGER.info("Balance BEFORE: {}", balanceBefore);
@@ -1633,38 +1635,12 @@ public final class CobbleDollarsShopPayloadHandlers {
         }
 
         // Log the offer details
-        LOGGER.info("Offer details - CostA: {} x{}, CostB: {} x{}, Result: {} x{}", 
+        LOGGER.info("Offer details - CostA: {} x{}, CostB: {} x{}, Result: {} x{}",
             costA.getItem(), costA.getCount(),
             offer.getCostB().isEmpty() ? "EMPTY" : offer.getCostB().getItem(), offer.getCostB().getCount(),
             offer.getResult().getItem(), offer.getResult().getCount());
-        
-        ItemStack costB = offer.getCostB();
-        if (!costB.isEmpty()) {
-            int totalNeeded = costB.getCount() * quantity;
-            int have = 0;
-            var inv = serverPlayer.getInventory();
-            for (int slot = 0; slot < inv.getContainerSize(); slot++) {
-                ItemStack stack = inv.getItem(slot);
-                if (!stack.isEmpty() && ItemStack.isSameItemSameComponents(stack, costB))
-                    have += stack.getCount();
-            }
-            LOGGER.info("CostB check: need {} {}, have {}", totalNeeded, costB.getItem(), have);
-            if (have < totalNeeded) {
-                LOGGER.warn("Not enough costB items, aborting");
-                return;
-            }
-            int remaining = totalNeeded;
-            for (int slot = 0; slot < inv.getContainerSize() && remaining > 0; slot++) {
-                ItemStack stack = inv.getItem(slot);
-                if (stack.isEmpty() || !ItemStack.isSameItemSameComponents(stack, costB)) continue;
-                int take = Math.min(remaining, stack.getCount());
-                stack.shrink(take);
-                remaining -= take;
-            }
-            LOGGER.info("Removed {} costB items from inventory", totalNeeded);
-        }
 
-        // For item-for-item trades, also check costA items
+        // For item-for-item trades, validate costA FIRST so we never remove costB then abort (and lose costB)
         if (!costA.is(Items.EMERALD) && !costA.isEmpty()) {
             int totalNeeded = costA.getCount() * quantity;
             int have = 0;
@@ -1679,7 +1655,72 @@ public final class CobbleDollarsShopPayloadHandlers {
                 LOGGER.warn("Not enough costA items for item-for-item trade, aborting");
                 return;
             }
+        }
+
+        // Deduct CobbleDollars for emerald-based trades BEFORE removing costB, so we never consume the secondary item then fail
+        if (costA.is(Items.EMERALD)) {
+            int emeraldCount = costA.getCount() * quantity;
+            int rate = CobbleDollarsConfigHelper.getEffectiveEmeraldRate();
+            long totalCost = (long) emeraldCount * rate;
+
+            LOGGER.info("=== CobbleDollars BUY TRANSACTION ===");
+            LOGGER.info("Emerald count: {}, Rate: {}, Total cost: {}", emeraldCount, rate, totalCost);
+
+            long balanceBefore = CobbleDollarsIntegration.getBalance(serverPlayer);
+            LOGGER.info("Balance BEFORE: {}", balanceBefore);
+
+            if (balanceBefore < totalCost) {
+                LOGGER.warn("Insufficient balance! Has: {}, Needs: {}", balanceBefore, totalCost);
+                return;
+            }
+
+            if (!CobbleDollarsIntegration.addBalance(serverPlayer, -totalCost)) {
+                LOGGER.error("FAILED to deduct {} CobbleDollars from player {}", totalCost, serverPlayer.getName().getString());
+                return;
+            }
+
+            long balanceAfter = CobbleDollarsIntegration.getBalance(serverPlayer);
+            LOGGER.info("Balance AFTER: {}", balanceAfter);
+            LOGGER.info("Successfully deducted {} CobbleDollars (expected new balance: {}, actual: {})",
+                    totalCost, balanceBefore - totalCost, balanceAfter);
+        }
+
+        ItemStack costB = offer.getCostB();
+        if (!costB.isEmpty()) {
+            int totalNeeded = costB.getCount() * quantity;
+            int have = 0;
+            var inv = serverPlayer.getInventory();
+            for (int slot = 0; slot < inv.getContainerSize(); slot++) {
+                ItemStack stack = inv.getItem(slot);
+                if (!stack.isEmpty() && ItemStack.isSameItemSameComponents(stack, costB))
+                    have += stack.getCount();
+            }
+            LOGGER.info("CostB check: need {} {}, have {}", totalNeeded, costB.getItem(), have);
+            if (have < totalNeeded) {
+                LOGGER.warn("Not enough costB items, aborting");
+                if (costA.is(Items.EMERALD)) {
+                    long refund = (long) costA.getCount() * quantity * CobbleDollarsConfigHelper.getEffectiveEmeraldRate();
+                    CobbleDollarsIntegration.addBalance(serverPlayer, refund);
+                    LOGGER.info("Refunded {} CobbleDollars after costB check failed", refund);
+                }
+                return;
+            }
             int remaining = totalNeeded;
+            for (int slot = 0; slot < inv.getContainerSize() && remaining > 0; slot++) {
+                ItemStack stack = inv.getItem(slot);
+                if (stack.isEmpty() || !ItemStack.isSameItemSameComponents(stack, costB)) continue;
+                int take = Math.min(remaining, stack.getCount());
+                stack.shrink(take);
+                remaining -= take;
+            }
+            LOGGER.info("Removed {} costB items from inventory", totalNeeded);
+        }
+
+        // Remove costA for item-for-item trades (we already validated we have enough above)
+        if (!costA.is(Items.EMERALD) && !costA.isEmpty()) {
+            int totalNeeded = costA.getCount() * quantity;
+            int remaining = totalNeeded;
+            var inv = serverPlayer.getInventory();
             for (int slot = 0; slot < inv.getContainerSize() && remaining > 0; slot++) {
                 ItemStack stack = inv.getItem(slot);
                 if (stack.isEmpty() || !ItemStack.isSameItemSameComponents(stack, costA)) continue;
@@ -1688,34 +1729,6 @@ public final class CobbleDollarsShopPayloadHandlers {
                 remaining -= take;
             }
             LOGGER.info("Removed {} costA items from inventory", totalNeeded);
-        }
-
-        // Deduct CobbleDollars for emerald-based trades (non-RCT or RCT buy tab)
-        if (costA.is(Items.EMERALD)) {
-            int emeraldCount = costA.getCount() * quantity;
-            int rate = CobbleDollarsConfigHelper.getEffectiveEmeraldRate();
-            long totalCost = (long) emeraldCount * rate;
-            
-            LOGGER.info("=== CobbleDollars BUY TRANSACTION ===");
-            LOGGER.info("Emerald count: {}, Rate: {}, Total cost: {}", emeraldCount, rate, totalCost);
-            
-            long balanceBefore = CobbleDollarsIntegration.getBalance(serverPlayer);
-            LOGGER.info("Balance BEFORE: {}", balanceBefore);
-            
-            if (balanceBefore < totalCost) {
-                LOGGER.warn("Insufficient balance! Has: {}, Needs: {}", balanceBefore, totalCost);
-                return;
-            }
-            
-            if (!CobbleDollarsIntegration.addBalance(serverPlayer, -totalCost)) {
-                LOGGER.error("FAILED to deduct {} CobbleDollars from player {}", totalCost, serverPlayer.getName().getString());
-                return;
-            }
-            
-            long balanceAfter = CobbleDollarsIntegration.getBalance(serverPlayer);
-            LOGGER.info("Balance AFTER: {}", balanceAfter);
-            LOGGER.info("Successfully deducted {} CobbleDollars (expected new balance: {}, actual: {})", 
-                totalCost, balanceBefore - totalCost, balanceAfter);
         }
 
         // Give the result item

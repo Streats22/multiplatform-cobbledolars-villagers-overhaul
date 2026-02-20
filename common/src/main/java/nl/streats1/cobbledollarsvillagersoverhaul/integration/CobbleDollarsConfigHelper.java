@@ -33,9 +33,6 @@ public final class CobbleDollarsConfigHelper {
         if (cachedBankEmeraldPrice >= 0) return OptionalInt.of(cachedBankEmeraldPrice);
         if (cachedBankEmeraldPrice == -2) return OptionalInt.empty();
         Path configDir = getConfigDirectory();
-        if (configDir == null) {
-            return OptionalInt.empty();
-        }
         Path bankFile = configDir.resolve(COBBLEDOLLARS_CONFIG_SUBDIR).resolve(BANK_FILE);
         if (!Files.isRegularFile(bankFile)) {
             cachedBankEmeraldPrice = -2;
@@ -74,7 +71,6 @@ public final class CobbleDollarsConfigHelper {
 
     public static List<CobbleDollarsShopPayloads.ShopOfferEntry> getDefaultShopBuyOffers() {
         Path configDir = getConfigDirectory();
-        if (configDir == null) return List.of();
         Path shopFile = configDir.resolve(COBBLEDOLLARS_CONFIG_SUBDIR).resolve(DEFAULT_SHOP_FILE);
         if (!Files.isRegularFile(shopFile)) return List.of();
         try {
@@ -103,7 +99,7 @@ public final class CobbleDollarsConfigHelper {
                                 ResourceLocation id = ResourceLocation.tryParse(itemId);
                                 if (id == null) continue;
                                 var item = BuiltInRegistries.ITEM.get(id);
-                                if (item == null || item == Items.AIR) continue;
+                                if (item == Items.AIR) continue;
                                 out.add(new CobbleDollarsShopPayloads.ShopOfferEntry(new ItemStack(item, 1), price, empty, true, "", "", "", 0, 0));
                             }
                         }
@@ -121,7 +117,7 @@ public final class CobbleDollarsConfigHelper {
                         ResourceLocation id = ResourceLocation.tryParse(itemId);
                         if (id == null) continue;
                         var item = BuiltInRegistries.ITEM.get(id);
-                        if (item == null || item == Items.AIR) continue;
+                        if (item == Items.AIR) continue;
                         out.add(new CobbleDollarsShopPayloads.ShopOfferEntry(new ItemStack(item, 1), price, empty, true, "", "", "", 0, 0));
                     }
                 }
