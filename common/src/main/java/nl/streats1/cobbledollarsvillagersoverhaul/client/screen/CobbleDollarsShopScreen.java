@@ -805,20 +805,39 @@ public class CobbleDollarsShopScreen extends Screen {
         var entity = minecraft.level.getEntity(villagerId);
         if (entity == null) return Component.empty();
         
-        // Check if entity has a custom name first
+        // Custom name (name tag) takes precedence
         if (entity.hasCustomName()) {
             return entity.getCustomName();
         }
         
+        // Use entity.getDisplayName() - properly resolves modded villager professions and datapack names.
+        // Minecraft resolves this via the entity type and profession translation keys that mods register.
+        Component displayName = entity.getDisplayName();
+        if (displayName != null && !displayName.getString().isEmpty()) {
+            String s = displayName.getString();
+            // Only use if it looks like a real name (not an untranslated key like "entity.minecraft.villager.xxx")
+            if (!s.startsWith("entity.") || s.contains(" ")) {
+                return displayName;
+            }
+        }
+        
+        // Fallback for Villager: try profession translation with full registry key (supports modded namespaces)
         if (entity instanceof Villager villager) {
             var key = BuiltInRegistries.VILLAGER_PROFESSION.getKey(villager.getVillagerData().getProfession());
             if (key != null) {
-                return Component.translatable("entity.minecraft.villager." + key.getPath());
+                // Try entity.<namespace>.<path> first (e.g. entity.allthemons.pokemart_trader)
+                Component modded = Component.translatable("entity." + key.getNamespace() + "." + key.getPath());
+                if (!modded.getString().equals("entity." + key.getNamespace() + "." + key.getPath())) {
+                    return modded;
+                }
+                // Try vanilla convention for backward compatibility
+                Component vanilla = Component.translatable("entity.minecraft.villager." + key.getPath());
+                if (!vanilla.getString().equals("entity.minecraft.villager." + key.getPath())) {
+                    return vanilla;
+                }
             }
-            return Component.literal(villager.getVillagerData().getProfession().toString());
         }
         if (entity instanceof WanderingTrader) {
-            // Check if it's an RCT trainer association
             if (Config.USE_RCT_TRADES_OVERHAUL && RctTrainerAssociationCompat.isTrainerAssociation(entity)) {
                 return Component.translatable("gui.cobbledollars_villagers_overhaul_rca.trainer_association");
             }

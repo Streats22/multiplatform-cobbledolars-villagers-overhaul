@@ -142,7 +142,7 @@ public final class CobbleDollarsShopPayloads {
         }
     }
 
-    public record ShopData(int villagerId, long balance, List<ShopOfferEntry> buyOffers, List<ShopOfferEntry> sellOffers, List<ShopOfferEntry> tradesOffers, boolean buyOffersFromConfig) implements CustomPacketPayload {
+    public record ShopData(int villagerId, long balance, List<ShopOfferEntry> buyOffers, List<ShopOfferEntry> sellOffers, List<ShopOfferEntry> tradesOffers, boolean buyOffersFromConfig, boolean canCycleTrades) implements CustomPacketPayload {
         public static final CustomPacketPayload.Type<ShopData> TYPE =
                 new CustomPacketPayload.Type<>(Objects.requireNonNull(id("shop_data")));
         public static final StreamCodec<RegistryFriendlyByteBuf, ShopData> STREAM_CODEC =
@@ -159,13 +159,16 @@ public final class CobbleDollarsShopPayloads {
                         ShopData::tradesOffers,
                         BOOL,
                         ShopData::buyOffersFromConfig,
-                        (villagerId, balance, buyOffers, sellOffers, tradesOffers, buyOffersFromConfig) -> new ShopData(
+                        BOOL,
+                        ShopData::canCycleTrades,
+                        (villagerId, balance, buyOffers, sellOffers, tradesOffers, buyOffersFromConfig, canCycleTrades) -> new ShopData(
                                 Objects.requireNonNull(villagerId),
                                 Objects.requireNonNull(balance),
                                 Objects.requireNonNull(buyOffers),
                                 Objects.requireNonNull(sellOffers),
                                 Objects.requireNonNull(tradesOffers),
-                                buyOffersFromConfig)
+                                buyOffersFromConfig,
+                                canCycleTrades)
                 ));
 
         @Override
@@ -218,6 +221,22 @@ public final class CobbleDollarsShopPayloads {
                                 fromConfigShop,
                                 Objects.requireNonNull(tab),
                                 selectedSeries != null ? selectedSeries : "")
+                ));
+
+        @Override
+        public Type<? extends CustomPacketPayload> type() {
+            return TYPE;
+        }
+    }
+
+    public record CycleTrades(int villagerId) implements CustomPacketPayload {
+        public static final CustomPacketPayload.Type<CycleTrades> TYPE =
+                new CustomPacketPayload.Type<>(Objects.requireNonNull(id("cycle_trades")));
+        public static final StreamCodec<RegistryFriendlyByteBuf, CycleTrades> STREAM_CODEC =
+                Objects.requireNonNull(StreamCodec.composite(
+                        VAR_INT,
+                        CycleTrades::villagerId,
+                        CycleTrades::new
                 ));
 
         @Override

@@ -17,6 +17,7 @@ import nl.streats1.cobbledollarsvillagersoverhaul.Config;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.CobbleDollarsConfigHelper;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.CobbleDollarsIntegration;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.DatapackItemPricing;
+import nl.streats1.cobbledollarsvillagersoverhaul.integration.TradeCyclingCompat;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.RctTrainerAssociationCompat;
 import nl.streats1.cobbledollarsvillagersoverhaul.platform.PlatformNetwork;
 import org.slf4j.Logger;
@@ -901,6 +902,12 @@ public final class CobbleDollarsShopPayloadHandlers {
                 buyOffersFromConfig = true;
             }
         }
+        // Compute canCycleTrades: only for Villagers that have workstation and haven't been traded with
+        boolean canCycleTrades = false;
+        if (entity instanceof Villager villager && !buyOffersFromConfig) {
+            canCycleTrades = TradeCyclingCompat.canCycleTrades(villager);
+        }
+
         // Final defensive checks before sending
         List<CobbleDollarsShopPayloads.ShopOfferEntry> safeBuyOffers = buyOffers != null ? buyOffers : List.of();
         List<CobbleDollarsShopPayloads.ShopOfferEntry> safeSellOffers = sellOffers != null ? sellOffers : List.of();
@@ -908,16 +915,27 @@ public final class CobbleDollarsShopPayloadHandlers {
 
         try {
             PlatformNetwork.sendToPlayer(serverPlayer,
-                    new CobbleDollarsShopPayloads.ShopData(villagerId, balance, safeBuyOffers, safeSellOffers, safeTradesOffers, buyOffersFromConfig));
+                    new CobbleDollarsShopPayloads.ShopData(villagerId, balance, safeBuyOffers, safeSellOffers, safeTradesOffers, buyOffersFromConfig, canCycleTrades));
             LOGGER.info("Sent shop data to player {}: villager={}, buyOffers={}, sellOffers={}, tradesOffers={}, fromConfig={}",
                     serverPlayer.getName().getString(), villagerId, buyOffers.size(), sellOffers.size(), tradesOffers.size(), buyOffersFromConfig);
         } catch (Exception e) {
             LOGGER.error("Failed to send shop data packet for villager {}: {}", villagerId, e.getMessage());
             // Send empty data to prevent crash
             PlatformNetwork.sendToPlayer(serverPlayer,
-                    new CobbleDollarsShopPayloads.ShopData(villagerId, 0L, List.of(), List.of(), List.of(), false));
+                    new CobbleDollarsShopPayloads.ShopData(villagerId, 0L, List.of(), List.of(), List.of(), false, false));
         }
 
+    }
+
+    public static void handleCycleTrades(ServerPlayer serverPlayer, int villagerId) {
+        if (!Config.VILLAGERS_ACCEPT_COBBLEDOLLARS) return;
+        ServerLevel level = serverPlayer.serverLevel();
+        Entity entity = level.getEntity(villagerId);
+        if (!(entity instanceof Villager villager)) return;
+        if (!TradeCyclingCompat.canCycleTrades(villager)) return;
+        if (!TradeCyclingCompat.cycleTrades(villager, serverPlayer)) return;
+        // Send refreshed shop data
+        handleRequestShopData(serverPlayer, villagerId);
     }
 
     private static void handleBuyFromConfig(ServerPlayer serverPlayer, int villagerId, int offerIndex, int quantity) {
@@ -1136,6 +1154,37 @@ public final class CobbleDollarsShopPayloadHandlers {
                 processed, buyOut.size(), sellOut.size(), tradesOut.size());
     }
 
+    /**
+     * Returns the list of MerchantOffers that correspond to buy offers (emerald cost -> item result),
+     * in the same order as buildOfferLists + buildDatapackOffers produce buyOffers.
+     * Used to resolve offerIndex from client (which indexes into buyOffers) to the correct MerchantOffer.
+     */
+    private static List<MerchantOffer> getBuyOffersForVillager(List<MerchantOffer> allOffers) {
+        List<MerchantOffer> buyOffers = new ArrayList<>();
+        for (MerchantOffer o : allOffers) {
+            if (o == null) continue;
+            ItemStack costA = o.getCostA();
+            ItemStack result = o.getResult();
+            if (costA == null || result == null || result.isEmpty()) continue;
+            if (!costA.isEmpty() && costA.is(Items.EMERALD)) {
+                buyOffers.add(o);
+            }
+        }
+        if (Config.USE_DATAPACK_TRADES) {
+            for (MerchantOffer o : allOffers) {
+                if (o == null) continue;
+                ItemStack costA = o.getCostA();
+                ItemStack result = o.getResult();
+                if (costA == null || result == null || costA.isEmpty() || result.isEmpty()) continue;
+                if (costA.is(Items.EMERALD) || result.is(Items.EMERALD)) continue;
+                if (DatapackItemPricing.getPrice(costA) > 0) {
+                    buyOffers.add(o);
+                }
+            }
+        }
+        return buyOffers;
+    }
+
     private static void buildOfferLists(List<MerchantOffer> allOffers,
                                         List<CobbleDollarsShopPayloads.ShopOfferEntry> buyOut,
                                         List<CobbleDollarsShopPayloads.ShopOfferEntry> sellOut) {
@@ -1145,8 +1194,8 @@ public final class CobbleDollarsShopPayloadHandlers {
             ItemStack costB = o.getCostB();
             ItemStack result = o.getResult();
 
-            // Additional null checks
-            if (costA == null || costB == null || result == null) continue;
+            // Additional null checks - costB can be null/empty for trades without secondary item
+            if (costA == null || result == null) continue;
             if (result.isEmpty()) continue;
 
             if (!costA.isEmpty() && costA.is(Items.EMERALD)) {
@@ -1507,8 +1556,11 @@ public final class CobbleDollarsShopPayloadHandlers {
             offer = filteredOffers.get(offerIndex);
         } else {
             // Non-RCTA entities (villagers, wandering traders)
-            if (offerIndex < 0 || offerIndex >= allOffers.size()) return;
-            offer = allOffers.get(offerIndex);
+            // Client sends offerIndex indexing into buyOffers list, not allOffers.
+            // Build the same filtered buy list and use offerIndex into it.
+            List<MerchantOffer> buyOffersList = getBuyOffersForVillager(allOffers);
+            if (offerIndex < 0 || offerIndex >= buyOffersList.size()) return;
+            offer = buyOffersList.get(offerIndex);
         }
 
         // Handle trainer card trades (tab == 2 for RCTA)
@@ -1640,8 +1692,20 @@ public final class CobbleDollarsShopPayloadHandlers {
             offer.getCostB().isEmpty() ? "EMPTY" : offer.getCostB().getItem(), offer.getCostB().getCount(),
             offer.getResult().getItem(), offer.getResult().getCount());
 
-        // For item-for-item trades, validate costA FIRST so we never remove costB then abort (and lose costB)
-        if (!costA.is(Items.EMERALD) && !costA.isEmpty()) {
+        int rate = CobbleDollarsConfigHelper.getEffectiveEmeraldRate();
+        long totalCost;
+
+        if (costA.is(Items.EMERALD)) {
+            // Emerald-based buy: pay CobbleDollars (emerald count * rate)
+            totalCost = (long) costA.getCount() * quantity * rate;
+        } else if (!costA.isEmpty() && Config.USE_DATAPACK_TRADES && DatapackItemPricing.getPrice(costA) > 0) {
+            // Datapack buy: pay CobbleDollars (item value from DatapackItemPricing * rate)
+            // These offers are shown in Buy tab with CobbleDollars price - player pays money, not items
+            int pricePerTrade = DatapackItemPricing.getPrice(costA);
+            totalCost = (long) pricePerTrade * quantity * rate;
+            LOGGER.info("Datapack buy: costA={} x{}, pricePerTrade={}, totalCost={}", costA.getItem(), costA.getCount(), pricePerTrade, totalCost);
+        } else {
+            // Legacy item-for-item: need the actual items (should not appear in Buy tab typically)
             int totalNeeded = costA.getCount() * quantity;
             int have = 0;
             var inv = serverPlayer.getInventory();
@@ -1655,16 +1719,13 @@ public final class CobbleDollarsShopPayloadHandlers {
                 LOGGER.warn("Not enough costA items for item-for-item trade, aborting");
                 return;
             }
+            totalCost = 0; // No CobbleDollars to charge
         }
 
-        // Deduct CobbleDollars for emerald-based trades BEFORE removing costB, so we never consume the secondary item then fail
-        if (costA.is(Items.EMERALD)) {
-            int emeraldCount = costA.getCount() * quantity;
-            int rate = CobbleDollarsConfigHelper.getEffectiveEmeraldRate();
-            long totalCost = (long) emeraldCount * rate;
-
+        // Deduct CobbleDollars for emerald and datapack buys BEFORE removing costB, so we never consume the secondary item then fail
+        if (totalCost > 0) {
             LOGGER.info("=== CobbleDollars BUY TRANSACTION ===");
-            LOGGER.info("Emerald count: {}, Rate: {}, Total cost: {}", emeraldCount, rate, totalCost);
+            LOGGER.info("Total cost: {} CobbleDollars", totalCost);
 
             long balanceBefore = CobbleDollarsIntegration.getBalance(serverPlayer);
             LOGGER.info("Balance BEFORE: {}", balanceBefore);
@@ -1686,7 +1747,7 @@ public final class CobbleDollarsShopPayloadHandlers {
         }
 
         ItemStack costB = offer.getCostB();
-        if (!costB.isEmpty()) {
+        if (costB != null && !costB.isEmpty()) {
             int totalNeeded = costB.getCount() * quantity;
             int have = 0;
             var inv = serverPlayer.getInventory();
@@ -1698,10 +1759,9 @@ public final class CobbleDollarsShopPayloadHandlers {
             LOGGER.info("CostB check: need {} {}, have {}", totalNeeded, costB.getItem(), have);
             if (have < totalNeeded) {
                 LOGGER.warn("Not enough costB items, aborting");
-                if (costA.is(Items.EMERALD)) {
-                    long refund = (long) costA.getCount() * quantity * CobbleDollarsConfigHelper.getEffectiveEmeraldRate();
-                    CobbleDollarsIntegration.addBalance(serverPlayer, refund);
-                    LOGGER.info("Refunded {} CobbleDollars after costB check failed", refund);
+                if (totalCost > 0) {
+                    CobbleDollarsIntegration.addBalance(serverPlayer, totalCost);
+                    LOGGER.info("Refunded {} CobbleDollars after costB check failed", totalCost);
                 }
                 return;
             }
@@ -1716,8 +1776,9 @@ public final class CobbleDollarsShopPayloadHandlers {
             LOGGER.info("Removed {} costB items from inventory", totalNeeded);
         }
 
-        // Remove costA for item-for-item trades (we already validated we have enough above)
-        if (!costA.is(Items.EMERALD) && !costA.isEmpty()) {
+        // Remove costA only for legacy item-for-item trades (totalCost==0, we take items not CobbleDollars)
+        // For emerald and datapack buys we charged CobbleDollars - do not take costA items
+        if (totalCost == 0 && !costA.isEmpty()) {
             int totalNeeded = costA.getCount() * quantity;
             int remaining = totalNeeded;
             var inv = serverPlayer.getInventory();

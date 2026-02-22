@@ -1,12 +1,14 @@
 package nl.streats1.cobbledollarsvillagersoverhaul.fabric;
 
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import nl.streats1.cobbledollarsvillagersoverhaul.network.CobbleDollarsShopPayloads;
 import nl.streats1.cobbledollarsvillagersoverhaul.platform.PlatformNetwork;
 import net.minecraft.world.InteractionResult;
 import nl.streats1.cobbledollarsvillagersoverhaul.CobbleDollarsVillagersOverhaulRca;
 import nl.streats1.cobbledollarsvillagersoverhaul.Config;
+import nl.streats1.cobbledollarsvillagersoverhaul.command.VillagerShopCommand;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.CobbleDollarsIntegration;
 
 public class CobbleDollarsVillagersOverhaulFabric implements ModInitializer {
@@ -22,6 +24,10 @@ public class CobbleDollarsVillagersOverhaulFabric implements ModInitializer {
         
         // Register Fabric-specific events
         registerEvents();
+
+        // Register commands
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) ->
+                VillagerShopCommand.register(dispatcher));
         
         // Register networking
         FabricNetworking.register();

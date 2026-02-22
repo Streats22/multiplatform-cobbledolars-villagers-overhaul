@@ -8,6 +8,8 @@
   "gui.cobbledollars_villagers_overhaul_rca.trainer_association": "Trainer Association",
   "gui.cobbledollars_villagers_overhaul_rca.no_trades": "No Trades",
   "gui.cobbledollars_villagers_overhaul_rca.no_trades_line2": "Available",
+  "command.cobbledollars_villagers_overhaul_rca.edit.no_entity": "Look at a villager, wandering trader, or Trainer Association to open the shop.",
+  "command.cobbledollars_villagers_overhaul_rca.edit.success": "Opened shop for %s",
   "gui.cobbledollars_villagers_overhaul_rca.series_reset_1": "Starting a new series will reset your progress!",
   "gui.cobbledollars_villagers_overhaul_rca.series_reset_2": "Completing a series permanently increases luck.",
   "gui.rctmod.trainer_association.important": "Important",
