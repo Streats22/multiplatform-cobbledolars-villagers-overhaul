@@ -32,8 +32,8 @@ public class CobbleDollarsVillagersOverhaulFabric implements ModInitializer {
         // Register networking
         FabricNetworking.register();
         
-        // Load config
-        Config.loadConfig();
+        // Load config (creates config.json + custom_currency.json with defaults if missing)
+        ConfigFabric.loadConfig();
     }
     
     private void registerEvents() {
@@ -42,7 +42,7 @@ public class CobbleDollarsVillagersOverhaulFabric implements ModInitializer {
                 return InteractionResult.PASS;
             }
 
-            boolean handled = mod.onEntityInteract(entity, true, player.isShiftKeyDown(), () -> {}, entity::getId);
+            boolean handled = mod.onEntityInteract(entity, true, player.isShiftKeyDown(), () -> {});
             if (!handled) return InteractionResult.PASS;
 
             PlatformNetwork.sendToServer(new CobbleDollarsShopPayloads.RequestShopData(entity.getId()));

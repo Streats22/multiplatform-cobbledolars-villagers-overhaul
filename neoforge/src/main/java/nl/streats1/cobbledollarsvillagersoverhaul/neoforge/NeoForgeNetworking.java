@@ -4,6 +4,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
+import nl.streats1.cobbledollarsvillagersoverhaul.Config;
 import nl.streats1.cobbledollarsvillagersoverhaul.client.screen.CobbleDollarsShopScreen;
 import nl.streats1.cobbledollarsvillagersoverhaul.network.CobbleDollarsShopPayloadHandlers;
 import nl.streats1.cobbledollarsvillagersoverhaul.network.CobbleDollarsShopPayloads;
@@ -32,9 +33,11 @@ public final class NeoForgeNetworking {
         registrar.playToClient(
                 Objects.requireNonNull(CobbleDollarsShopPayloads.ShopData.TYPE),
                 Objects.requireNonNull(CobbleDollarsShopPayloads.ShopData.STREAM_CODEC),
-                (data, context) -> context.enqueueWork(() ->
+                (data, context) -> context.enqueueWork(() -> {
+                        if (!Config.USE_COBBLEDOLLARS_SHOP_UI) return;
                         CobbleDollarsShopScreen.openFromPayload(
-                                data.villagerId(), data.balance(), data.buyOffers(), data.sellOffers(), data.tradesOffers(), data.buyOffersFromConfig()))
+                                data.villagerId(), data.balance(), data.buyOffers(), data.sellOffers(), data.tradesOffers(), data.buyOffersFromConfig(), data.canCycleTrades());
+                })
         );
 
         registrar.playToClient(
@@ -51,6 +54,16 @@ public final class NeoForgeNetworking {
                 (data, context) -> context.enqueueWork(() -> {
                     if (context.player() instanceof ServerPlayer sp) {
                         CobbleDollarsShopPayloadHandlers.handleBuy(sp, data.villagerId(), data.offerIndex(), data.quantity(), data.fromConfigShop(), data.tab(), data.selectedSeries());
+                    }
+                })
+        );
+
+        registrar.playToServer(
+                Objects.requireNonNull(CobbleDollarsShopPayloads.CycleTrades.TYPE),
+                Objects.requireNonNull(CobbleDollarsShopPayloads.CycleTrades.STREAM_CODEC),
+                (data, context) -> context.enqueueWork(() -> {
+                    if (context.player() instanceof ServerPlayer sp) {
+                        CobbleDollarsShopPayloadHandlers.handleCycleTrades(sp, data.villagerId());
                     }
                 })
         );

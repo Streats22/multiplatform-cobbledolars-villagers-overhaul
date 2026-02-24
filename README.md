@@ -28,6 +28,10 @@ enhanced trading experience with RCT series support.
 - (Optional) Radical Cobblemon Trainers mod - for series-based trades
 - Fabric or NeoForge mod loader
 
+**For in-game config screen** (Mods menu → Config button):
+- **Fabric**: [Cloth Config API](https://modrinth.com/mod/cloth-config) + [Mod Menu](https://modrinth.com/mod/modmenu)
+- **NeoForge**: [Cloth Config API](https://modrinth.com/mod/cloth-config) (config button appears in mod list)
+
 ## Installation
 
 ### Fabric
@@ -46,23 +50,42 @@ enhanced trading experience with RCT series support.
 
 ## Configuration
 
-The mod creates a `cobbledollars-villagers-overhaul.json` config file in your config folder.
+Config files are created automatically when you first run the game.
+
+**In-game config**: With Cloth Config (+ Mod Menu on Fabric), click the config (wrench) button next to the mod in the Mods list.
+
+**File locations**:
+- **NeoForge**: `config/cobbledollars_villagers_overhaul_rca-common.toml`  
+- **Fabric**: `config/cobbledollars_villagers_overhaul_rca/config.json`
 
 ### Config Options
 
-| Option                      | Type    | Default | Description                       |
-|-----------------------------|---------|---------|-----------------------------------|
-| `USE_COBBLEDOLLARS_SHOP_UI` | Boolean | true    | Enable the custom shop UI         |
-| `USE_RCT_TRADES_OVERHAUL`   | Boolean | true    | Enable RCT series trades overhaul |
+| Option                        | Type    | Default | Description                                   |
+|------------------------------|---------|---------|-----------------------------------------------|
+| `useCobbleDollarsShopUi`     | Boolean | true    | Enable the custom shop UI                     |
+| `villagersAcceptCobbleDollars`| Boolean | true    | Pay villager trades with CobbleDollars        |
+| `cobbledollarsEmeraldRate`    | Int     | 3       | Step 1-3: 1=250, 2=500, 3=750 CD per emerald (or raw value) |
+| `syncCobbleDollarsBankRate`  | Boolean | true    | Sync emerald rate with CobbleDollars bank    |
+| `useRctTradesOverhaul`       | Boolean | true    | Enable RCT series trades overhaul            |
+| `useDatapackTrades`          | Boolean | true    | Use datapack default shop offers             |
 
-### Example Config
+### Custom Currency Items (Relic Coins, Poketokens, etc.)
 
-```json
-{
-  "USE_COBBLEDOLLARS_SHOP_UI": true,
-  "USE_RCT_TRADES_OVERHAUL": true
-}
-```
+**Default currencies** (included automatically):
+
+- **Cobblemon**: Relic Coin (250 CD), Relic Coin Pouch (2250 CD), Relic Coin Sack (20250 CD)
+- **All The Mons / Poketokens**: Token (250 CD per token)
+
+**Emerald steps** (CobbleDollars scale): 1 = 250 CD, 2 = 500 CD, 3 = 750 CD per emerald. Default is step 3.
+
+- **Trades where you GET the currency** → **Sell tab** (you receive CobbleDollars)
+- **Trades where you SPEND the currency** → **Buy tab** (you pay CobbleDollars)
+
+**NeoForge**: Edit `customCurrencyItems` in `config/cobbledollars_villagers_overhaul_rca-common.toml`.  
+**Fabric**: Edit `config/cobbledollars_villagers_overhaul_rca/custom_currency.json`.
+
+Format: `[{"item":"cobblemon:relic_coin","value":250},{"item":"allthemons:token","value":250}]`  
+`value` = CobbleDollars per 1 item.
 
 ## Usage
 
@@ -94,6 +117,7 @@ When using RCT trainers, you can:
 
 ### Controls
 
+- **C key**: Cycle trades (same as Trade Cycling / Easy Villagers - refresh villager offers without breaking workstation)
 - **Left Click**: Purchase/Sell single item
 - **Shift + Left Click**: Purchase/Sell stack (64x)
 - **Arrow Buttons**: Adjust quantity (1, 16, 32, 64)

@@ -146,30 +146,25 @@ public final class CobbleDollarsShopPayloads {
         public static final CustomPacketPayload.Type<ShopData> TYPE =
                 new CustomPacketPayload.Type<>(Objects.requireNonNull(id("shop_data")));
         public static final StreamCodec<RegistryFriendlyByteBuf, ShopData> STREAM_CODEC =
-                Objects.requireNonNull(StreamCodec.composite(
-                        VAR_INT,
-                        ShopData::villagerId,
-                        VAR_LONG,
-                        ShopData::balance,
-                        OFFERS_LIST_CODEC,
-                        ShopData::buyOffers,
-                        OFFERS_LIST_CODEC,
-                        ShopData::sellOffers,
-                        OFFERS_LIST_CODEC,
-                        ShopData::tradesOffers,
-                        BOOL,
-                        ShopData::buyOffersFromConfig,
-                        BOOL,
-                        ShopData::canCycleTrades,
-                        (villagerId, balance, buyOffers, sellOffers, tradesOffers, buyOffersFromConfig, canCycleTrades) -> new ShopData(
-                                Objects.requireNonNull(villagerId),
-                                Objects.requireNonNull(balance),
-                                Objects.requireNonNull(buyOffers),
-                                Objects.requireNonNull(sellOffers),
-                                Objects.requireNonNull(tradesOffers),
-                                buyOffersFromConfig,
-                                canCycleTrades)
-                ));
+                StreamCodec.of(
+                        (buf, data) -> {
+                            VAR_INT.encode(buf, data.villagerId());
+                            VAR_LONG.encode(buf, data.balance());
+                            OFFERS_LIST_CODEC.encode(buf, data.buyOffers());
+                            OFFERS_LIST_CODEC.encode(buf, data.sellOffers());
+                            OFFERS_LIST_CODEC.encode(buf, data.tradesOffers());
+                            BOOL.encode(buf, data.buyOffersFromConfig());
+                            BOOL.encode(buf, data.canCycleTrades());
+                        },
+                        buf -> new ShopData(
+                                VAR_INT.decode(buf),
+                                VAR_LONG.decode(buf),
+                                OFFERS_LIST_CODEC.decode(buf),
+                                OFFERS_LIST_CODEC.decode(buf),
+                                OFFERS_LIST_CODEC.decode(buf),
+                                BOOL.decode(buf),
+                                BOOL.decode(buf))
+                );
 
         @Override
         public Type<? extends CustomPacketPayload> type() {

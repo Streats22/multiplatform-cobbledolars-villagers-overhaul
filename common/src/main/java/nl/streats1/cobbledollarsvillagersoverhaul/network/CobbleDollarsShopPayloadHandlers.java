@@ -4,6 +4,7 @@ import com.mojang.logging.LogUtils;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.MenuProvider;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.npc.Villager;
 import net.minecraft.world.entity.npc.WanderingTrader;
@@ -16,6 +17,7 @@ import net.minecraft.world.item.trading.MerchantOffer;
 import nl.streats1.cobbledollarsvillagersoverhaul.Config;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.CobbleDollarsConfigHelper;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.CobbleDollarsIntegration;
+import nl.streats1.cobbledollarsvillagersoverhaul.integration.CustomCurrencyConfig;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.DatapackItemPricing;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.TradeCyclingCompat;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.RctTrainerAssociationCompat;
@@ -661,6 +663,13 @@ public final class CobbleDollarsShopPayloadHandlers {
     }
 
     public static void handleRequestShopData(ServerPlayer serverPlayer, int villagerId) {
+        if (!Config.USE_COBBLEDOLLARS_SHOP_UI) {
+            Entity entity = serverPlayer.serverLevel().getEntity(villagerId);
+            if (entity instanceof MenuProvider menuProvider) {
+                serverPlayer.openMenu(menuProvider);
+            }
+            return;
+        }
         if (!Config.VILLAGERS_ACCEPT_COBBLEDOLLARS) return;
         if (!CobbleDollarsIntegration.isAvailable()) return;
 
@@ -933,9 +942,7 @@ public final class CobbleDollarsShopPayloadHandlers {
         Entity entity = level.getEntity(villagerId);
         if (!(entity instanceof Villager villager)) return;
         if (!TradeCyclingCompat.canCycleTrades(villager)) return;
-        if (!TradeCyclingCompat.cycleTrades(villager, serverPlayer)) return;
-        // Send refreshed shop data
-        handleRequestShopData(serverPlayer, villagerId);
+        TradeCyclingCompat.cycleTrades(villager, serverPlayer, () -> handleRequestShopData(serverPlayer, villagerId));
     }
 
     private static void handleBuyFromConfig(ServerPlayer serverPlayer, int villagerId, int offerIndex, int quantity) {
@@ -1166,7 +1173,7 @@ public final class CobbleDollarsShopPayloadHandlers {
             ItemStack costA = o.getCostA();
             ItemStack result = o.getResult();
             if (costA == null || result == null || result.isEmpty()) continue;
-            if (!costA.isEmpty() && costA.is(Items.EMERALD)) {
+            if (!costA.isEmpty() && (costA.is(Items.EMERALD) || CustomCurrencyConfig.getCurrencyValue(costA) > 0)) {
                 buyOffers.add(o);
             }
         }
@@ -1177,6 +1184,7 @@ public final class CobbleDollarsShopPayloadHandlers {
                 ItemStack result = o.getResult();
                 if (costA == null || result == null || costA.isEmpty() || result.isEmpty()) continue;
                 if (costA.is(Items.EMERALD) || result.is(Items.EMERALD)) continue;
+                if (CustomCurrencyConfig.isCurrencyItem(costA) || CustomCurrencyConfig.isCurrencyItem(result)) continue;
                 if (DatapackItemPricing.getPrice(costA) > 0) {
                     buyOffers.add(o);
                 }
@@ -1218,6 +1226,26 @@ public final class CobbleDollarsShopPayloadHandlers {
                 }
                 continue;
             }
+            // Custom currency item as cost (like emerald) → BUY
+            if (!costA.isEmpty() && CustomCurrencyConfig.getCurrencyValue(costA) > 0) {
+                int cobbleDollarsPerTrade = costA.getCount() * CustomCurrencyConfig.getCurrencyValue(costA);
+                ItemStack safeResult = result.copy();
+                ItemStack safeCostB = (costB != null && !costB.isEmpty()) ? costB.copy() : ItemStack.EMPTY;
+                if (safeResult != null && !safeResult.isEmpty() && safeCostB != null) {
+                    buyOut.add(new CobbleDollarsShopPayloads.ShopOfferEntry(
+                            safeResult,
+                            cobbleDollarsPerTrade,
+                            safeCostB,
+                            true, // directPrice: value is already in CobbleDollars
+                            "",
+                            "",
+                            "",
+                            0,
+                            0
+                    ));
+                }
+                continue;
+            }
             if (result.is(Items.EMERALD) && !costA.isEmpty()) {
                 ItemStack safeCostA = costA.copy();
                 if (safeCostA != null && !safeCostA.isEmpty()) {
@@ -1226,6 +1254,25 @@ public final class CobbleDollarsShopPayloadHandlers {
                             result.getCount(),
                             ItemStack.EMPTY,
                             false,
+                            "",
+                            "",
+                            "",
+                            0,
+                            0
+                    ));
+                }
+                continue;
+            }
+            // Custom currency item as result (like emerald) → SELL
+            if (!result.isEmpty() && CustomCurrencyConfig.getCurrencyValue(result) > 0 && !costA.isEmpty()) {
+                int cobbleDollarsPerTrade = result.getCount() * CustomCurrencyConfig.getCurrencyValue(result);
+                ItemStack safeCostA = costA.copy();
+                if (safeCostA != null && !safeCostA.isEmpty()) {
+                    sellOut.add(new CobbleDollarsShopPayloads.ShopOfferEntry(
+                            safeCostA,
+                            cobbleDollarsPerTrade,
+                            ItemStack.EMPTY,
+                            true, // directPrice: value is already in CobbleDollars
                             "",
                             "",
                             "",
@@ -1259,10 +1306,9 @@ public final class CobbleDollarsShopPayloadHandlers {
             if (costA == null || result == null) continue;
             if (costA.isEmpty() || result.isEmpty()) continue;
 
-            // Skip emerald trades - those are handled by buildOfferLists
-            if (costA.is(Items.EMERALD) || result.is(Items.EMERALD)) {
-                continue;
-            }
+            // Skip emerald and custom currency trades - those are handled by buildOfferLists
+            if (costA.is(Items.EMERALD) || result.is(Items.EMERALD)) continue;
+            if (CustomCurrencyConfig.isCurrencyItem(costA) || CustomCurrencyConfig.isCurrencyItem(result)) continue;
 
             // This is an item-for-item trade (datapack trade)
             // Calculate price based on costA value
@@ -1277,7 +1323,7 @@ public final class CobbleDollarsShopPayloadHandlers {
                         safeResult,
                         price,
                         safeCostB,
-                        false,
+                        true, // directPrice: DatapackItemPricing returns CD value, do not multiply by emerald rate
                         "", // No series
                         "", // No series name
                         "", // No tooltip
@@ -1698,11 +1744,13 @@ public final class CobbleDollarsShopPayloadHandlers {
         if (costA.is(Items.EMERALD)) {
             // Emerald-based buy: pay CobbleDollars (emerald count * rate)
             totalCost = (long) costA.getCount() * quantity * rate;
+        } else if (!costA.isEmpty() && CustomCurrencyConfig.getCurrencyValue(costA) > 0) {
+            // Custom currency buy: pay CobbleDollars (currency value * quantity)
+            totalCost = CustomCurrencyConfig.getTotalValue(costA) * quantity;
         } else if (!costA.isEmpty() && Config.USE_DATAPACK_TRADES && DatapackItemPricing.getPrice(costA) > 0) {
-            // Datapack buy: pay CobbleDollars (item value from DatapackItemPricing * rate)
-            // These offers are shown in Buy tab with CobbleDollars price - player pays money, not items
+            // Datapack buy: DatapackItemPricing returns CD value directly - do NOT multiply by emerald rate
             int pricePerTrade = DatapackItemPricing.getPrice(costA);
-            totalCost = (long) pricePerTrade * quantity * rate;
+            totalCost = (long) pricePerTrade * quantity;
             LOGGER.info("Datapack buy: costA={} x{}, pricePerTrade={}, totalCost={}", costA.getItem(), costA.getCount(), pricePerTrade, totalCost);
         } else {
             // Legacy item-for-item: need the actual items (should not appear in Buy tab typically)
@@ -1891,9 +1939,12 @@ public final class CobbleDollarsShopPayloadHandlers {
             }
             offer = allOffers.get(offerIndex);
         } else {
-            // For villagers/traders, only get emerald result offers
+            // For villagers/traders, get emerald or custom-currency result offers (player sells items, gets CobbleDollars)
             List<MerchantOffer> sellOffers = allOffers.stream()
-                    .filter(o -> !o.getResult().isEmpty() && o.getResult().is(Items.EMERALD) && !o.getCostA().isEmpty())
+                    .filter(o -> {
+                        if (o.getResult().isEmpty() || o.getCostA().isEmpty()) return false;
+                        return o.getResult().is(Items.EMERALD) || CustomCurrencyConfig.getCurrencyValue(o.getResult()) > 0;
+                    })
                     .toList();
             LOGGER.info("Filtered to {} sell offers (emerald result)", sellOffers.size());
             if (offerIndex < 0 || offerIndex >= sellOffers.size()) {
@@ -1953,6 +2004,20 @@ public final class CobbleDollarsShopPayloadHandlers {
             LOGGER.info("Balance AFTER: {}", balanceAfter);
             LOGGER.info("Successfully added {} CobbleDollars (expected new balance: {}, actual: {})", 
                 toAdd, balanceBefore + toAdd, balanceAfter);
+        } else if (CustomCurrencyConfig.getCurrencyValue(result) > 0) {
+            // Custom currency result (e.g. All The Mons token) - player sells items, gets CobbleDollars
+            ItemStack resultForQty = result.copy();
+            resultForQty.setCount(result.getCount() * quantity);
+            long toAdd = CustomCurrencyConfig.getTotalValue(resultForQty);
+            LOGGER.info("=== CobbleDollars SELL TRANSACTION (custom currency) ===");
+            LOGGER.info("Result: {} x{}, Value per item: {}, Amount to add: {}", 
+                result.getItem(), resultForQty.getCount(), CustomCurrencyConfig.getCurrencyValue(result), toAdd);
+            long balanceBefore = CobbleDollarsIntegration.getBalance(serverPlayer);
+            if (!CobbleDollarsIntegration.addBalance(serverPlayer, toAdd)) {
+                LOGGER.error("FAILED to add {} CobbleDollars to player {}", toAdd, serverPlayer.getName().getString());
+                return;
+            }
+            LOGGER.info("Successfully added {} CobbleDollars for custom currency sell", toAdd);
         } else {
             // Item result (RCTA item-for-item trade)
             // Give result item directly instead of CobbleDollars

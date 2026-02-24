@@ -20,6 +20,11 @@ loom {
 
 val shadowCommon: Configuration by configurations.creating
 
+repositories {
+    maven("https://maven.architectury.dev/")
+    maven("https://maven.terraformersmc.com/releases/")
+}
+
 dependencies {
     minecraft("com.mojang:minecraft:${property("minecraft_version")}")
     mappings(loom.officialMojangMappings())
@@ -27,6 +32,10 @@ dependencies {
 
     modImplementation("net.fabricmc.fabric-api:fabric-api:${property("fabric_api_version")}")
     modImplementation(fabricApi.module("fabric-command-api-v2", property("fabric_api_version").toString()))
+
+    // In-game config screen (Mods menu → CobbleDollars Villagers Overhaul → Config)
+    modApi("me.shedaniel.cloth:cloth-config-fabric:${property("cloth_config_fabric_version")}")
+    modApi("com.terraformersmc:modmenu:${property("modmenu_version")}")
 
     //needed for cobblemon
     modImplementation("net.fabricmc:fabric-language-kotlin:${property("fabric_kotlin")}")

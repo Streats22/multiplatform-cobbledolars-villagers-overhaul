@@ -146,6 +146,7 @@ public class CobbleDollarsShopScreen extends Screen {
     private final List<CobbleDollarsShopPayloads.ShopOfferEntry> sellOffers;
     private final List<CobbleDollarsShopPayloads.ShopOfferEntry> tradesOffers;
     private final boolean buyOffersFromConfig;
+    private final boolean canCycleTrades;
     private int selectedTab = 0;
     private int selectedIndex = -1;
     private String selectedSeries = "";
@@ -162,7 +163,8 @@ public class CobbleDollarsShopScreen extends Screen {
                                    List<CobbleDollarsShopPayloads.ShopOfferEntry> buyOffers,
                                    List<CobbleDollarsShopPayloads.ShopOfferEntry> sellOffers,
                                    List<CobbleDollarsShopPayloads.ShopOfferEntry> tradesOffers,
-                                   boolean buyOffersFromConfig) {
+                                   boolean buyOffersFromConfig,
+                                   boolean canCycleTrades) {
         super(Component.translatable("gui.cobbledollars_villagers_overhaul_rca.shop"));
         this.villagerId = villagerId;
         this.balance = balance;
@@ -170,6 +172,7 @@ public class CobbleDollarsShopScreen extends Screen {
         this.sellOffers = sellOffers != null ? sellOffers : List.of();
         this.tradesOffers = tradesOffers != null ? tradesOffers : List.of();
         this.buyOffersFromConfig = buyOffersFromConfig;
+        this.canCycleTrades = canCycleTrades;
         if (!this.buyOffers.isEmpty()) {
             selectedTab = 0;
             selectedIndex = 0;
@@ -198,10 +201,11 @@ public class CobbleDollarsShopScreen extends Screen {
                                        List<CobbleDollarsShopPayloads.ShopOfferEntry> buyOffers,
                                        List<CobbleDollarsShopPayloads.ShopOfferEntry> sellOffers,
                                        List<CobbleDollarsShopPayloads.ShopOfferEntry> tradesOffers,
-                                       boolean buyOffersFromConfig) {
+                                       boolean buyOffersFromConfig,
+                                       boolean canCycleTrades) {
         Minecraft mc = Minecraft.getInstance();
         if (mc.level == null) return;
-        mc.setScreen(new CobbleDollarsShopScreen(villagerId, balance, buyOffers, sellOffers, tradesOffers, buyOffersFromConfig));
+        mc.setScreen(new CobbleDollarsShopScreen(villagerId, balance, buyOffers, sellOffers, tradesOffers, buyOffersFromConfig, canCycleTrades));
     }
 
     public static void updateBalanceFromServer(int villagerId, long newBalance) {
@@ -238,6 +242,12 @@ public class CobbleDollarsShopScreen extends Screen {
         int closeX = left + WINDOW_WIDTH - CLOSE_BUTTON_SIZE - CLOSE_BUTTON_MARGIN;
         int closeY = top + 2;
         addRenderableWidget(new InvisibleButton(closeX, closeY, CLOSE_BUTTON_SIZE, CLOSE_BUTTON_SIZE, Component.literal("×"), b -> onClose()));
+    }
+
+    /** Called when cycle key (C) is pressed - same keybind as Trade Cycling / Easy Villagers. */
+    public void onCycleTrades() {
+        if (!canCycleTrades) return;
+        PlatformNetwork.sendToServer(new CobbleDollarsShopPayloads.CycleTrades(villagerId));
     }
 
     private void adjustQuantity(int delta) {
@@ -895,11 +905,14 @@ public class CobbleDollarsShopScreen extends Screen {
     }
 
     private long priceForDisplay(CobbleDollarsShopPayloads.ShopOfferEntry entry) {
+        // directPrice: emeraldCount already holds CD value, do not multiply by rate
+        if (entry.directPrice()) return entry.emeraldCount();
         if (isSellTab()) return (long) entry.emeraldCount() * getRate();
-        return entry.directPrice() ? entry.emeraldCount() : (long) entry.emeraldCount() * getRate();
+        return (long) entry.emeraldCount() * getRate();
     }
 
     private static String formatPrice(long price) {
+        if (price <= 0) return "?";
         if (price >= 1_000_000) return (price / 1_000_000) + "M";
         if (price >= 1_000) return (price / 1_000) + "K";
         return String.valueOf(price);

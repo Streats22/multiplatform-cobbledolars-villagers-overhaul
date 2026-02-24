@@ -4,9 +4,6 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.npc.Villager;
-import net.minecraft.world.entity.npc.VillagerProfession;
-import net.minecraft.world.entity.npc.WanderingTrader;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.IEventBus;
@@ -14,6 +11,7 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.config.ModConfig;
+import net.neoforged.fml.event.config.ModConfigEvent;
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.neoforged.fml.loading.FMLEnvironment;
 import net.neoforged.neoforge.common.NeoForge;
@@ -23,7 +21,6 @@ import net.neoforged.neoforge.network.PacketDistributor;
 import nl.streats1.cobbledollarsvillagersoverhaul.CobbleDollarsVillagersOverhaulRca;
 import nl.streats1.cobbledollarsvillagersoverhaul.Config;
 import nl.streats1.cobbledollarsvillagersoverhaul.command.VillagerShopCommand;
-import nl.streats1.cobbledollarsvillagersoverhaul.network.CobbleDollarsShopPayloadHandlers;
 import nl.streats1.cobbledollarsvillagersoverhaul.network.CobbleDollarsShopPayloads;
 
 @Mod(CobbleDollarsVillagersOverhaulNeoForge.MOD_ID)
@@ -39,6 +36,8 @@ public class CobbleDollarsVillagersOverhaulNeoForge {
         
         // Register common setup
         modEventBus.addListener(this::commonSetup);
+        // Apply config when .toml loads/reloads (file is at config/cobbledollars_villagers_overhaul_rca-common.toml)
+        modEventBus.addListener(this::onConfigLoad);
         
         // Register networking
         NeoForgeNetworking.register(modEventBus);
@@ -48,6 +47,9 @@ public class CobbleDollarsVillagersOverhaulNeoForge {
         if (FMLEnvironment.dist == Dist.CLIENT) {
             CobbleDollarsVillagersOverhaulRca.LOGGER.info("Registering NeoForge client setup listener");
             modEventBus.addListener(CobbleDollarsVillagersOverhaulNeoForgeClient::initializeClient);
+            modEventBus.addListener(CobbleDollarsVillagersOverhaulNeoForgeClient::registerKeyMappings);
+            NeoForge.EVENT_BUS.register(CobbleDollarsVillagersOverhaulNeoForgeClient.class);
+            CobbleDollarsVillagersOverhaulNeoForgeClient.registerConfigScreen(modContainer);
         }
         
         // Register NeoForge events
@@ -58,8 +60,14 @@ public class CobbleDollarsVillagersOverhaulNeoForge {
     }
 
     private void commonSetup(FMLCommonSetupEvent event) {
-        // Load config
         Config.loadConfig();
+        ConfigNeoForge.loadConfig(ConfigNeoForge.SPEC);
+    }
+
+    private void onConfigLoad(ModConfigEvent event) {
+        if (event.getConfig().getModId().equals(MOD_ID)) {
+            ConfigNeoForge.loadConfig(ConfigNeoForge.SPEC);
+        }
     }
 
     /** When CobbleDollars shop UI is enabled, right-clicking a villager opens our shop screen instead of vanilla trading. */
@@ -96,7 +104,7 @@ public class CobbleDollarsVillagersOverhaulNeoForge {
     }
 
     private void handleVillagerShopInteract(Entity target, boolean isClientSide, boolean isSneaking, Runnable cancelAction) {
-        boolean handled = common.onEntityInteract(target, isClientSide, isSneaking, cancelAction, target::getId);
+        boolean handled = common.onEntityInteract(target, isClientSide, isSneaking, cancelAction);
         if (handled && isClientSide) {
             PacketDistributor.sendToServer(new CobbleDollarsShopPayloads.RequestShopData(target.getId()));
         }
@@ -108,6 +116,6 @@ public class CobbleDollarsVillagersOverhaulNeoForge {
      */
     private static boolean isRadicalTrainerAssociation(Entity entity) {
         ResourceLocation id = BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType());
-        return id != null && "rctmod".equals(id.getNamespace()) && "trainer_association".equals(id.getPath());
+        return "rctmod".equals(id.getNamespace()) && "trainer_association".equals(id.getPath());
     }
 }

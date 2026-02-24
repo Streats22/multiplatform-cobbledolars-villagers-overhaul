@@ -21,7 +21,7 @@ public class CobbleDollarsVillagersOverhaulRca {
     }
 
     public boolean onEntityInteract(Entity target, boolean isClientSide, boolean isSneaking,
-                                   Runnable cancelAction, java.util.function.IntSupplier getId) {
+                                   Runnable cancelAction) {
         if (!Config.USE_COBBLEDOLLARS_SHOP_UI || !CobbleDollarsIntegration.isModLoaded()) return false;
 
         if (RctTrainerAssociationCompat.isTrainerAssociation(target)) {

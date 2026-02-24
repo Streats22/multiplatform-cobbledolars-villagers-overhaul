@@ -7,6 +7,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import nl.streats1.cobbledollarsvillagersoverhaul.integration.CobbleDollarsConfigHelper;
 import org.slf4j.Logger;
 
 import java.lang.reflect.Type;
@@ -74,8 +75,8 @@ public class DatapackItemPricing {
             return customPrices.get(fullId) * itemStack.getCount();
         }
 
-        // Default fallback price - much more reasonable for economy balance
-        return 1;
+        // Fallback: 1 item = 1 emerald = getEffectiveEmeraldRate() CD (default 750)
+        return CobbleDollarsConfigHelper.getEffectiveEmeraldRate() * itemStack.getCount();
     }
 
     /**
@@ -94,8 +95,8 @@ public class DatapackItemPricing {
             return customPrices.get(itemId);
         }
 
-        // Default fallback price
-        return 1;
+        // Fallback: 1 item = 1 emerald equivalent
+        return CobbleDollarsConfigHelper.getEffectiveEmeraldRate();
     }
 
     /**

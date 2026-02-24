@@ -1,7 +1,7 @@
 package nl.streats1.cobbledollarsvillagersoverhaul;
 
 public class Config {
-    public static int COBBLEDOLLARS_EMERALD_RATE = 500;
+    public static int COBBLEDOLLARS_EMERALD_RATE = 750;
     public static boolean SYNC_COBBLEDOLLARS_BANK_RATE = true;
     public static boolean VILLAGERS_ACCEPT_COBBLEDOLLARS = true;
     public static boolean USE_COBBLEDOLLARS_SHOP_UI = true;
