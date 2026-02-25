@@ -35,7 +35,8 @@ dependencies {
 
     // In-game config screen (Mods menu → CobbleDollars Villagers Overhaul → Config)
     modApi("me.shedaniel.cloth:cloth-config-fabric:${property("cloth_config_fabric_version")}")
-    modApi("com.terraformersmc:modmenu:${property("modmenu_version")}")
+    // Mod Menu optional - when present, config button appears in Mods list
+    modCompileOnly("com.terraformersmc:modmenu:${property("modmenu_version")}")
 
     //needed for cobblemon
     modImplementation("net.fabricmc:fabric-language-kotlin:${property("fabric_kotlin")}")
