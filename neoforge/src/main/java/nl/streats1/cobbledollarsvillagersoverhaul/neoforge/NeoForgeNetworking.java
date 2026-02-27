@@ -4,13 +4,14 @@ import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
+
+import java.util.Objects;
+
 import nl.streats1.cobbledollarsvillagersoverhaul.Config;
 import nl.streats1.cobbledollarsvillagersoverhaul.client.screen.CobbleDollarsShopScreen;
 import nl.streats1.cobbledollarsvillagersoverhaul.network.CobbleDollarsShopPayloadHandlers;
 import nl.streats1.cobbledollarsvillagersoverhaul.network.CobbleDollarsShopPayloads;
 import nl.streats1.cobbledollarsvillagersoverhaul.platform.PlatformNetwork;
-
-import java.util.Objects;
 
 public final class NeoForgeNetworking {
     private NeoForgeNetworking() {
@@ -76,6 +77,23 @@ public final class NeoForgeNetworking {
                         CobbleDollarsShopPayloadHandlers.handleSell(sp, data.villagerId(), data.offerIndex(), data.quantity());
                     }
                 })
+        );
+
+        registrar.playToServer(
+                Objects.requireNonNull(CobbleDollarsShopPayloads.AssignVillager.TYPE),
+                Objects.requireNonNull(CobbleDollarsShopPayloads.AssignVillager.STREAM_CODEC),
+                (data, context) -> context.enqueueWork(() -> {
+                    if (context.player() instanceof ServerPlayer sp) {
+                        CobbleDollarsShopPayloadHandlers.handleAssignVillager(sp, data.villagerId());
+                    }
+                })
+        );
+
+        registrar.playToClient(
+                Objects.requireNonNull(CobbleDollarsShopPayloads.AssignModeUpdate.TYPE),
+                Objects.requireNonNull(CobbleDollarsShopPayloads.AssignModeUpdate.STREAM_CODEC),
+                (data, context) -> context.enqueueWork(() ->
+                        nl.streats1.cobbledollarsvillagersoverhaul.client.ClientAssignMode.setInMode(data.on()))
         );
     }
 

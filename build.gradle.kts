@@ -1,5 +1,6 @@
 import org.gradle.kotlin.dsl.assign
 import org.gradle.kotlin.dsl.invoke
+import org.gradle.jvm.toolchain.JavaLanguageVersion
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -34,6 +35,9 @@ allprojects {
         }
 
         java {
+            toolchain {
+                languageVersion.set(JavaLanguageVersion.of(21))
+            }
             withSourcesJar()
             sourceCompatibility = JavaVersion.VERSION_21
             targetCompatibility = JavaVersion.VERSION_21

@@ -48,7 +48,8 @@ public final class CobbleDollarsShopPayloads {
                                  String seriesName,
                                  String seriesTooltip,
                                  float seriesDifficulty,
-                                 int seriesCompleted) {
+                                 int seriesCompleted,
+                                 String categoryName) {
         public static final StreamCodec<RegistryFriendlyByteBuf, ShopOfferEntry> STREAM_CODEC =
                 new StreamCodec<>() {
                     @Override
@@ -73,6 +74,7 @@ public final class CobbleDollarsShopPayloads {
                         STRING_UTF8.encode(buf, entry.seriesTooltip() != null ? entry.seriesTooltip() : "");
                         buf.writeFloat(entry.seriesDifficulty());
                         VAR_INT.encode(buf, entry.seriesCompleted());
+                        STRING_UTF8.encode(buf, entry.categoryName() != null ? entry.categoryName() : "");
                     }
 
                     @Override
@@ -90,6 +92,7 @@ public final class CobbleDollarsShopPayloads {
                         String seriesTooltip = STRING_UTF8.decode(buf);
                         float seriesDifficulty = buf.readFloat();
                         int seriesCompleted = VAR_INT.decode(buf);
+                        String categoryName = STRING_UTF8.decode(buf);
                         return new ShopOfferEntry(
                                 result,
                                 emeraldCount,
@@ -99,7 +102,8 @@ public final class CobbleDollarsShopPayloads {
                                 seriesName != null ? seriesName : "",
                                 seriesTooltip != null ? seriesTooltip : "",
                                 seriesDifficulty,
-                                seriesCompleted);
+                                seriesCompleted,
+                                categoryName != null ? categoryName : "");
                     }
                 };
 
@@ -257,6 +261,36 @@ public final class CobbleDollarsShopPayloads {
                                 Objects.requireNonNull(quantity)
                         )
                 ));
+
+        @Override
+        public Type<? extends CustomPacketPayload> type() {
+            return TYPE;
+        }
+    }
+
+    /**
+     * Client -> Server: Assign config shop to villager (sent when shift+left-click in assign mode).
+     */
+    public record AssignVillager(int villagerId) implements CustomPacketPayload {
+        public static final CustomPacketPayload.Type<AssignVillager> TYPE =
+                new CustomPacketPayload.Type<>(Objects.requireNonNull(id("assign_villager")));
+        public static final StreamCodec<RegistryFriendlyByteBuf, AssignVillager> STREAM_CODEC =
+                StreamCodec.composite(VAR_INT, AssignVillager::villagerId, AssignVillager::new);
+
+        @Override
+        public Type<? extends CustomPacketPayload> type() {
+            return TYPE;
+        }
+    }
+
+    /**
+     * Server -> Client: Sync assign mode on/off.
+     */
+    public record AssignModeUpdate(boolean on) implements CustomPacketPayload {
+        public static final CustomPacketPayload.Type<AssignModeUpdate> TYPE =
+                new CustomPacketPayload.Type<>(Objects.requireNonNull(id("assign_mode_update")));
+        public static final StreamCodec<RegistryFriendlyByteBuf, AssignModeUpdate> STREAM_CODEC =
+                StreamCodec.composite(BOOL, AssignModeUpdate::on, AssignModeUpdate::new);
 
         @Override
         public Type<? extends CustomPacketPayload> type() {

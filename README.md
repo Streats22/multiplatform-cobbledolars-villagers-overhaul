@@ -115,6 +115,12 @@ When using RCT trainers, you can:
 - Track your completion progress
 - View special tooltips for series items
 
+### Commands (op required)
+
+- **`/cvm open shop`** – Open the default shop (items from CobbleDollars `default_shop.json`)
+- **`/cvm open bank`** – Open the bank (sell items from CobbleDollars `bank.json`)
+- **`/villagershop edit`** – Open shop for the villager/trader you're looking at
+
 ### Controls
 
 - **C key**: Cycle trades (same as Trade Cycling / Easy Villagers - refresh villager offers without breaking workstation)

@@ -14,12 +14,22 @@ import net.neoforged.fml.config.ModConfig;
 import net.neoforged.fml.event.config.ModConfigEvent;
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.neoforged.fml.loading.FMLEnvironment;
+import net.neoforged.fml.loading.FMLPaths;
+
+import nl.streats1.cobbledollarsvillagersoverhaul.integration.CobbleDollarsConfigHelper;
+import nl.streats1.cobbledollarsvillagersoverhaul.integration.ItemPriceConfig;
 import net.neoforged.neoforge.common.NeoForge;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.npc.Villager;
+
+import nl.streats1.cobbledollarsvillagersoverhaul.AssignModeTracker;
+import nl.streats1.cobbledollarsvillagersoverhaul.network.CobbleDollarsShopPayloadHandlers;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
 import nl.streats1.cobbledollarsvillagersoverhaul.CobbleDollarsVillagersOverhaulRca;
 import nl.streats1.cobbledollarsvillagersoverhaul.Config;
+import nl.streats1.cobbledollarsvillagersoverhaul.command.CvmCommand;
 import nl.streats1.cobbledollarsvillagersoverhaul.command.VillagerShopCommand;
 import nl.streats1.cobbledollarsvillagersoverhaul.network.CobbleDollarsShopPayloads;
 
@@ -60,8 +70,12 @@ public class CobbleDollarsVillagersOverhaulNeoForge {
     }
 
     private void commonSetup(FMLCommonSetupEvent event) {
+        CobbleDollarsConfigHelper.setConfigRoot(FMLPaths.CONFIGDIR.get());
+        nl.streats1.cobbledollarsvillagersoverhaul.integration.VillagerShopConfig.setConfigRoot(FMLPaths.CONFIGDIR.get());
+        nl.streats1.cobbledollarsvillagersoverhaul.integration.VillagerShopConfig.load();
         Config.loadConfig();
         ConfigNeoForge.loadConfig(ConfigNeoForge.SPEC);
+        ItemPriceConfig.loadAndApply();
     }
 
     private void onConfigLoad(ModConfigEvent event) {
@@ -73,6 +87,26 @@ public class CobbleDollarsVillagersOverhaulNeoForge {
     /** When CobbleDollars shop UI is enabled, right-clicking a villager opens our shop screen instead of vanilla trading. */
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     public void onEntityInteract(PlayerInteractEvent.EntityInteract event) {
+        if (event.getLevel().isClientSide()) {
+            if (nl.streats1.cobbledollarsvillagersoverhaul.client.ClientAssignMode.isInMode()
+                    && event.getEntity().isShiftKeyDown()
+                    && event.getTarget() instanceof Villager) {
+                nl.streats1.cobbledollarsvillagersoverhaul.platform.PlatformNetwork.sendToServer(
+                        new nl.streats1.cobbledollarsvillagersoverhaul.network.CobbleDollarsShopPayloads.AssignVillager(event.getTarget().getId()));
+                event.setCanceled(true);
+                event.setCancellationResult(InteractionResult.SUCCESS);
+                return;
+            }
+        } else {
+            if (event.getEntity() instanceof ServerPlayer player
+                    && AssignModeTracker.isInAnyMode(player.getUUID())
+                    && player.isShiftKeyDown()
+                    && event.getTarget() instanceof Villager) {
+                event.setCanceled(true);
+                event.setCancellationResult(InteractionResult.SUCCESS);
+                return;
+            }
+        }
         handleVillagerShopInteract(
             event.getTarget(),
             event.getLevel().isClientSide(),
@@ -87,11 +121,32 @@ public class CobbleDollarsVillagersOverhaulNeoForge {
     @SubscribeEvent
     public void onRegisterCommands(RegisterCommandsEvent event) {
         VillagerShopCommand.register(event.getDispatcher());
+        CvmCommand.register(event.getDispatcher());
     }
 
     /** Fires before EntityInteract; needed so we cancel before vanilla opens the merchant GUI. */
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     public void onEntityInteractSpecific(PlayerInteractEvent.EntityInteractSpecific event) {
+        if (event.getLevel().isClientSide()) {
+            if (nl.streats1.cobbledollarsvillagersoverhaul.client.ClientAssignMode.isInMode()
+                    && event.getEntity().isShiftKeyDown()
+                    && event.getTarget() instanceof Villager) {
+                nl.streats1.cobbledollarsvillagersoverhaul.platform.PlatformNetwork.sendToServer(
+                        new nl.streats1.cobbledollarsvillagersoverhaul.network.CobbleDollarsShopPayloads.AssignVillager(event.getTarget().getId()));
+                event.setCanceled(true);
+                event.setCancellationResult(InteractionResult.SUCCESS);
+                return;
+            }
+        } else {
+            if (event.getEntity() instanceof ServerPlayer player
+                    && AssignModeTracker.isInAnyMode(player.getUUID())
+                    && player.isShiftKeyDown()
+                    && event.getTarget() instanceof Villager) {
+                event.setCanceled(true);
+                event.setCancellationResult(InteractionResult.SUCCESS);
+                return;
+            }
+        }
         handleVillagerShopInteract(
             event.getTarget(),
             event.getLevel().isClientSide(),

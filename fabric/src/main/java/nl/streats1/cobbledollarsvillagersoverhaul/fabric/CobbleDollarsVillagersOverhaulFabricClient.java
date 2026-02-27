@@ -5,6 +5,8 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.Minecraft;
+
+import nl.streats1.cobbledollarsvillagersoverhaul.client.ClientAssignMode;
 import nl.streats1.cobbledollarsvillagersoverhaul.client.CycleTradesKeybind;
 import nl.streats1.cobbledollarsvillagersoverhaul.Config;
 import nl.streats1.cobbledollarsvillagersoverhaul.client.screen.CobbleDollarsShopScreen;
@@ -53,5 +55,8 @@ public class CobbleDollarsVillagersOverhaulFabricClient implements ClientModInit
                     );
                 });
             });
+
+        ClientPlayNetworking.registerGlobalReceiver(CobbleDollarsShopPayloads.AssignModeUpdate.TYPE,
+                (payload, context) -> context.client().execute(() -> ClientAssignMode.setInMode(payload.on())));
     }
 }

@@ -8,6 +8,7 @@ import nl.streats1.cobbledollarsvillagersoverhaul.platform.PlatformNetwork;
 import net.minecraft.world.InteractionResult;
 import nl.streats1.cobbledollarsvillagersoverhaul.CobbleDollarsVillagersOverhaulRca;
 import nl.streats1.cobbledollarsvillagersoverhaul.Config;
+import nl.streats1.cobbledollarsvillagersoverhaul.command.CvmCommand;
 import nl.streats1.cobbledollarsvillagersoverhaul.command.VillagerShopCommand;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.CobbleDollarsIntegration;
 
@@ -26,8 +27,10 @@ public class CobbleDollarsVillagersOverhaulFabric implements ModInitializer {
         registerEvents();
 
         // Register commands
-        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) ->
-                VillagerShopCommand.register(dispatcher));
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
+            VillagerShopCommand.register(dispatcher);
+            CvmCommand.register(dispatcher);
+        });
         
         // Register networking
         FabricNetworking.register();
@@ -41,7 +44,12 @@ public class CobbleDollarsVillagersOverhaulFabric implements ModInitializer {
             if (!world.isClientSide) {
                 return InteractionResult.PASS;
             }
-
+            if (nl.streats1.cobbledollarsvillagersoverhaul.client.ClientAssignMode.isInMode()
+                    && player.isShiftKeyDown()
+                    && entity instanceof net.minecraft.world.entity.npc.Villager) {
+                PlatformNetwork.sendToServer(new CobbleDollarsShopPayloads.AssignVillager(entity.getId()));
+                return InteractionResult.SUCCESS;
+            }
             boolean handled = mod.onEntityInteract(entity, true, player.isShiftKeyDown(), () -> {});
             if (!handled) return InteractionResult.PASS;
 

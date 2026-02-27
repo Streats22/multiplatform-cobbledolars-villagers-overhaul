@@ -21,7 +21,10 @@ import nl.streats1.cobbledollarsvillagersoverhaul.integration.CustomCurrencyConf
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.DatapackItemPricing;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.TradeCyclingCompat;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.RctTrainerAssociationCompat;
+import nl.streats1.cobbledollarsvillagersoverhaul.integration.VillagerShopConfig;
 import nl.streats1.cobbledollarsvillagersoverhaul.platform.PlatformNetwork;
+import nl.streats1.cobbledollarsvillagersoverhaul.AssignModeTracker;
+import nl.streats1.cobbledollarsvillagersoverhaul.VirtualShopIds;
 import org.slf4j.Logger;
 
 import java.util.ArrayList;
@@ -686,13 +689,40 @@ public final class CobbleDollarsShopPayloadHandlers {
         boolean buyOffersFromConfig = false;
 
         ServerLevel level = serverPlayer.serverLevel();
-        Entity entity = level.getEntity(villagerId);
+        Entity entity = VirtualShopIds.isVirtual(villagerId) ? null : level.getEntity(villagerId);
 
         LOGGER.info("Retrieved entity: {} (class: {})",
                 entity != null ? entity.getName().getString() : "null",
                 entity != null ? entity.getClass().getName() : "null");
 
+        // Virtual shop/bank: no entity, use config data
         if (entity == null) {
+            if (VirtualShopIds.isVirtualShop(villagerId)) {
+                List<CobbleDollarsShopPayloads.ShopOfferEntry> configBuy = CobbleDollarsConfigHelper.getDefaultShopBuyOffers();
+                try {
+                    PlatformNetwork.sendToPlayer(serverPlayer,
+                            new CobbleDollarsShopPayloads.ShopData(villagerId, balance, configBuy, List.of(), List.of(), true, false));
+                    LOGGER.info("Sent virtual shop data to {}: {} buy offers", serverPlayer.getName().getString(), configBuy.size());
+                } catch (Exception e) {
+                    LOGGER.error("Failed to send virtual shop data: {}", e.getMessage());
+                    PlatformNetwork.sendToPlayer(serverPlayer,
+                            new CobbleDollarsShopPayloads.ShopData(villagerId, 0L, List.of(), List.of(), List.of(), false, false));
+                }
+                return;
+            }
+            if (VirtualShopIds.isVirtualBank(villagerId)) {
+                List<CobbleDollarsShopPayloads.ShopOfferEntry> bankSell = CobbleDollarsConfigHelper.getBankSellOffers();
+                try {
+                    PlatformNetwork.sendToPlayer(serverPlayer,
+                            new CobbleDollarsShopPayloads.ShopData(villagerId, balance, List.of(), bankSell, List.of(), false, false));
+                    LOGGER.info("Sent virtual bank data to {}: {} sell offers", serverPlayer.getName().getString(), bankSell.size());
+                } catch (Exception e) {
+                    LOGGER.error("Failed to send virtual bank data: {}", e.getMessage());
+                    PlatformNetwork.sendToPlayer(serverPlayer,
+                            new CobbleDollarsShopPayloads.ShopData(villagerId, 0L, List.of(), List.of(), List.of(), false, false));
+                }
+                return;
+            }
             LOGGER.warn("Entity {} not found for player {}", villagerId, serverPlayer.getName().getString());
             return;
         }
@@ -703,12 +733,21 @@ public final class CobbleDollarsShopPayloadHandlers {
         List<MerchantOffer> allOffers = null;
 
         if (entity instanceof Villager villager) {
-            LOGGER.info("Entity is Villager, processing villager trades");
-            allOffers = villager.getOffers();
-            buildOfferLists(allOffers, buyOffers, sellOffers);
-            // Also process datapack item-for-item trades
-            if (Config.USE_DATAPACK_TRADES) {
-                buildDatapackOffers(allOffers, buyOffers, sellOffers);
+            // Assigned villagers use config shop instead of vanilla trades
+            if (VillagerShopConfig.usesConfigShop(villager.getUUID())) {
+                List<CobbleDollarsShopPayloads.ShopOfferEntry> configBuy = CobbleDollarsConfigHelper.getDefaultShopBuyOffers();
+                if (!configBuy.isEmpty()) {
+                    buyOffers.addAll(configBuy);
+                    buyOffersFromConfig = true;
+                }
+                // canCycleTrades stays false for config shop
+            } else {
+                LOGGER.info("Entity is Villager, processing villager trades");
+                allOffers = villager.getOffers();
+                buildOfferLists(allOffers, buyOffers, sellOffers);
+                if (Config.USE_DATAPACK_TRADES) {
+                    buildDatapackOffers(allOffers, buyOffers, sellOffers);
+                }
             }
         } else if (Config.USE_RCT_TRADES_OVERHAUL && RctTrainerAssociationCompat.isTrainerAssociation(entity)) {
             LOGGER.info("Entity is RCTA trainer - entering RCTA processing branch");
@@ -945,6 +984,78 @@ public final class CobbleDollarsShopPayloadHandlers {
         TradeCyclingCompat.cycleTrades(villager, serverPlayer, () -> handleRequestShopData(serverPlayer, villagerId));
     }
 
+    public static void handleAssignVillager(ServerPlayer serverPlayer, int villagerId) {
+        if (!serverPlayer.hasPermissions(2)) return;
+        if (!AssignModeTracker.isInAnyMode(serverPlayer.getUUID())) {
+            serverPlayer.sendSystemMessage(net.minecraft.network.chat.Component.translatable("command.cobbledollars_villagers_overhaul_rca.assign.not_in_mode"));
+            return;
+        }
+        ServerLevel level = serverPlayer.serverLevel();
+        Entity entity = level.getEntity(villagerId);
+        if (!(entity instanceof Villager villager)) {
+            serverPlayer.sendSystemMessage(net.minecraft.network.chat.Component.translatable("command.cobbledollars_villagers_overhaul_rca.assign.not_villager"));
+            return;
+        }
+        if (villager.distanceTo(serverPlayer) > 6) {
+            serverPlayer.sendSystemMessage(net.minecraft.network.chat.Component.translatable("command.cobbledollars_villagers_overhaul_rca.assign.too_far"));
+            return;
+        }
+        if (AssignModeTracker.isInAssignMode(serverPlayer.getUUID())) {
+            VillagerShopConfig.add(villager.getUUID());
+            AssignModeTracker.clear(serverPlayer.getUUID());
+            PlatformNetwork.sendToPlayer(serverPlayer, new CobbleDollarsShopPayloads.AssignModeUpdate(false));
+            serverPlayer.sendSystemMessage(net.minecraft.network.chat.Component.translatable("command.cobbledollars_villagers_overhaul_rca.assign.success"));
+        } else {
+            VillagerShopConfig.remove(villager.getUUID());
+            AssignModeTracker.clear(serverPlayer.getUUID());
+            PlatformNetwork.sendToPlayer(serverPlayer, new CobbleDollarsShopPayloads.AssignModeUpdate(false));
+            serverPlayer.sendSystemMessage(net.minecraft.network.chat.Component.translatable("command.cobbledollars_villagers_overhaul_rca.unassign.success"));
+        }
+    }
+
+    private static void handleSellFromBank(ServerPlayer serverPlayer, int offerIndex, int quantity) {
+        List<CobbleDollarsShopPayloads.ShopOfferEntry> bankOffers = CobbleDollarsConfigHelper.getBankSellOffers();
+        if (offerIndex < 0 || offerIndex >= bankOffers.size()) {
+            LOGGER.warn("Bank offer index {} out of range (0-{})", offerIndex, bankOffers.size() - 1);
+            return;
+        }
+        CobbleDollarsShopPayloads.ShopOfferEntry entry = bankOffers.get(offerIndex);
+        // For sell: result = item player gives, emeraldCount = CD they receive (directPrice=true)
+        ItemStack costA = entry.result();
+        int pricePerUnit = entry.emeraldCount();
+        long toAdd = (long) pricePerUnit * quantity;
+
+        int perTrade = costA.getCount();
+        int totalNeeded = perTrade * quantity;
+        int have = 0;
+        var inv = serverPlayer.getInventory();
+        for (int slot = 0; slot < inv.getContainerSize(); slot++) {
+            ItemStack stack = inv.getItem(slot);
+            if (!stack.isEmpty() && ItemStack.isSameItemSameComponents(stack, costA))
+                have += stack.getCount();
+        }
+        if (have < totalNeeded) {
+            LOGGER.warn("Not enough items to sell to bank! Has: {}, Needs: {}", have, totalNeeded);
+            return;
+        }
+        if (!CobbleDollarsIntegration.addBalance(serverPlayer, toAdd)) {
+            LOGGER.error("Failed to add {} CobbleDollars for bank sell", toAdd);
+            return;
+        }
+        int remaining = totalNeeded;
+        for (int slot = 0; slot < inv.getContainerSize() && remaining > 0; slot++) {
+            ItemStack stack = inv.getItem(slot);
+            if (stack.isEmpty() || !ItemStack.isSameItemSameComponents(stack, costA)) continue;
+            int take = Math.min(remaining, stack.getCount());
+            stack.shrink(take);
+            remaining -= take;
+        }
+        serverPlayer.containerMenu.broadcastChanges();
+        serverPlayer.inventoryMenu.broadcastChanges();
+        sendBalanceUpdate(serverPlayer, VirtualShopIds.VIRTUAL_ID_BANK);
+        LOGGER.info("Bank sell: player sold {} x{} for {} CD", costA.getItem(), totalNeeded, toAdd);
+    }
+
     private static void handleBuyFromConfig(ServerPlayer serverPlayer, int villagerId, int offerIndex, int quantity) {
         LOGGER.info("========== handleBuyFromConfig START ==========");
         List<CobbleDollarsShopPayloads.ShopOfferEntry> configOffers = CobbleDollarsConfigHelper.getDefaultShopBuyOffers();
@@ -1021,7 +1132,8 @@ public final class CobbleDollarsShopPayloadHandlers {
                         "", // No series name for sell offers
                         "",  // No tooltip for non‑series offers
                         0,
-                        0
+                        0,
+                        ""
                 ));
             }
         }
@@ -1105,7 +1217,8 @@ public final class CobbleDollarsShopPayloadHandlers {
                             "", // No series name for buy offers
                             "",  // No tooltip for non‑series offers
                             0,   // No difficulty for non-series offers
-                            0    // No completed count for non-series offers
+                            0,   // No completed count for non-series offers
+                            ""
                     ));
                 }
 
@@ -1123,7 +1236,8 @@ public final class CobbleDollarsShopPayloadHandlers {
                             "", // No series name for sell offers
                             "",  // No tooltip for non‑series offers
                             0,   // No difficulty for non-series offers
-                            0    // No completed count for non-series offers
+                            0,   // No completed count for non-series offers
+                            ""
                     ));
                 }
             } else if (!costA.isEmpty() && !result.isEmpty() &&
@@ -1147,7 +1261,8 @@ public final class CobbleDollarsShopPayloadHandlers {
                             seriesName,
                             seriesTooltip,
                             seriesDifficulty,
-                            seriesCompleted
+                            seriesCompleted,
+                            ""
                     ));
 
                     if (isTrainerCardTrade) {
@@ -1221,7 +1336,8 @@ public final class CobbleDollarsShopPayloadHandlers {
                             "",
                             "",
                             0,
-                            0
+                            0,
+                            ""
                     ));
                 }
                 continue;
@@ -1241,7 +1357,8 @@ public final class CobbleDollarsShopPayloadHandlers {
                             "",
                             "",
                             0,
-                            0
+                            0,
+                            ""
                     ));
                 }
                 continue;
@@ -1258,7 +1375,8 @@ public final class CobbleDollarsShopPayloadHandlers {
                             "",
                             "",
                             0,
-                            0
+                            0,
+                            ""
                     ));
                 }
                 continue;
@@ -1277,7 +1395,8 @@ public final class CobbleDollarsShopPayloadHandlers {
                             "",
                             "",
                             0,
-                            0
+                            0,
+                            ""
                     ));
                 }
             }
@@ -1328,7 +1447,8 @@ public final class CobbleDollarsShopPayloadHandlers {
                         "", // No series name
                         "", // No tooltip
                         0,
-                        0
+                        0,
+                        ""
                 ));
             }
         }
@@ -1888,6 +2008,12 @@ public final class CobbleDollarsShopPayloadHandlers {
         }
         if (quantity < 1) {
             LOGGER.warn("Quantity < 1, aborting");
+            return;
+        }
+
+        // Virtual bank: sell to config bank offers
+        if (VirtualShopIds.isVirtualBank(villagerId)) {
+            handleSellFromBank(serverPlayer, offerIndex, quantity);
             return;
         }
 
