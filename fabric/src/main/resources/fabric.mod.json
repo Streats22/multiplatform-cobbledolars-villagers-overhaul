@@ -23,7 +23,8 @@
     "java": ">=21"
   },
   "suggests": {
-    "modmenu": "*"
+    "modmenu": "*",
+    "trade_cycling": "*"
   },
   "mixins": ["cobbledollars_villagers_overhaul_rca.mixins.json"]
 }

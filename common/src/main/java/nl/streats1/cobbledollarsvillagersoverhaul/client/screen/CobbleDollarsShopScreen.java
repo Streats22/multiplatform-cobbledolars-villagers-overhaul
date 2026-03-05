@@ -14,16 +14,18 @@ import net.minecraft.world.entity.npc.Villager;
 import net.minecraft.world.entity.npc.WanderingTrader;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+
+import java.util.ArrayList;
+import java.util.List;
+
 import nl.streats1.cobbledollarsvillagersoverhaul.Config;
+import nl.streats1.cobbledollarsvillagersoverhaul.client.screen.widget.CycleTradesButton;
 import nl.streats1.cobbledollarsvillagersoverhaul.client.screen.widget.InvisibleButton;
 import nl.streats1.cobbledollarsvillagersoverhaul.client.screen.widget.TextureOnlyButton;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.CobbleDollarsConfigHelper;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.RctTrainerAssociationCompat;
 import nl.streats1.cobbledollarsvillagersoverhaul.network.CobbleDollarsShopPayloads;
 import nl.streats1.cobbledollarsvillagersoverhaul.platform.PlatformNetwork;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * CobbleDollars-style shop screen: layout aligned with CobbleDollars (balance, category tabs, offer list, quantity, Buy/Sell).
@@ -67,6 +69,8 @@ public class CobbleDollarsShopScreen extends Screen {
     private static final int LIST_LEFT_OFFSET = 185;
     private static final int CLOSE_BUTTON_SIZE = 14;
     private static final int CLOSE_BUTTON_MARGIN = 6;
+    private static final int CYCLE_BUTTON_X = 58;
+    private static final int CYCLE_BUTTON_Y = 22;
     private static final int RIGHT_PANEL_HEADER_Y = 16;
     private static final float LIST_ICON_SCALE = 0.9f;
     private static final float LIST_TEXT_SCALE = 0.9f;
@@ -156,6 +160,7 @@ public class CobbleDollarsShopScreen extends Screen {
     private Button actionButton;
     private Button amountMinusButton;
     private Button amountPlusButton;
+    private CycleTradesButton cycleTradesButton;
     private int listVisibleRows = LIST_VISIBLE_ROWS;
     private int listItemHeight = LIST_ROW_HEIGHT;
 
@@ -168,9 +173,9 @@ public class CobbleDollarsShopScreen extends Screen {
         super(Component.translatable("gui.cobbledollars_villagers_overhaul_rca.shop"));
         this.villagerId = villagerId;
         this.balance = balance;
-        this.buyOffers = buyOffers != null ? buyOffers : List.of();
-        this.sellOffers = sellOffers != null ? sellOffers : List.of();
-        this.tradesOffers = tradesOffers != null ? tradesOffers : List.of();
+        this.buyOffers = buyOffers != null ? new ArrayList<>(buyOffers) : new ArrayList<>();
+        this.sellOffers = sellOffers != null ? new ArrayList<>(sellOffers) : new ArrayList<>();
+        this.tradesOffers = tradesOffers != null ? new ArrayList<>(tradesOffers) : new ArrayList<>();
         this.buyOffersFromConfig = buyOffersFromConfig;
         this.canCycleTrades = canCycleTrades;
         if (!this.buyOffers.isEmpty()) {
@@ -205,7 +210,47 @@ public class CobbleDollarsShopScreen extends Screen {
                                        boolean canCycleTrades) {
         Minecraft mc = Minecraft.getInstance();
         if (mc.level == null) return;
+        // If same villager's shop is already open, update in place so the UI refreshes (e.g. after cycle trades)
+        if (mc.screen instanceof CobbleDollarsShopScreen screen && screen.villagerId == villagerId) {
+            updateOffersFromServer(screen, villagerId, balance, buyOffers, sellOffers, tradesOffers, buyOffersFromConfig, canCycleTrades);
+            return;
+        }
         mc.setScreen(new CobbleDollarsShopScreen(villagerId, balance, buyOffers, sellOffers, tradesOffers, buyOffersFromConfig, canCycleTrades));
+    }
+
+    /**
+     * Updates an existing shop screen with new offer data (e.g. after cycling trades).
+     */
+    private static void updateOffersFromServer(CobbleDollarsShopScreen screen, int villagerId, long balance,
+                                               List<CobbleDollarsShopPayloads.ShopOfferEntry> buyOffers,
+                                               List<CobbleDollarsShopPayloads.ShopOfferEntry> sellOffers,
+                                               List<CobbleDollarsShopPayloads.ShopOfferEntry> tradesOffers,
+                                               boolean buyOffersFromConfig,
+                                               boolean canCycleTrades) {
+        screen.balance = Math.max(0, balance);
+        screen.balanceDelta = 0;
+        screen.balanceDeltaTicks = 0;
+        screen.buyOffers.clear();
+        screen.buyOffers.addAll(buyOffers != null ? buyOffers : List.of());
+        screen.sellOffers.clear();
+        screen.sellOffers.addAll(sellOffers != null ? sellOffers : List.of());
+        screen.tradesOffers.clear();
+        screen.tradesOffers.addAll(tradesOffers != null ? tradesOffers : List.of());
+        // Reset selection to first valid offer
+        if (!screen.buyOffers.isEmpty()) {
+            screen.selectedTab = 0;
+            screen.selectedIndex = 0;
+        } else if (!screen.sellOffers.isEmpty()) {
+            screen.selectedTab = 1;
+            screen.selectedIndex = 0;
+        } else if (!screen.tradesOffers.isEmpty()) {
+            screen.selectedTab = 2;
+            screen.selectedIndex = 0;
+            screen.selectedSeries = screen.tradesOffers.get(0).seriesId();
+        } else {
+            screen.selectedIndex = -1;
+        }
+        screen.scrollOffset = 0;
     }
 
     public static void updateBalanceFromServer(int villagerId, long newBalance) {
@@ -242,6 +287,11 @@ public class CobbleDollarsShopScreen extends Screen {
         int closeX = left + WINDOW_WIDTH - CLOSE_BUTTON_SIZE - CLOSE_BUTTON_MARGIN;
         int closeY = top + 2;
         addRenderableWidget(new InvisibleButton(closeX, closeY, CLOSE_BUTTON_SIZE, CLOSE_BUTTON_SIZE, Component.literal("×"), b -> onClose()));
+
+        if (canCycleTrades) {
+            cycleTradesButton = new CycleTradesButton(left + CYCLE_BUTTON_X, top + CYCLE_BUTTON_Y, b -> onCycleTrades());
+            addRenderableWidget(cycleTradesButton);
+        }
     }
 
     /** Called when cycle key (C) is pressed - same keybind as Trade Cycling / Easy Villagers. */
@@ -674,6 +724,11 @@ public class CobbleDollarsShopScreen extends Screen {
 
     private void renderTooltips(GuiGraphics guiGraphics, int mouseX, int mouseY, int left, int top) {
         if (minecraft == null) return;
+
+        if (cycleTradesButton != null && cycleTradesButton.isHoveredOrFocused()) {
+            cycleTradesButton.renderTooltipIfHovered(guiGraphics, mouseX, mouseY);
+            return;
+        }
         
         int listTop = top + LIST_TOP_OFFSET;
         int rowL = left + LIST_LEFT_OFFSET;
