@@ -42,6 +42,17 @@ dependencies {
     modImplementation("net.fabricmc:fabric-language-kotlin:${property("fabric_kotlin")}")
     modImplementation("com.cobblemon:fabric:${property("cobblemon_version")}") { isTransitive = false }
 
+    // CobbleDollars: required at runtime (fabric.mod.json). For BankMixin compileOnly:
+    // - Put CobbleDollars (jar or extracted) in libs/ or set -Pcobbledollars_jar=/path
+    val cobbledollarsPath = project.findProperty("cobbledollars_jar")?.toString()
+        ?: listOf(
+            project.rootDir.resolve("libs/CobbleDollars-fabric-2.0.0+Beta-5.1+1.21"),
+            file(System.getProperty("user.home") + "/Downloads/Cobbledollars/CobbleDollars-fabric-2.0.0+Beta-5.1+1.21")
+        ).firstOrNull { it.exists() }
+    if (cobbledollarsPath != null) {
+        compileOnly(files(cobbledollarsPath))
+    }
+
     implementation(project(":common", configuration = "namedElements"))
     "developmentFabric"(project(":common", configuration = "namedElements"))
     shadowCommon(project(":common", configuration = "transformProductionFabric"))

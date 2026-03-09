@@ -3,6 +3,10 @@ package nl.streats1.cobbledollarsvillagersoverhaul.neoforge;
 import net.neoforged.neoforge.common.ModConfigSpec;
 import nl.streats1.cobbledollarsvillagersoverhaul.Config;
 
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
+
 public class ConfigNeoForge {
     private static final ModConfigSpec.Builder BUILDER = new ModConfigSpec.Builder();
 
@@ -27,6 +31,10 @@ public class ConfigNeoForge {
             .comment("Items that work like emeralds. 1 emerald = 250 CD. Format: [{\"item\":\"cobblemon:relic_coin\",\"value\":250}]. Value = CobbleDollars per 1 item. Trades with these as cost→BUY, as result→SELL. Empty = use config/cobbledollars_villagers_overhaul_rca/custom_currency.json.")
             .define("customCurrencyItems", "[{\"item\":\"cobblemon:relic_coin\",\"value\":250},{\"item\":\"cobblemon:relic_coin_pouch\",\"value\":2250},{\"item\":\"cobblemon:relic_coin_sack\",\"value\":20250},{\"item\":\"allthemons:token\",\"value\":250}]");
 
+    public static final ModConfigSpec.ConfigValue<String> EXCLUDED_VILLAGER_PROFESSION_NAMESPACES = BUILDER
+            .comment("Comma-separated mod namespaces whose villager professions use their native UI (e.g. casinorocket for Casino Worker). Empty = use CobbleDollars shop for all.")
+            .define("excludedVillagerProfessionNamespaces", "casinorocket");
+
     static final ModConfigSpec SPEC = BUILDER.build();
     
     /** Called when config screen is saved - applies current values to Config and CustomCurrencyConfig. */
@@ -43,6 +51,11 @@ public class ConfigNeoForge {
         Config.setSyncCobbleDollarsBankRate(SYNC_COBBLEDOLLARS_BANK_RATE.get());
         Config.setVillagersAcceptCobbleDollars(VILLAGERS_ACCEPT_COBBLEDOLLARS.get());
         Config.setUseCobbleDollarsShopUi(USE_COBBLEDOLLARS_SHOP_UI.get());
+        String excludedStr = EXCLUDED_VILLAGER_PROFESSION_NAMESPACES.get();
+        List<String> excluded = (excludedStr == null || excludedStr.isBlank())
+                ? List.of()
+                : Arrays.stream(excludedStr.split(",")).map(String::trim).filter(s -> !s.isEmpty()).collect(Collectors.toList());
+        Config.setExcludedVillagerProfessionNamespaces(excluded);
         String customCurrency = CUSTOM_CURRENCY_ITEMS.get();
         nl.streats1.cobbledollarsvillagersoverhaul.integration.CustomCurrencyConfig.setConfigOverride(
                 customCurrency == null || customCurrency.isBlank() || "[]".equals(customCurrency.trim()) ? null : customCurrency);

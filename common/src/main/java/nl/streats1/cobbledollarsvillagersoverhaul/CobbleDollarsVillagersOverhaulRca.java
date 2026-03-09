@@ -1,6 +1,9 @@
 package nl.streats1.cobbledollarsvillagersoverhaul;
 
 import com.mojang.logging.LogUtils;
+
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.npc.Villager;
 import net.minecraft.world.entity.npc.VillagerProfession;
@@ -38,6 +41,8 @@ public class CobbleDollarsVillagersOverhaulRca {
         if (target instanceof Villager villager) {
             VillagerProfession prof = villager.getVillagerData().getProfession();
             if (prof == VillagerProfession.NONE || prof == VillagerProfession.NITWIT) return false;
+            ResourceLocation profId = BuiltInRegistries.VILLAGER_PROFESSION.getKey(prof);
+            if (profId != null && Config.isVillagerProfessionExcluded(profId.getNamespace())) return false;
         } else if (!(target instanceof WanderingTrader)) {
             return false;
         }

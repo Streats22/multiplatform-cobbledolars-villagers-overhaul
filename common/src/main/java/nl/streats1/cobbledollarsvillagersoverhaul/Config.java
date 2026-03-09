@@ -1,5 +1,8 @@
 package nl.streats1.cobbledollarsvillagersoverhaul;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class Config {
     public static int COBBLEDOLLARS_EMERALD_RATE = 750;
     public static boolean SYNC_COBBLEDOLLARS_BANK_RATE = true;
@@ -7,6 +10,10 @@ public class Config {
     public static boolean USE_COBBLEDOLLARS_SHOP_UI = true;
     public static boolean USE_RCT_TRADES_OVERHAUL = true;
     public static boolean USE_DATAPACK_TRADES = true;
+    /**
+     * Mod namespaces to exclude from CobbleDollars shop (e.g. casinorocket for Casino Worker villagers).
+     */
+    public static List<String> EXCLUDED_VILLAGER_PROFESSION_NAMESPACES = new ArrayList<>(List.of("casinorocket"));
     public static int DATAPACK_ITEM_PRICE_RARITY_COMMON = 1;
     public static int DATAPACK_ITEM_PRICE_RARITY_UNCOMMON = 5;
     public static int DATAPACK_ITEM_PRICE_RARITY_RARE = 20;
@@ -40,5 +47,14 @@ public class Config {
 
     public static void setUseDatapackTrades(boolean value) {
         USE_DATAPACK_TRADES = value;
+    }
+
+    public static void setExcludedVillagerProfessionNamespaces(List<String> list) {
+        EXCLUDED_VILLAGER_PROFESSION_NAMESPACES = list != null ? new ArrayList<>(list) : new ArrayList<>();
+    }
+
+    public static boolean isVillagerProfessionExcluded(String namespace) {
+        return namespace != null && !EXCLUDED_VILLAGER_PROFESSION_NAMESPACES.isEmpty()
+                && EXCLUDED_VILLAGER_PROFESSION_NAMESPACES.stream().anyMatch(ns -> ns != null && ns.equalsIgnoreCase(namespace));
     }
 }

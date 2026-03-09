@@ -19,9 +19,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 import nl.streats1.cobbledollarsvillagersoverhaul.Config;
+import nl.streats1.cobbledollarsvillagersoverhaul.client.screen.widget.BankButton;
 import nl.streats1.cobbledollarsvillagersoverhaul.client.screen.widget.CycleTradesButton;
 import nl.streats1.cobbledollarsvillagersoverhaul.client.screen.widget.InvisibleButton;
 import nl.streats1.cobbledollarsvillagersoverhaul.client.screen.widget.TextureOnlyButton;
+import nl.streats1.cobbledollarsvillagersoverhaul.integration.CobbleDollarsBankCompat;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.CobbleDollarsConfigHelper;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.RctTrainerAssociationCompat;
 import nl.streats1.cobbledollarsvillagersoverhaul.network.CobbleDollarsShopPayloads;
@@ -71,6 +73,8 @@ public class CobbleDollarsShopScreen extends Screen {
     private static final int CLOSE_BUTTON_MARGIN = 6;
     private static final int CYCLE_BUTTON_X = 58;
     private static final int CYCLE_BUTTON_Y = 22;
+    private static final int BANK_BUTTON_X = 8;
+    private static final int BANK_BUTTON_Y = 179;
     private static final int RIGHT_PANEL_HEADER_Y = 16;
     private static final float LIST_ICON_SCALE = 0.9f;
     private static final float LIST_TEXT_SCALE = 0.9f;
@@ -161,6 +165,7 @@ public class CobbleDollarsShopScreen extends Screen {
     private Button amountMinusButton;
     private Button amountPlusButton;
     private CycleTradesButton cycleTradesButton;
+    private BankButton bankButton;
     private int listVisibleRows = LIST_VISIBLE_ROWS;
     private int listItemHeight = LIST_ROW_HEIGHT;
 
@@ -292,6 +297,15 @@ public class CobbleDollarsShopScreen extends Screen {
             cycleTradesButton = new CycleTradesButton(left + CYCLE_BUTTON_X, top + CYCLE_BUTTON_Y, b -> onCycleTrades());
             addRenderableWidget(cycleTradesButton);
         }
+        if (CobbleDollarsBankCompat.isBankAvailable()) {
+            bankButton = new BankButton(left + BANK_BUTTON_X, top + BANK_BUTTON_Y, b -> onBank());
+            addRenderableWidget(bankButton);
+        }
+    }
+
+    private void onBank() {
+        if (!CobbleDollarsBankCompat.isBankAvailable()) return;
+        CobbleDollarsBankCompat.tryOpenBankFromVillagerId(villagerId);
     }
 
     /** Called when cycle key (C) is pressed - same keybind as Trade Cycling / Easy Villagers. */
@@ -727,6 +741,10 @@ public class CobbleDollarsShopScreen extends Screen {
 
         if (cycleTradesButton != null && cycleTradesButton.isHoveredOrFocused()) {
             cycleTradesButton.renderTooltipIfHovered(guiGraphics, mouseX, mouseY);
+            return;
+        }
+        if (bankButton != null && bankButton.isHoveredOrFocused()) {
+            bankButton.renderTooltipIfHovered(guiGraphics, mouseX, mouseY);
             return;
         }
         

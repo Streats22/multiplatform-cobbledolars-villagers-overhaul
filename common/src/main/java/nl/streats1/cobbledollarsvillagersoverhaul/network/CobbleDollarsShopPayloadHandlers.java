@@ -2,6 +2,7 @@ package nl.streats1.cobbledollarsvillagersoverhaul.network;
 
 import com.mojang.logging.LogUtils;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.MenuProvider;
@@ -695,6 +696,16 @@ public final class CobbleDollarsShopPayloadHandlers {
         if (entity == null) {
             LOGGER.warn("Entity {} not found for player {}", villagerId, serverPlayer.getName().getString());
             return;
+        }
+
+        if (entity instanceof Villager v) {
+            ResourceLocation profId = BuiltInRegistries.VILLAGER_PROFESSION.getKey(v.getVillagerData().getProfession());
+            if (profId != null && Config.isVillagerProfessionExcluded(profId.getNamespace())) {
+                if (entity instanceof MenuProvider menuProvider) {
+                    serverPlayer.openMenu(menuProvider);
+                }
+                return;
+            }
         }
 
         LOGGER.info("Entity type check - Villager: {}, WanderingTrader: {}, RCTA: {}",
