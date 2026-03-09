@@ -1,11 +1,12 @@
 package nl.streats1.cobbledollarsvillagersoverhaul.neoforge;
 
 import net.neoforged.neoforge.common.ModConfigSpec;
-import nl.streats1.cobbledollarsvillagersoverhaul.Config;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import nl.streats1.cobbledollarsvillagersoverhaul.Config;
 
 public class ConfigNeoForge {
     private static final ModConfigSpec.Builder BUILDER = new ModConfigSpec.Builder();
@@ -32,8 +33,8 @@ public class ConfigNeoForge {
             .define("customCurrencyItems", "[{\"item\":\"cobblemon:relic_coin\",\"value\":250},{\"item\":\"cobblemon:relic_coin_pouch\",\"value\":2250},{\"item\":\"cobblemon:relic_coin_sack\",\"value\":20250},{\"item\":\"allthemons:token\",\"value\":250}]");
 
     public static final ModConfigSpec.ConfigValue<String> EXCLUDED_VILLAGER_PROFESSION_NAMESPACES = BUILDER
-            .comment("Comma-separated mod namespaces whose villager professions use their native UI (e.g. casinorocket for Casino Worker). Empty = use CobbleDollars shop for all.")
-            .define("excludedVillagerProfessionNamespaces", "casinorocket");
+            .comment("Comma-separated mod namespaces whose villager professions use their native UI (e.g. casinorocket, cobbledollars for CobbleMerchant). Empty = use CobbleDollars shop for all.")
+            .define("excludedVillagerProfessionNamespaces", "casinorocket,cobbledollars");
 
     static final ModConfigSpec SPEC = BUILDER.build();
     

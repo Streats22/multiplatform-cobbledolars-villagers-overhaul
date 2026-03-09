@@ -4,13 +4,15 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+
 import net.fabricmc.loader.api.FabricLoader;
-import nl.streats1.cobbledollarsvillagersoverhaul.CobbleDollarsVillagersOverhaulRca;
-import nl.streats1.cobbledollarsvillagersoverhaul.Config;
-import nl.streats1.cobbledollarsvillagersoverhaul.integration.CustomCurrencyConfig;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+
+import nl.streats1.cobbledollarsvillagersoverhaul.CobbleDollarsVillagersOverhaulRca;
+import nl.streats1.cobbledollarsvillagersoverhaul.Config;
+import nl.streats1.cobbledollarsvillagersoverhaul.integration.CustomCurrencyConfig;
 
 /**
  * Fabric config loader. Creates config/cobbledollars_villagers_overhaul_rca/config.json
@@ -86,9 +88,9 @@ public final class ConfigFabric {
                   "useCobbleDollarsShopUi": true,
                   "useRctTradesOverhaul": true,
                   "useDatapackTrades": true,
-                  "excludedVillagerProfessionNamespaces": ["casinorocket"],
+                  "excludedVillagerProfessionNamespaces": ["casinorocket", "cobbledollars"],
                   "_comment_emeraldSteps": "1=250, 2=500, 3=750 CD per emerald (CobbleDollars scale)",
-                  "_comment_excluded": "Villagers with professions from these mod namespaces use their native UI (e.g. CasinoRocket Casino Workers). Remove 'casinorocket' to use CobbleDollars shop for them.",
+                  "_comment_excluded": "Villagers with professions from these mod namespaces use their native UI (e.g. CasinoRocket, CobbleDollars CobbleMerchant). Remove entries to use CobbleDollars shop for them.",
                   "_comment": "Edit config/cobbledollars_villagers_overhaul_rca/custom_currency.json for Relic Coins, Poketokens, etc."
                 }
                 """;

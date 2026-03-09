@@ -160,6 +160,7 @@ public class CobbleDollarsShopScreen extends Screen {
     private String selectedSeries = "";
     private boolean showSeriesTooltip = false;
     private int scrollOffset = 0;
+    private boolean scrollbarDragging = false;
     private EditBox quantityBox;
     private Button actionButton;
     private Button amountMinusButton;
@@ -749,7 +750,7 @@ public class CobbleDollarsShopScreen extends Screen {
         }
         
         int listTop = top + LIST_TOP_OFFSET;
-        int rowL = left + LIST_LEFT_OFFSET;
+        int rowL = left + LIST_LEFT_OFFSET - 10;  // Match render loop for correct tooltip hit areas
         int rowR = rowL + LIST_WIDTH;
         var offers = currentOffers();
 
@@ -783,9 +784,11 @@ public class CobbleDollarsShopScreen extends Screen {
                     if (!costB.isEmpty()) {
                         int priceX = iconX + LIST_ITEM_ICON_SIZE + OFFER_ROW_GAP_AFTER_ICON;
                         int priceY = y + (listItemHeight - font.lineHeight) / 2 + PRICE_TEXT_OFFSET_Y;
-                        int costBX = priceX + Math.round(font.width(formatPrice(priceForDisplay(entry))) * LIST_TEXT_SCALE);
-                        int costBY = y + (listItemHeight - LIST_ITEM_ICON_SIZE) / 2 + LIST_ICON_OFFSET_Y;
-                        int costBSize = Math.round(LIST_ITEM_ICON_SIZE * LIST_COSTB_SCALE);
+                        int priceW = Math.round(font.width(formatPrice(priceForDisplay(entry))) * LIST_TEXT_SCALE);
+                        int costBX = priceX + priceW + (selectedTab == 0 ? 2 : 4);  // Match render loop spacing
+                        int costBY = selectedTab == 2 ? iconY : y + (listItemHeight - LIST_ITEM_ICON_SIZE) / 2 + LIST_ICON_OFFSET_Y + 3;
+                        float costBScale = (selectedTab == 2) ? LIST_ICON_SCALE : LIST_COSTB_SCALE;
+                        int costBSize = Math.round(LIST_ITEM_ICON_SIZE * costBScale);
                         
                         if (mouseX >= costBX && mouseX < costBX + costBSize &&
                             mouseY >= costBY && mouseY < costBY + costBSize) {
@@ -1029,9 +1032,26 @@ public class CobbleDollarsShopScreen extends Screen {
             }
         }
 
-        int rowL = left + LIST_LEFT_OFFSET;
-        int rowR = rowL + LIST_WIDTH + 4;
+        int rowL = left + LIST_LEFT_OFFSET - 10;
+        int rowR = rowL + LIST_WIDTH;
+        int scrollX = rowR;
         var offers = currentOffers();
+        int listHeight = listVisibleRows * listItemHeight;
+        int range = Math.max(0, offers.size() - listVisibleRows);
+        if (range > 0 && mouseX >= scrollX && mouseX < scrollX + SCROLLBAR_WIDTH) {
+            int thumbHeight = Math.max(20, (listVisibleRows * listHeight) / Math.max(1, offers.size()));
+            thumbHeight = Math.min(thumbHeight, listHeight - 4);
+            int thumbY = listTop + (scrollOffset * (listHeight - thumbHeight) / range);
+            if (mouseY >= listTop && mouseY < listTop + listHeight) {
+                if (mouseY >= thumbY && mouseY < thumbY + thumbHeight) {
+                    scrollbarDragging = true;
+                } else {
+                    scrollOffset = (int) Math.round((mouseY - listTop - thumbHeight / 2) * (double) range / (listHeight - thumbHeight));
+                    scrollOffset = Math.max(0, Math.min(range, scrollOffset));
+                }
+                return true;
+            }
+        }
         for (int i = 0; i < listVisibleRows; i++) {
             int idx = scrollOffset + i;
             if (idx >= offers.size()) break;
@@ -1061,6 +1081,35 @@ public class CobbleDollarsShopScreen extends Screen {
             return true;
         }
         return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
+    }
+
+    @Override
+    public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
+        if (scrollbarDragging) {
+            int left = (guiWidth() - WINDOW_WIDTH) / 2;
+            int top = (guiHeight() - WINDOW_HEIGHT) / 2;
+            int listTop = top + LIST_TOP_OFFSET;
+            var offers = currentOffers();
+            int listHeight = listVisibleRows * listItemHeight;
+            int range = Math.max(0, offers.size() - listVisibleRows);
+            if (range > 0) {
+                int thumbHeight = Math.max(20, (listVisibleRows * listHeight) / Math.max(1, offers.size()));
+                thumbHeight = Math.min(thumbHeight, listHeight - 4);
+                scrollOffset = (int) Math.round((mouseY - listTop - thumbHeight / 2) * (double) range / (listHeight - thumbHeight));
+                scrollOffset = Math.max(0, Math.min(range, scrollOffset));
+            }
+            return true;
+        }
+        return super.mouseDragged(mouseX, mouseY, button, dragX, dragY);
+    }
+
+    @Override
+    public boolean mouseReleased(double mouseX, double mouseY, int button) {
+        if (scrollbarDragging && button == 0) {
+            scrollbarDragging = false;
+            return true;
+        }
+        return super.mouseReleased(mouseX, mouseY, button);
     }
 
     @Override

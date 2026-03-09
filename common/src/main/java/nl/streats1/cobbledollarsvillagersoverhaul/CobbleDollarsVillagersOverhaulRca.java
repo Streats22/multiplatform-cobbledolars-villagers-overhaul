@@ -8,11 +8,13 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.npc.Villager;
 import net.minecraft.world.entity.npc.VillagerProfession;
 import net.minecraft.world.entity.npc.WanderingTrader;
+
+import org.slf4j.Logger;
+
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.CobbleDollarsIntegration;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.RctTrainerAssociationCompat;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.VillagerCobbleDollarsHandler;
 import nl.streats1.cobbledollarsvillagersoverhaul.network.CobbleDollarsShopPayloadHandlers;
-import org.slf4j.Logger;
 
 public class CobbleDollarsVillagersOverhaulRca {
     public static final String MOD_ID = "cobbledollars_villagers_overhaul_rca";
@@ -26,6 +28,12 @@ public class CobbleDollarsVillagersOverhaulRca {
     public boolean onEntityInteract(Entity target, boolean isClientSide, boolean isSneaking,
                                    Runnable cancelAction) {
         if (!Config.USE_COBBLEDOLLARS_SHOP_UI || !CobbleDollarsIntegration.isModLoaded()) return false;
+
+        // Never override CobbleDollars' CobbleMerchant - they have categories, NBT merchants, etc.
+        ResourceLocation typeId = BuiltInRegistries.ENTITY_TYPE.getKey(target.getType());
+        if (typeId != null && "cobbledollars".equals(typeId.getNamespace())) {
+            return false;
+        }
 
         if (RctTrainerAssociationCompat.isTrainerAssociation(target)) {
             // If RCT trades overhaul is disabled in config, let RCT handle everything

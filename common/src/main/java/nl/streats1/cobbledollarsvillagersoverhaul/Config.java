@@ -11,9 +11,9 @@ public class Config {
     public static boolean USE_RCT_TRADES_OVERHAUL = true;
     public static boolean USE_DATAPACK_TRADES = true;
     /**
-     * Mod namespaces to exclude from CobbleDollars shop (e.g. casinorocket for Casino Worker villagers).
+     * Mod namespaces to exclude from CobbleDollars shop (e.g. casinorocket for Casino Worker, cobbledollars for CobbleMerchant).
      */
-    public static List<String> EXCLUDED_VILLAGER_PROFESSION_NAMESPACES = new ArrayList<>(List.of("casinorocket"));
+    public static List<String> EXCLUDED_VILLAGER_PROFESSION_NAMESPACES = new ArrayList<>(List.of("casinorocket", "cobbledollars"));
     public static int DATAPACK_ITEM_PRICE_RARITY_COMMON = 1;
     public static int DATAPACK_ITEM_PRICE_RARITY_UNCOMMON = 5;
     public static int DATAPACK_ITEM_PRICE_RARITY_RARE = 20;
