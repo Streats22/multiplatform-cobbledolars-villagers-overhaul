@@ -33,7 +33,6 @@ public final class ConfigFabric {
                 Files.createDirectories(dir);
                 String defaultJson = getDefaultConfigJson();
                 Files.writeString(file, defaultJson);
-                CobbleDollarsVillagersOverhaulRca.LOGGER.info("Created default config at {}", file);
             }
 
             String content = Files.readString(file);
@@ -66,7 +65,6 @@ public final class ConfigFabric {
                 Config.setExcludedVillagerProfessionNamespaces(list);
             }
 
-            // Fabric uses custom_currency.json (CustomCurrencyConfig loads it, creates with defaults if missing)
             CustomCurrencyConfig.setConfigOverride(null);
             CustomCurrencyConfig.loadFromFile();
         } catch (Exception e) {

@@ -12,6 +12,5 @@ public class CobbleDollarsIntegrationFabric {
     }
     
     public static void register() {
-        // No-op for now.
     }
 }

@@ -2,18 +2,19 @@ package nl.streats1.cobbledollarsvillagersoverhaul.fabric;
 
 import com.terraformersmc.modmenu.api.ConfigScreenFactory;
 import com.terraformersmc.modmenu.api.ModMenuApi;
-import me.shedaniel.clothconfig2.api.ConfigBuilder;
-import me.shedaniel.clothconfig2.api.ConfigCategory;
-import me.shedaniel.clothconfig2.api.ConfigEntryBuilder;
+
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
-import nl.streats1.cobbledollarsvillagersoverhaul.CobbleDollarsVillagersOverhaulRca;
-import nl.streats1.cobbledollarsvillagersoverhaul.Config;
-import nl.streats1.cobbledollarsvillagersoverhaul.integration.CustomCurrencyConfig;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+
+import me.shedaniel.clothconfig2.api.ConfigBuilder;
+import me.shedaniel.clothconfig2.api.ConfigCategory;
+import me.shedaniel.clothconfig2.api.ConfigEntryBuilder;
+import nl.streats1.cobbledollarsvillagersoverhaul.Config;
+import nl.streats1.cobbledollarsvillagersoverhaul.integration.CustomCurrencyConfig;
 
 /**
  * Mod Menu integration: Config button in Mods list opens our in-game config screen.
@@ -65,7 +66,6 @@ public class ModMenuIntegration implements ModMenuApi {
                         Files.writeString(file, json);
                         ConfigFabric.loadConfig();
                     } catch (Exception e) {
-                        CobbleDollarsVillagersOverhaulRca.LOGGER.warn("Failed to save config: {}", e.getMessage());
                     }
                 });
 

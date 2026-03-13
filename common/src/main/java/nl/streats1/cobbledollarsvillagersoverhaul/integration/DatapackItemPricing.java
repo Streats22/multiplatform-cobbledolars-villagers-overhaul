@@ -3,11 +3,12 @@ package nl.streats1.cobbledollarsvillagersoverhaul.integration;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.mojang.logging.LogUtils;
+
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import nl.streats1.cobbledollarsvillagersoverhaul.integration.CobbleDollarsConfigHelper;
+
 import org.slf4j.Logger;
 
 import java.lang.reflect.Type;
@@ -29,7 +30,6 @@ public class DatapackItemPricing {
      */
     public static void loadCustomPrices(String jsonConfig) {
         if (jsonConfig == null || jsonConfig.isEmpty()) {
-            LOGGER.info("No custom item prices provided, using default pricing");
             pricesLoaded = false;
             return;
         }
@@ -44,7 +44,6 @@ public class DatapackItemPricing {
                 customPrices.clear();
                 customPrices.putAll(loaded);
                 pricesLoaded = true;
-                LOGGER.info("Loaded {} custom item prices", loaded.size());
             }
         } catch (Exception e) {
             LOGGER.error("Failed to parse custom item prices: {}", e.getMessage());
@@ -63,19 +62,16 @@ public class DatapackItemPricing {
         Item item = itemStack.getItem();
         String itemId = getItemId(item);
 
-        // Check override prices first (highest priority)
         if (customPrices.containsKey(itemId)) {
             return customPrices.get(itemId) * itemStack.getCount();
         }
 
-        // Check with namespace:id format for override prices
         ResourceLocation registryName = BuiltInRegistries.ITEM.getKey(item);
         String fullId = registryName.toString();
         if (customPrices.containsKey(fullId)) {
             return customPrices.get(fullId) * itemStack.getCount();
         }
 
-        // Fallback: 1 item = 1 emerald = getEffectiveEmeraldRate() CD (default 750)
         return CobbleDollarsConfigHelper.getEffectiveEmeraldRate() * itemStack.getCount();
     }
 
@@ -90,24 +86,11 @@ public class DatapackItemPricing {
 
         String itemId = getItemId(item);
 
-        // Check override prices first
         if (customPrices.containsKey(itemId)) {
             return customPrices.get(itemId);
         }
 
-        // Fallback: 1 item = 1 emerald equivalent
         return CobbleDollarsConfigHelper.getEffectiveEmeraldRate();
-    }
-
-    /**
-     * Add a custom override price for an item
-     * Useful for server commands or admin configuration
-     * Simplified check - returns false to avoid version compatibility issues
-     */
-    private static boolean hasSpecialProperties(ItemStack itemStack) {
-        // Simplified - assume no special properties for pricing purposes
-        // This could be enhanced with version-specific NBT checks if needed
-        return false;
     }
 
     /**

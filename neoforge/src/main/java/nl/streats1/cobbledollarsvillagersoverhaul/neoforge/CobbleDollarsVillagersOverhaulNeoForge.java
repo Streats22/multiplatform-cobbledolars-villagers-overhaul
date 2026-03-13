@@ -18,6 +18,7 @@ import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
+
 import nl.streats1.cobbledollarsvillagersoverhaul.CobbleDollarsVillagersOverhaulRca;
 import nl.streats1.cobbledollarsvillagersoverhaul.Config;
 import nl.streats1.cobbledollarsvillagersoverhaul.command.VillagerShopCommand;
@@ -30,32 +31,21 @@ public class CobbleDollarsVillagersOverhaulNeoForge {
     private final CobbleDollarsVillagersOverhaulRca common;
 
     public CobbleDollarsVillagersOverhaulNeoForge(IEventBus modEventBus, ModContainer modContainer) {
-        CobbleDollarsVillagersOverhaulRca.LOGGER.info("Initializing CobbleDollars Villagers Overhaul (NeoForge)");
-
         common = new CobbleDollarsVillagersOverhaulRca();
-        
-        // Register common setup
+
         modEventBus.addListener(this::commonSetup);
-        // Apply config when .toml loads/reloads (file is at config/cobbledollars_villagers_overhaul_rca-common.toml)
         modEventBus.addListener(this::onConfigLoad);
-        
-        // Register networking
+
         NeoForgeNetworking.register(modEventBus);
-        
-        // CRITICAL: Register client-side setup for client-to-server networking
-        // This was missing and caused buy/sell packets to never be sent!
+
         if (FMLEnvironment.dist == Dist.CLIENT) {
-            CobbleDollarsVillagersOverhaulRca.LOGGER.info("Registering NeoForge client setup listener");
             modEventBus.addListener(CobbleDollarsVillagersOverhaulNeoForgeClient::initializeClient);
             modEventBus.addListener(CobbleDollarsVillagersOverhaulNeoForgeClient::registerKeyMappings);
             NeoForge.EVENT_BUS.register(CobbleDollarsVillagersOverhaulNeoForgeClient.class);
             CobbleDollarsVillagersOverhaulNeoForgeClient.registerConfigScreen(modContainer);
         }
-        
-        // Register NeoForge events
+
         NeoForge.EVENT_BUS.register(this);
-        
-        // Register config
         modContainer.registerConfig(ModConfig.Type.COMMON, ConfigNeoForge.SPEC);
     }
 
@@ -114,6 +104,7 @@ public class CobbleDollarsVillagersOverhaulNeoForge {
      * RCT Trainer Association NPC uses wandering trader-like AI but its own trade UI.
      * Do not replace it with the CobbleDollars shop screen.
      */
+    @SuppressWarnings({"unused", "null"})
     private static boolean isRadicalTrainerAssociation(Entity entity) {
         ResourceLocation id = BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType());
         return "rctmod".equals(id.getNamespace()) && "trainer_association".equals(id.getPath());

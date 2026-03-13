@@ -3,13 +3,12 @@ package nl.streats1.cobbledollarsvillagersoverhaul.fabric;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
+import net.minecraft.world.InteractionResult;
+
+import nl.streats1.cobbledollarsvillagersoverhaul.CobbleDollarsVillagersOverhaulRca;
+import nl.streats1.cobbledollarsvillagersoverhaul.command.VillagerShopCommand;
 import nl.streats1.cobbledollarsvillagersoverhaul.network.CobbleDollarsShopPayloads;
 import nl.streats1.cobbledollarsvillagersoverhaul.platform.PlatformNetwork;
-import net.minecraft.world.InteractionResult;
-import nl.streats1.cobbledollarsvillagersoverhaul.CobbleDollarsVillagersOverhaulRca;
-import nl.streats1.cobbledollarsvillagersoverhaul.Config;
-import nl.streats1.cobbledollarsvillagersoverhaul.command.VillagerShopCommand;
-import nl.streats1.cobbledollarsvillagersoverhaul.integration.CobbleDollarsIntegration;
 
 public class CobbleDollarsVillagersOverhaulFabric implements ModInitializer {
 
@@ -17,25 +16,16 @@ public class CobbleDollarsVillagersOverhaulFabric implements ModInitializer {
     
     @Override
     public void onInitialize() {
-        CobbleDollarsVillagersOverhaulRca.LOGGER.info("Initializing CobbleDollars Villagers Overhaul (Fabric)");
-        
-        // Initialize common mod
         mod = new CobbleDollarsVillagersOverhaulRca();
-        
-        // Register Fabric-specific events
         registerEvents();
 
-        // Register commands
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) ->
                 VillagerShopCommand.register(dispatcher));
-        
-        // Register networking
+
         FabricNetworking.register();
-        
-        // Load config (creates config.json + custom_currency.json with defaults if missing)
         ConfigFabric.loadConfig();
     }
-    
+
     private void registerEvents() {
         UseEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
             if (!world.isClientSide) {
@@ -51,6 +41,4 @@ public class CobbleDollarsVillagersOverhaulFabric implements ModInitializer {
         
         VillagerCobbleDollarsHandlerFabric.registerFabric();
     }
-    
-    // Networking is registered in FabricNetworking.
 }

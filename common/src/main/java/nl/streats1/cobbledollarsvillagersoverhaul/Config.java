@@ -21,8 +21,6 @@ public class Config {
     public static int DATAPACK_ITEM_PRICE_RARITY_LEGENDARY = 125;
 
     public static void loadConfig() {
-        // This will be implemented by platform-specific config loading
-        // For now, using default values
     }
     
     public static void setCobbledollarsEmeraldRate(int value) {

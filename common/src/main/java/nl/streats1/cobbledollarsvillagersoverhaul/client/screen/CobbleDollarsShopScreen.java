@@ -98,7 +98,6 @@ public class CobbleDollarsShopScreen extends Screen {
     private static final int LIST_PRICE_BADGE_OFFSET_Y = -3;
     private static final int PRICE_TEXT_OFFSET_Y = 4;
 
-    // GUI textures under this mod's namespace.
     private static final String GUI_TEXTURES_NAMESPACE = "cobbledollars_villagers_overhaul_rca";
 
     private static final ResourceLocation TEX_SHOP_BASE = rl(GUI_TEXTURES_NAMESPACE, "textures/gui/shop/shop_base.png");
@@ -158,7 +157,6 @@ public class CobbleDollarsShopScreen extends Screen {
     private int selectedTab = 0;
     private int selectedIndex = -1;
     private String selectedSeries = "";
-    private boolean showSeriesTooltip = false;
     private int scrollOffset = 0;
     private boolean scrollbarDragging = false;
     private EditBox quantityBox;
@@ -216,7 +214,6 @@ public class CobbleDollarsShopScreen extends Screen {
                                        boolean canCycleTrades) {
         Minecraft mc = Minecraft.getInstance();
         if (mc.level == null) return;
-        // If same villager's shop is already open, update in place so the UI refreshes (e.g. after cycle trades)
         if (mc.screen instanceof CobbleDollarsShopScreen screen && screen.villagerId == villagerId) {
             updateOffersFromServer(screen, villagerId, balance, buyOffers, sellOffers, tradesOffers, buyOffersFromConfig, canCycleTrades);
             return;
@@ -242,7 +239,6 @@ public class CobbleDollarsShopScreen extends Screen {
         screen.sellOffers.addAll(sellOffers != null ? sellOffers : List.of());
         screen.tradesOffers.clear();
         screen.tradesOffers.addAll(tradesOffers != null ? tradesOffers : List.of());
-        // Reset selection to first valid offer
         if (!screen.buyOffers.isEmpty()) {
             screen.selectedTab = 0;
             screen.selectedIndex = 0;
@@ -581,7 +577,6 @@ public class CobbleDollarsShopScreen extends Screen {
                     int maxStars = 5;
                     StringBuilder stars = new StringBuilder();
                     for (int star = 0; star < maxStars; star++) {
-                        float starThreshold = star + 0.5f; // 0.5, 1.5, 2.5, 3.5, 4.5
                         if (difficulty / 2f >= star + 1) {
                             stars.append("\u2605"); // ★ Full star
                         } else if (difficulty / 2f >= star + 0.5f) {
@@ -783,7 +778,6 @@ public class CobbleDollarsShopScreen extends Screen {
                     ItemStack costB = costBStackFrom(entry);
                     if (!costB.isEmpty()) {
                         int priceX = iconX + LIST_ITEM_ICON_SIZE + OFFER_ROW_GAP_AFTER_ICON;
-                        int priceY = y + (listItemHeight - font.lineHeight) / 2 + PRICE_TEXT_OFFSET_Y;
                         int priceW = Math.round(font.width(formatPrice(priceForDisplay(entry))) * LIST_TEXT_SCALE);
                         int costBX = priceX + priceW + (selectedTab == 0 ? 2 : 4);  // Match render loop spacing
                         int costBY = selectedTab == 2 ? iconY : y + (listItemHeight - LIST_ITEM_ICON_SIZE) / 2 + LIST_ICON_OFFSET_Y + 3;
@@ -1086,7 +1080,6 @@ public class CobbleDollarsShopScreen extends Screen {
     @Override
     public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
         if (scrollbarDragging) {
-            int left = (guiWidth() - WINDOW_WIDTH) / 2;
             int top = (guiHeight() - WINDOW_HEIGHT) / 2;
             int listTop = top + LIST_TOP_OFFSET;
             var offers = currentOffers();

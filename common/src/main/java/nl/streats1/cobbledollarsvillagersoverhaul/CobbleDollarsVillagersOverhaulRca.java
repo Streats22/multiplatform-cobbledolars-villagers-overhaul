@@ -29,19 +29,15 @@ public class CobbleDollarsVillagersOverhaulRca {
                                    Runnable cancelAction) {
         if (!Config.USE_COBBLEDOLLARS_SHOP_UI || !CobbleDollarsIntegration.isModLoaded()) return false;
 
-        // Never override CobbleDollars' CobbleMerchant - they have categories, NBT merchants, etc.
         ResourceLocation typeId = BuiltInRegistries.ENTITY_TYPE.getKey(target.getType());
         if (typeId != null && "cobbledollars".equals(typeId.getNamespace())) {
             return false;
         }
 
         if (RctTrainerAssociationCompat.isTrainerAssociation(target)) {
-            // If RCT trades overhaul is disabled in config, let RCT handle everything
             if (!Config.USE_RCT_TRADES_OVERHAUL) {
                 return false;
             }
-
-            // Open our CobbleDollars shop instead of RCT's UI.
             cancelAction.run();
             return true;
         }

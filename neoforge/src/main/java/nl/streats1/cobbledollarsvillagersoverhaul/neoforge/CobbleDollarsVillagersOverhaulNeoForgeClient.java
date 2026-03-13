@@ -3,33 +3,31 @@ package nl.streats1.cobbledollarsvillagersoverhaul.neoforge;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
-import net.neoforged.fml.ModContainer;
-import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
-import nl.streats1.cobbledollarsvillagersoverhaul.integration.CustomCurrencyConfig;
-import nl.streats1.cobbledollarsvillagersoverhaul.integration.CurrencyEntryRecord;
-
-import java.util.List;
-import java.util.function.Supplier;
 import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.neoforge.client.event.InputEvent;
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
+import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
 import net.neoforged.neoforge.network.PacketDistributor;
+
+import java.util.List;
+import java.util.function.Supplier;
+
 import nl.streats1.cobbledollarsvillagersoverhaul.Config;
-import nl.streats1.cobbledollarsvillagersoverhaul.CobbleDollarsVillagersOverhaulRca;
 import nl.streats1.cobbledollarsvillagersoverhaul.client.CycleTradesKeybind;
-import nl.streats1.cobbledollarsvillagersoverhaul.client.screen.ConfigHomeScreen;
 import nl.streats1.cobbledollarsvillagersoverhaul.client.screen.CobbleDollarsShopScreen;
+import nl.streats1.cobbledollarsvillagersoverhaul.client.screen.ConfigHomeScreen;
+import nl.streats1.cobbledollarsvillagersoverhaul.integration.CurrencyEntryRecord;
+import nl.streats1.cobbledollarsvillagersoverhaul.integration.CustomCurrencyConfig;
 import nl.streats1.cobbledollarsvillagersoverhaul.platform.PlatformNetwork;
 
+@SuppressWarnings("null")
 public class CobbleDollarsVillagersOverhaulNeoForgeClient {
     private static final net.minecraft.client.KeyMapping CYCLE_TRADES_KEY = CycleTradesKeybind.create();
 
     public static void initializeClient(FMLClientSetupEvent event) {
-        CobbleDollarsVillagersOverhaulRca.LOGGER.info("=== NeoForge Client Setup ===");
-        CobbleDollarsVillagersOverhaulRca.LOGGER.info("Registering client-to-server sender for PlatformNetwork");
         PlatformNetwork.setClientToServerSender(PacketDistributor::sendToServer);
-        CobbleDollarsVillagersOverhaulRca.LOGGER.info("Client-to-server sender registered successfully!");
     }
 
     public static void registerKeyMappings(RegisterKeyMappingsEvent event) {
