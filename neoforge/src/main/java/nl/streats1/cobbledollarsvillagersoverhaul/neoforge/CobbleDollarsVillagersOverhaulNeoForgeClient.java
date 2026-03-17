@@ -73,6 +73,14 @@ public class CobbleDollarsVillagersOverhaulNeoForgeClient {
                 .build());
 
         general.addEntry(entryBuilder.startBooleanToggle(
+                        Component.translatable("config.cobbledollars_villagers_overhaul_rca.freeMinimumEmeraldTrade"),
+                        ConfigNeoForge.FREE_MINIMUM_EMERALD_TRADE.get())
+                .setDefaultValue(false)
+                .setTooltip(Component.translatable("config.cobbledollars_villagers_overhaul_rca.freeMinimumEmeraldTrade.tooltip"))
+                .setSaveConsumer(ConfigNeoForge.FREE_MINIMUM_EMERALD_TRADE::set)
+                .build());
+
+        general.addEntry(entryBuilder.startBooleanToggle(
                         Component.translatable("config.cobbledollars_villagers_overhaul_rca.useCobbleDollarsShopUi"),
                         ConfigNeoForge.USE_COBBLEDOLLARS_SHOP_UI.get())
                 .setDefaultValue(true)

@@ -40,7 +40,7 @@ side = "BOTH"
 # Optional: CobbleDollars. When present, Bank button and custom currency bank injection work.
 [[dependencies.cobbledollars_villagers_overhaul_rca]]
 modId = "cobbledollars"
-mandatory = false
+type = "optional"
 versionRange = "*"
 ordering = "NONE"
 side = "BOTH"
@@ -48,7 +48,7 @@ side = "BOTH"
 # Optional: Easy Villagers. This mod has its own trade cycle implementation; Easy Villagers is not required.
 [[dependencies.cobbledollars_villagers_overhaul_rca]]
 modId = "easy_villagers"
-mandatory = false
+type = "optional"
 versionRange = "*"
 ordering = "NONE"
 side = "BOTH"

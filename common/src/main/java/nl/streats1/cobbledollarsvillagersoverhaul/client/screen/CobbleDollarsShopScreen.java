@@ -21,6 +21,7 @@ import java.util.List;
 import nl.streats1.cobbledollarsvillagersoverhaul.Config;
 import nl.streats1.cobbledollarsvillagersoverhaul.client.screen.widget.BankButton;
 import nl.streats1.cobbledollarsvillagersoverhaul.client.screen.widget.CycleTradesButton;
+import nl.streats1.cobbledollarsvillagersoverhaul.integration.TradeCyclingModCompat;
 import nl.streats1.cobbledollarsvillagersoverhaul.client.screen.widget.InvisibleButton;
 import nl.streats1.cobbledollarsvillagersoverhaul.client.screen.widget.TextureOnlyButton;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.CobbleDollarsBankCompat;
@@ -73,8 +74,6 @@ public class CobbleDollarsShopScreen extends Screen {
     private static final int CLOSE_BUTTON_MARGIN = 6;
     private static final int CYCLE_BUTTON_X = 58;
     private static final int CYCLE_BUTTON_Y = 22;
-    private static final int BANK_BUTTON_X = 8;
-    private static final int BANK_BUTTON_Y = 179;
     private static final int RIGHT_PANEL_HEADER_Y = 16;
     private static final float LIST_ICON_SCALE = 0.9f;
     private static final float LIST_TEXT_SCALE = 0.9f;
@@ -84,6 +83,9 @@ public class CobbleDollarsShopScreen extends Screen {
     private static final int LIST_ITEM_ICON_SIZE = Math.round(16 * LIST_ICON_SCALE);
     private static final int BALANCE_BG_X = 72;
     private static final int BALANCE_BG_Y = 181;
+    /** Bank button: left of GUI, text with "Bank" label. Three states: normal, hover, disabled. */
+    private static final int BANK_BUTTON_X = 8;
+    private static final int BANK_BUTTON_Y = BALANCE_BG_Y;
     private static final int BALANCE_TEXT_X_OFFSET = 6;
     private static final int BALANCE_TEXT_Y_OFFSET = 1;
     private static final int INVENTORY_LEFT_OFFSET = 3;
@@ -106,6 +108,9 @@ public class CobbleDollarsShopScreen extends Screen {
     private static final ResourceLocation TEX_OFFER_BG = rl(GUI_TEXTURES_NAMESPACE, "textures/gui/shop/offer_background.png");
     private static final ResourceLocation TEX_OFFER_OUTLINE = rl(GUI_TEXTURES_NAMESPACE, "textures/gui/shop/offer_outline.png");
     private static final ResourceLocation TEX_BUY_BUTTON = rl(GUI_TEXTURES_NAMESPACE, "textures/gui/shop/buy_button.png");
+    private static final ResourceLocation TEX_BANK_BUTTON = rl(GUI_TEXTURES_NAMESPACE, "textures/gui/shop/bank_button.png");
+    private static final int TEX_BANK_BUTTON_W = 90;
+    private static final int TEX_BANK_BUTTON_H = 48;
     private static final ResourceLocation TEX_AMOUNT_UP = rl(GUI_TEXTURES_NAMESPACE, "textures/gui/shop/amount_arrow_up.png");
     private static final ResourceLocation TEX_AMOUNT_DOWN = rl(GUI_TEXTURES_NAMESPACE, "textures/gui/shop/amount_arrow_down.png");
     private static final int TEX_SHOP_BASE_W = 252;
@@ -290,7 +295,7 @@ public class CobbleDollarsShopScreen extends Screen {
         int closeY = top + 2;
         addRenderableWidget(new InvisibleButton(closeX, closeY, CLOSE_BUTTON_SIZE, CLOSE_BUTTON_SIZE, Component.literal("×"), b -> onClose()));
 
-        if (canCycleTrades) {
+        if (canCycleTrades && TradeCyclingModCompat.isTradeCyclingModLoaded()) {
             cycleTradesButton = new CycleTradesButton(left + CYCLE_BUTTON_X, top + CYCLE_BUTTON_Y, b -> onCycleTrades());
             addRenderableWidget(cycleTradesButton);
         }
@@ -730,6 +735,20 @@ public class CobbleDollarsShopScreen extends Screen {
         renderTooltips(guiGraphics, mouseX, mouseY, left, top);
 
         super.render(guiGraphics, mouseX, mouseY, partialTick);
+
+        // Draw bank button last so nothing draws over it
+        if (bankButton != null) {
+            int bankX = bankButton.getX();
+            int bankY = bankButton.getY();
+            int bankStateIndex = !bankButton.active ? 2 : (bankButton.isHoveredOrFocused() ? 1 : 0);
+            int bankSrcY = bankStateIndex * (TEX_BANK_BUTTON_H / 3);
+            blitRegion(guiGraphics, TEX_BANK_BUTTON, bankX, bankY, 0, bankSrcY, BankButton.WIDTH, BankButton.HEIGHT, TEX_BANK_BUTTON_W, TEX_BANK_BUTTON_H);
+            if (!bankButton.active) {
+                guiGraphics.fill(bankX, bankY, bankX + BankButton.WIDTH, bankY + BankButton.HEIGHT, 0x55000000);
+            }
+            int textColor = bankButton.active ? 0xFFFFFFFF : 0xFFA0A0A0;
+            guiGraphics.drawCenteredString(font, bankButton.getMessage(), bankX + BankButton.WIDTH / 2, bankY + (BankButton.HEIGHT - 8) / 2, textColor);
+        }
     }
 
     private void renderTooltips(GuiGraphics guiGraphics, int mouseX, int mouseY, int left, int top) {
@@ -977,6 +996,7 @@ public class CobbleDollarsShopScreen extends Screen {
     private long priceForDisplay(CobbleDollarsShopPayloads.ShopOfferEntry entry) {
         // directPrice: emeraldCount already holds CD value, do not multiply by rate
         if (entry.directPrice()) return entry.emeraldCount();
+        if (Config.FREE_MINIMUM_EMERALD_TRADE && entry.emeraldCount() == 1 && !isSellTab()) return 0;
         if (isSellTab()) return (long) entry.emeraldCount() * getRate();
         return (long) entry.emeraldCount() * getRate();
     }

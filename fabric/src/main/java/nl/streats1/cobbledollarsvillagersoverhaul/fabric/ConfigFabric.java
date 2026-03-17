@@ -47,6 +47,9 @@ public final class ConfigFabric {
             if (root.has("villagersAcceptCobbleDollars")) {
                 Config.setVillagersAcceptCobbleDollars(root.get("villagersAcceptCobbleDollars").getAsBoolean());
             }
+            if (root.has("freeMinimumEmeraldTrade")) {
+                Config.setFreeMinimumEmeraldTrade(root.get("freeMinimumEmeraldTrade").getAsBoolean());
+            }
             if (root.has("useCobbleDollarsShopUi")) {
                 Config.setUseCobbleDollarsShopUi(root.get("useCobbleDollarsShopUi").getAsBoolean());
             }
@@ -63,6 +66,14 @@ public final class ConfigFabric {
                     if (el.isJsonPrimitive()) list.add(el.getAsString());
                 }
                 Config.setExcludedVillagerProfessionNamespaces(list);
+            }
+            if (root.has("excludedVillagerProfessionIds") && root.get("excludedVillagerProfessionIds").isJsonArray()) {
+                JsonArray arr = root.getAsJsonArray("excludedVillagerProfessionIds");
+                java.util.List<String> list = new java.util.ArrayList<>();
+                for (JsonElement el : arr) {
+                    if (el.isJsonPrimitive()) list.add(el.getAsString());
+                }
+                Config.setExcludedVillagerProfessionIds(list);
             }
 
             CustomCurrencyConfig.setConfigOverride(null);
@@ -83,12 +94,15 @@ public final class ConfigFabric {
                   "cobbledollarsEmeraldRate": 3,
                   "syncCobbleDollarsBankRate": true,
                   "villagersAcceptCobbleDollars": true,
+                  "freeMinimumEmeraldTrade": false,
                   "useCobbleDollarsShopUi": true,
                   "useRctTradesOverhaul": true,
                   "useDatapackTrades": true,
-                  "excludedVillagerProfessionNamespaces": ["casinorocket", "cobbledollars"],
+                  "excludedVillagerProfessionNamespaces": ["cobbledollars"],
+                  "excludedVillagerProfessionIds": ["casinorocket:casino_worker"],
                   "_comment_emeraldSteps": "1=250, 2=500, 3=750 CD per emerald (CobbleDollars scale)",
-                  "_comment_excluded": "Villagers with professions from these mod namespaces use their native UI (e.g. CasinoRocket, CobbleDollars CobbleMerchant). Remove entries to use CobbleDollars shop for them.",
+                  "_comment_freeMinimum": "freeMinimumEmeraldTrade: when true, 1-emerald trades (after curing) are free - no CD charged.",
+                  "_comment_excluded": "excludedVillagerProfessionNamespaces: mod namespaces to exclude. excludedVillagerProfessionIds: specific professions (e.g. casinorocket:casino_worker). Excluded villagers use their native UI.",
                   "_comment": "Edit config/cobbledollars_villagers_overhaul_rca/custom_currency.json for Relic Coins, Poketokens, etc."
                 }
                 """;

@@ -3,6 +3,8 @@ package nl.streats1.cobbledollarsvillagersoverhaul;
 import java.util.ArrayList;
 import java.util.List;
 
+import net.minecraft.resources.ResourceLocation;
+
 public class Config {
     public static int COBBLEDOLLARS_EMERALD_RATE = 750;
     public static boolean SYNC_COBBLEDOLLARS_BANK_RATE = true;
@@ -10,10 +12,17 @@ public class Config {
     public static boolean USE_COBBLEDOLLARS_SHOP_UI = true;
     public static boolean USE_RCT_TRADES_OVERHAUL = true;
     public static boolean USE_DATAPACK_TRADES = true;
+    /** When true, trades that cost 1 emerald (minimum after curing/discounts) are free - no CobbleDollars charged. */
+    public static boolean FREE_MINIMUM_EMERALD_TRADE = false;
     /**
-     * Mod namespaces to exclude from CobbleDollars shop (e.g. casinorocket for Casino Worker, cobbledollars for CobbleMerchant).
+     * Mod namespaces to exclude from CobbleDollars shop (e.g. cobbledollars for CobbleMerchant).
      */
-    public static List<String> EXCLUDED_VILLAGER_PROFESSION_NAMESPACES = new ArrayList<>(List.of("casinorocket", "cobbledollars"));
+    public static List<String> EXCLUDED_VILLAGER_PROFESSION_NAMESPACES = new ArrayList<>(List.of("cobbledollars"));
+    /**
+     * Specific profession IDs to exclude (e.g. casinorocket:casino_worker for Casino Worker with Chip Table).
+     * Use this when only some professions from a mod have their own UI, so others can use our shop.
+     */
+    public static List<String> EXCLUDED_VILLAGER_PROFESSION_IDS = new ArrayList<>(List.of("casinorocket:casino_worker"));
     public static int DATAPACK_ITEM_PRICE_RARITY_COMMON = 1;
     public static int DATAPACK_ITEM_PRICE_RARITY_UNCOMMON = 5;
     public static int DATAPACK_ITEM_PRICE_RARITY_RARE = 20;
@@ -47,12 +56,32 @@ public class Config {
         USE_DATAPACK_TRADES = value;
     }
 
+    public static void setFreeMinimumEmeraldTrade(boolean value) {
+        FREE_MINIMUM_EMERALD_TRADE = value;
+    }
+
     public static void setExcludedVillagerProfessionNamespaces(List<String> list) {
         EXCLUDED_VILLAGER_PROFESSION_NAMESPACES = list != null ? new ArrayList<>(list) : new ArrayList<>();
     }
 
+    public static void setExcludedVillagerProfessionIds(List<String> list) {
+        EXCLUDED_VILLAGER_PROFESSION_IDS = list != null ? new ArrayList<>(list) : new ArrayList<>();
+    }
+
+    /** Check by namespace (all professions from that mod). */
     public static boolean isVillagerProfessionExcluded(String namespace) {
         return namespace != null && !EXCLUDED_VILLAGER_PROFESSION_NAMESPACES.isEmpty()
                 && EXCLUDED_VILLAGER_PROFESSION_NAMESPACES.stream().anyMatch(ns -> ns != null && ns.equalsIgnoreCase(namespace));
+    }
+
+    /** Check by full profession ID (e.g. casinorocket:casino_worker) or namespace. */
+    public static boolean isVillagerProfessionExcluded(ResourceLocation profId) {
+        if (profId == null) return false;
+        String fullId = profId.getNamespace() + ":" + profId.getPath();
+        if (!EXCLUDED_VILLAGER_PROFESSION_IDS.isEmpty()
+                && EXCLUDED_VILLAGER_PROFESSION_IDS.stream().anyMatch(id -> id != null && id.equalsIgnoreCase(fullId))) {
+            return true;
+        }
+        return isVillagerProfessionExcluded(profId.getNamespace());
     }
 }

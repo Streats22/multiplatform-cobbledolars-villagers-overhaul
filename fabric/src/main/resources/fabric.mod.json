@@ -24,7 +24,9 @@
   },
   "suggests": {
     "modmenu": "*",
-    "trade_cycling": "*"
+    "casinorocket": "*",
+    "trade_cycling": "*",
+    "easy_villagers": "*"
   },
   "mixins": ["cobbledollars_villagers_overhaul_rca.mixins.json"]
 }

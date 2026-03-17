@@ -46,7 +46,7 @@ public class CobbleDollarsVillagersOverhaulRca {
             VillagerProfession prof = villager.getVillagerData().getProfession();
             if (prof == VillagerProfession.NONE || prof == VillagerProfession.NITWIT) return false;
             ResourceLocation profId = BuiltInRegistries.VILLAGER_PROFESSION.getKey(prof);
-            if (profId != null && Config.isVillagerProfessionExcluded(profId.getNamespace())) return false;
+            if (profId != null && Config.isVillagerProfessionExcluded(profId)) return false;
         } else if (!(target instanceof WanderingTrader)) {
             return false;
         }
