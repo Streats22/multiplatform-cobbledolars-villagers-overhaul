@@ -4,6 +4,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
+import nl.streats1.cobbledollarsvillagersoverhaul.CobbleDollarsVillagersOverhaulRca;
 import nl.streats1.cobbledollarsvillagersoverhaul.Config;
 import nl.streats1.cobbledollarsvillagersoverhaul.client.screen.CobbleDollarsShopScreen;
 import nl.streats1.cobbledollarsvillagersoverhaul.network.CobbleDollarsShopPayloadHandlers;
@@ -34,7 +35,19 @@ public final class NeoForgeNetworking {
                 Objects.requireNonNull(CobbleDollarsShopPayloads.ShopData.TYPE),
                 Objects.requireNonNull(CobbleDollarsShopPayloads.ShopData.STREAM_CODEC),
                 (data, context) -> context.enqueueWork(() -> {
-                        if (!Config.USE_COBBLEDOLLARS_SHOP_UI) return;
+                        if (!Config.USE_COBBLEDOLLARS_SHOP_UI) {
+                            CobbleDollarsVillagersOverhaulRca.LOGGER.debug("[shop] ShopData S2C ignored: USE_COBBLEDOLLARS_SHOP_UI=false");
+                            return;
+                        }
+                        CobbleDollarsVillagersOverhaulRca.LOGGER.debug(
+                                "[shop] ShopData S2C: villagerId={} balance={} buyOffers={} sellOffers={} tradesOffers={} fromConfig={} canCycle={}",
+                                data.villagerId(),
+                                data.balance(),
+                                data.buyOffers() != null ? data.buyOffers().size() : 0,
+                                data.sellOffers() != null ? data.sellOffers().size() : 0,
+                                data.tradesOffers() != null ? data.tradesOffers().size() : 0,
+                                data.buyOffersFromConfig(),
+                                data.canCycleTrades());
                         CobbleDollarsShopScreen.openFromPayload(
                                 data.villagerId(), data.balance(), data.buyOffers(), data.sellOffers(), data.tradesOffers(), data.buyOffersFromConfig(), data.canCycleTrades());
                 })
@@ -81,9 +94,14 @@ public final class NeoForgeNetworking {
 
     private static void handleRequestShopData(CobbleDollarsShopPayloads.RequestShopData data, IPayloadContext context) {
         context.enqueueWork(() -> {
-            if (context.player() instanceof ServerPlayer serverPlayer) {
-                CobbleDollarsShopPayloadHandlers.handleRequestShopData(serverPlayer, data.villagerId());
+            if (!(context.player() instanceof ServerPlayer serverPlayer)) {
+                CobbleDollarsVillagersOverhaulRca.LOGGER.warn("[shop] RequestShopData: player is not ServerPlayer, ignoring");
+                return;
             }
+            CobbleDollarsVillagersOverhaulRca.LOGGER.debug(
+                    "[shop] RequestShopData received (NeoForge): player={} villagerEntityId={}",
+                    serverPlayer.getName().getString(), data.villagerId());
+            CobbleDollarsShopPayloadHandlers.handleRequestShopData(serverPlayer, data.villagerId());
         });
     }
 }

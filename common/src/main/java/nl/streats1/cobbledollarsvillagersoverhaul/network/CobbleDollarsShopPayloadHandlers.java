@@ -651,15 +651,24 @@ public final class CobbleDollarsShopPayloadHandlers {
     }
 
     public static void handleRequestShopData(ServerPlayer serverPlayer, int villagerId) {
+        LOGGER.debug("[shop] handleRequestShopData: player={} villagerEntityId={}", serverPlayer.getName().getString(), villagerId);
+
         if (!Config.USE_COBBLEDOLLARS_SHOP_UI) {
+            LOGGER.debug("[shop] handleRequestShopData: USE_COBBLEDOLLARS_SHOP_UI=false, opening vanilla menu if applicable");
             Entity entity = serverPlayer.serverLevel().getEntity(villagerId);
             if (entity instanceof MenuProvider menuProvider) {
                 serverPlayer.openMenu(menuProvider);
             }
             return;
         }
-        if (!Config.VILLAGERS_ACCEPT_COBBLEDOLLARS) return;
-        if (!CobbleDollarsIntegration.isAvailable()) return;
+        if (!Config.VILLAGERS_ACCEPT_COBBLEDOLLARS) {
+            LOGGER.warn("[shop] handleRequestShopData: abort — VILLAGERS_ACCEPT_COBBLEDOLLARS=false (no ShopData sent)");
+            return;
+        }
+        if (!CobbleDollarsIntegration.isAvailable()) {
+            LOGGER.warn("[shop] handleRequestShopData: abort — CobbleDollars integration not available (no ShopData sent)");
+            return;
+        }
 
         long balance = CobbleDollarsIntegration.getBalance(serverPlayer);
         if (balance < 0) balance = 0;
@@ -673,12 +682,17 @@ public final class CobbleDollarsShopPayloadHandlers {
         Entity entity = level.getEntity(villagerId);
 
         if (entity == null) {
+            LOGGER.warn("[shop] handleRequestShopData: no entity for id {} (player {}, dimension {}) — no ShopData sent",
+                    villagerId,
+                    serverPlayer.getName().getString(),
+                    serverPlayer.level().dimension().location());
             return;
         }
 
         if (entity instanceof Villager v) {
             ResourceLocation profId = BuiltInRegistries.VILLAGER_PROFESSION.getKey(v.getVillagerData().getProfession());
             if (profId != null && Config.isVillagerProfessionExcluded(profId)) {
+                LOGGER.debug("[shop] handleRequestShopData: profession {} excluded — vanilla menu", profId);
                 if (entity instanceof MenuProvider menuProvider) {
                     serverPlayer.openMenu(menuProvider);
                 }
@@ -808,6 +822,8 @@ public final class CobbleDollarsShopPayloadHandlers {
                 buildDatapackOffers(allOffers, buyOffers, sellOffers);
             }
         } else {
+            LOGGER.warn("[shop] handleRequestShopData: unsupported entity type {} id {} — no ShopData sent",
+                    entity.getType().getDescriptionId(), villagerId);
             return;
         }
 
@@ -830,6 +846,15 @@ public final class CobbleDollarsShopPayloadHandlers {
         List<CobbleDollarsShopPayloads.ShopOfferEntry> safeTradesOffers = tradesOffers != null ? tradesOffers : List.of();
 
         try {
+            LOGGER.debug(
+                    "[shop] handleRequestShopData: sending ShopData player={} villagerId={} buy={} sell={} trades={} fromConfig={} canCycle={}",
+                    serverPlayer.getName().getString(),
+                    villagerId,
+                    safeBuyOffers.size(),
+                    safeSellOffers.size(),
+                    safeTradesOffers.size(),
+                    buyOffersFromConfig,
+                    canCycleTrades);
             PlatformNetwork.sendToPlayer(serverPlayer,
                     new CobbleDollarsShopPayloads.ShopData(villagerId, balance, safeBuyOffers, safeSellOffers, safeTradesOffers, buyOffersFromConfig, canCycleTrades));
         } catch (Exception e) {

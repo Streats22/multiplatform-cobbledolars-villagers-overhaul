@@ -3,6 +3,8 @@ package nl.streats1.cobbledollarsvillagersoverhaul.fabric;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.server.level.ServerPlayer;
+
+import nl.streats1.cobbledollarsvillagersoverhaul.CobbleDollarsVillagersOverhaulRca;
 import nl.streats1.cobbledollarsvillagersoverhaul.network.CobbleDollarsShopPayloadHandlers;
 import nl.streats1.cobbledollarsvillagersoverhaul.network.CobbleDollarsShopPayloads;
 import nl.streats1.cobbledollarsvillagersoverhaul.platform.PlatformNetwork;
@@ -23,9 +25,15 @@ public final class FabricNetworking {
         PayloadTypeRegistry.playS2C().register(CobbleDollarsShopPayloads.BalanceUpdate.TYPE, CobbleDollarsShopPayloads.BalanceUpdate.STREAM_CODEC);
 
         ServerPlayNetworking.registerGlobalReceiver(CobbleDollarsShopPayloads.RequestShopData.TYPE, (payload, context) -> {
-            if (context.player() instanceof ServerPlayer sp) {
-                context.server().execute(() -> CobbleDollarsShopPayloadHandlers.handleRequestShopData(sp, payload.villagerId()));
+            if (!(context.player() instanceof ServerPlayer sp)) {
+                CobbleDollarsVillagersOverhaulRca.LOGGER.warn("[shop] RequestShopData: player is not ServerPlayer, ignoring");
+                return;
             }
+            int vid = payload.villagerId();
+            CobbleDollarsVillagersOverhaulRca.LOGGER.debug(
+                    "[shop] RequestShopData received on server thread queue: player={} villagerEntityId={}",
+                    sp.getName().getString(), vid);
+            context.server().execute(() -> CobbleDollarsShopPayloadHandlers.handleRequestShopData(sp, vid));
         });
 
         ServerPlayNetworking.registerGlobalReceiver(CobbleDollarsShopPayloads.CycleTrades.TYPE, (payload, context) -> {

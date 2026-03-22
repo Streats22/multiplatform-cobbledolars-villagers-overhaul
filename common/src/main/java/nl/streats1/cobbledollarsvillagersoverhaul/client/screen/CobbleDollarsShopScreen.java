@@ -18,6 +18,7 @@ import net.minecraft.world.item.Items;
 import java.util.ArrayList;
 import java.util.List;
 
+import nl.streats1.cobbledollarsvillagersoverhaul.CobbleDollarsVillagersOverhaulRca;
 import nl.streats1.cobbledollarsvillagersoverhaul.Config;
 import nl.streats1.cobbledollarsvillagersoverhaul.client.screen.widget.BankButton;
 import nl.streats1.cobbledollarsvillagersoverhaul.client.screen.widget.CycleTradesButton;
@@ -218,11 +219,19 @@ public class CobbleDollarsShopScreen extends Screen {
                                        boolean buyOffersFromConfig,
                                        boolean canCycleTrades) {
         Minecraft mc = Minecraft.getInstance();
-        if (mc.level == null) return;
+        if (mc.level == null) {
+            CobbleDollarsVillagersOverhaulRca.LOGGER.warn("[shop] openFromPayload: mc.level is null, cannot open UI (villagerId={})", villagerId);
+            return;
+        }
         if (mc.screen instanceof CobbleDollarsShopScreen screen && screen.villagerId == villagerId) {
+            CobbleDollarsVillagersOverhaulRca.LOGGER.debug("[shop] openFromPayload: updating existing shop screen villagerId={}", villagerId);
             updateOffersFromServer(screen, villagerId, balance, buyOffers, sellOffers, tradesOffers, buyOffersFromConfig, canCycleTrades);
             return;
         }
+        CobbleDollarsVillagersOverhaulRca.LOGGER.debug(
+                "[shop] openFromPayload: new CobbleDollarsShopScreen villagerId={} currentScreen={}",
+                villagerId,
+                mc.screen != null ? mc.screen.getClass().getSimpleName() : "null");
         mc.setScreen(new CobbleDollarsShopScreen(villagerId, balance, buyOffers, sellOffers, tradesOffers, buyOffersFromConfig, canCycleTrades));
     }
 

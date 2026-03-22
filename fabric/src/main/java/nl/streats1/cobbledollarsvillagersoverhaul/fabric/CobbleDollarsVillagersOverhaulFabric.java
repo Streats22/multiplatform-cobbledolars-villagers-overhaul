@@ -27,20 +27,36 @@ public class CobbleDollarsVillagersOverhaulFabric implements ModInitializer {
     }
 
     /**
-     * Client returns {@link InteractionResult#FAIL} after sending {@code RequestShopData} so the vanilla
-     * use-entity packet is not also sent (SUCCESS would duplicate server handling and race merchant vs shop UI).
-     * Server still returns SUCCESS when a vanilla interaction packet is processed, to cancel {@code MerchantMenu}.
+     * After sending {@link CobbleDollarsShopPayloads.RequestShopData}, return {@link InteractionResult#FAIL} so the
+     * vanilla use-entity packet is not also sent (avoids duplicate server handling and races with the merchant UI).
+     * Server still returns {@link InteractionResult#SUCCESS} when a vanilla packet is processed, to cancel trading.
      */
     private void registerEvents() {
         UseEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
             if (world.isClientSide) {
                 boolean handled = mod.onEntityInteract(entity, true, player.isShiftKeyDown(), () -> {});
-                if (!handled) return InteractionResult.PASS;
+                if (!handled) {
+                    CobbleDollarsVillagersOverhaulRca.LOGGER.debug(
+                            "[shop] Fabric client use-entity: not handled (PASS), entity={} id={}",
+                            entity.getType().getDescriptionId(), entity.getId());
+                    return InteractionResult.PASS;
+                }
+                CobbleDollarsVillagersOverhaulRca.LOGGER.debug(
+                        "[shop] Fabric client use-entity: sending RequestShopData, entity={} id={}, result=FAIL (no vanilla packet)",
+                        entity.getType().getDescriptionId(), entity.getId());
                 PlatformNetwork.sendToServer(new CobbleDollarsShopPayloads.RequestShopData(entity.getId()));
                 return InteractionResult.FAIL;
             }
             boolean handledServer = mod.onEntityInteract(entity, false, player.isShiftKeyDown(), () -> {});
-            if (!handledServer) return InteractionResult.PASS;
+            if (!handledServer) {
+                CobbleDollarsVillagersOverhaulRca.LOGGER.debug(
+                        "[shop] Fabric server use-entity: not handled (PASS), entity={} id={}",
+                        entity.getType().getDescriptionId(), entity.getId());
+                return InteractionResult.PASS;
+            }
+            CobbleDollarsVillagersOverhaulRca.LOGGER.debug(
+                    "[shop] Fabric server use-entity: cancel vanilla merchant (SUCCESS), entity={} id={}",
+                    entity.getType().getDescriptionId(), entity.getId());
             return InteractionResult.SUCCESS;
         });
         
