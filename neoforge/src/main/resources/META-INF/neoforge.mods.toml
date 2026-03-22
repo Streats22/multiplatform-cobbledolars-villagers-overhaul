@@ -3,6 +3,9 @@ loaderVersion = "[1,)"
 #issueTrackerURL = "A valid URL to your issue tracker where people can open bug tickets"
 license = "All Rights Reserved"
 
+[[mixins]]
+config = "cobbledollars_villagers_overhaul_rca.mixins.json"
+
 [[mods]]
 modId = "cobbledollars_villagers_overhaul_rca"
 version = "${version}"
@@ -32,4 +35,20 @@ modId = "cobblemon"
 mandatory = true
 versionRange = "[1.7.1,)"
 ordering = "AFTER"
+side = "BOTH"
+
+# Optional: CobbleDollars. When present, Bank button and custom currency bank injection work.
+[[dependencies.cobbledollars_villagers_overhaul_rca]]
+modId = "cobbledollars"
+type = "optional"
+versionRange = "*"
+ordering = "NONE"
+side = "BOTH"
+
+# Optional: Easy Villagers. This mod has its own trade cycle implementation; Easy Villagers is not required.
+[[dependencies.cobbledollars_villagers_overhaul_rca]]
+modId = "easy_villagers"
+type = "optional"
+versionRange = "*"
+ordering = "NONE"
 side = "BOTH"

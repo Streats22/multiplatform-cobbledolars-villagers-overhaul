@@ -6,10 +6,6 @@
   "mixins": [
     "BankMixin"
   ],
-  "client": [
-  ],
-  "server": [
-  ],
-  "injectors": {
-  }
+  "client": [],
+  "server": []
 }

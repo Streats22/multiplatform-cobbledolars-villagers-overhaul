@@ -1,7 +1,6 @@
 package nl.streats1.cobbledollarsvillagersoverhaul.neoforge;
 
 import net.neoforged.fml.ModList;
-import nl.streats1.cobbledollarsvillagersoverhaul.integration.CobbleDollarsIntegration;
 
 public class CobbleDollarsIntegrationNeoForge {
     
@@ -10,6 +9,5 @@ public class CobbleDollarsIntegrationNeoForge {
     }
     
     public static void register() {
-        // NeoForge-specific registration if needed
     }
 }

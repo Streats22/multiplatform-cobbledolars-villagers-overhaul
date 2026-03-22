@@ -14,5 +14,6 @@ pluginManagement {
 listOf(
     "common",
     "neoforge",
-    "fabric"
-).forEach { include(it)}
+    "fabric",
+    "cobbledollars-stub"
+).forEach { include(it) }

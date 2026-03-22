@@ -28,6 +28,10 @@ enhanced trading experience with RCT series support.
 - (Optional) Radical Cobblemon Trainers mod - for series-based trades
 - Fabric or NeoForge mod loader
 
+**Trade cycling** (C key to refresh villager offers): The cycle button and keybind only appear when [Trade Cycling](https://modrinth.com/mod/trade-cycling) or [Easy Villagers](https://modrinth.com/mod/easy-villagers) is installed.
+
+**Casino Rocket** (Fabric): Fully compatible. Casino Worker villagers keep their native casino UI; other villagers use the CobbleDollars shop. Add Casino Rocket to your mods folder alongside this mod.
+
 **For in-game config screen** (Mods menu → Config button):
 - **Fabric**: [Cloth Config API](https://modrinth.com/mod/cloth-config) + [Mod Menu](https://modrinth.com/mod/modmenu)
 - **NeoForge**: [Cloth Config API](https://modrinth.com/mod/cloth-config) (config button appears in mod list)
@@ -64,6 +68,7 @@ Config files are created automatically when you first run the game.
 |------------------------------|---------|---------|-----------------------------------------------|
 | `useCobbleDollarsShopUi`     | Boolean | true    | Enable the custom shop UI                     |
 | `villagersAcceptCobbleDollars`| Boolean | true    | Pay villager trades with CobbleDollars        |
+| `freeMinimumEmeraldTrade`    | Boolean | false   | When true, 1-emerald trades (after curing) are free - no CobbleDollars charged |
 | `cobbledollarsEmeraldRate`    | Int     | 3       | Step 1-3: 1=250, 2=500, 3=750 CD per emerald (or raw value) |
 | `syncCobbleDollarsBankRate`  | Boolean | true    | Sync emerald rate with CobbleDollars bank    |
 | `useRctTradesOverhaul`       | Boolean | true    | Enable RCT series trades overhaul            |
@@ -117,7 +122,7 @@ When using RCT trainers, you can:
 
 ### Controls
 
-- **C key**: Cycle trades (same as Trade Cycling / Easy Villagers - refresh villager offers without breaking workstation)
+- **C key**: Cycle trades (built-in - refresh villager offers without breaking workstation; compatible with Trade Cycling / Easy Villagers if installed)
 - **Left Click**: Purchase/Sell single item
 - **Shift + Left Click**: Purchase/Sell stack (64x)
 - **Arrow Buttons**: Adjust quantity (1, 16, 32, 64)
@@ -141,6 +146,12 @@ When using RCT trainers, you can:
 ./gradlew :fabric:build
 ./gradlew :neoforge:build
 ```
+
+### Fabric Build (BankMixin)
+
+The Fabric build includes a mixin into CobbleDollars' Bank class. You can build **without** the CobbleDollars JAR: the `cobbledollars-stub` subproject provides compile-only stubs so the build succeeds. At runtime, the real CobbleDollars mod provides the actual Bank class.
+
+To use the real CobbleDollars JAR instead (e.g. for stricter validation), place it in `libs/` or set `-Pcobbledollars_jar=/path/to/CobbleDollars-fabric-*.jar`.
 
 ### Output
 
@@ -169,6 +180,7 @@ multiplatform-cobbledolars-villagers-overhaul/
 │   └── src/main/java/.../fabric/
 │       ├── CobbleDollarsIntegrationFabric.java
 │       └── FabricNetworking.java
+├── cobbledollars-stub/       # Compile-only stubs for BankMixin (Fabric build without CobbleDollars JAR)
 ├── neoforge/                # NeoForge-specific code
 │   └── src/main/java/.../neoforge/
 │       ├── CobbleDollarsIntegrationNeoForge.java

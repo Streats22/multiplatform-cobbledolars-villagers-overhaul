@@ -23,7 +23,10 @@
     "java": ">=21"
   },
   "suggests": {
-    "modmenu": "*"
+    "modmenu": "*",
+    "casinorocket": "*",
+    "trade_cycling": "*",
+    "easy_villagers": "*"
   },
   "mixins": ["cobbledollars_villagers_overhaul_rca.mixins.json"]
 }

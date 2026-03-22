@@ -14,16 +14,21 @@ import net.minecraft.world.entity.npc.Villager;
 import net.minecraft.world.entity.npc.WanderingTrader;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+
+import java.util.ArrayList;
+import java.util.List;
+
 import nl.streats1.cobbledollarsvillagersoverhaul.Config;
+import nl.streats1.cobbledollarsvillagersoverhaul.client.screen.widget.BankButton;
+import nl.streats1.cobbledollarsvillagersoverhaul.client.screen.widget.CycleTradesButton;
+import nl.streats1.cobbledollarsvillagersoverhaul.integration.TradeCyclingModCompat;
 import nl.streats1.cobbledollarsvillagersoverhaul.client.screen.widget.InvisibleButton;
 import nl.streats1.cobbledollarsvillagersoverhaul.client.screen.widget.TextureOnlyButton;
+import nl.streats1.cobbledollarsvillagersoverhaul.integration.CobbleDollarsBankCompat;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.CobbleDollarsConfigHelper;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.RctTrainerAssociationCompat;
 import nl.streats1.cobbledollarsvillagersoverhaul.network.CobbleDollarsShopPayloads;
 import nl.streats1.cobbledollarsvillagersoverhaul.platform.PlatformNetwork;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * CobbleDollars-style shop screen: layout aligned with CobbleDollars (balance, category tabs, offer list, quantity, Buy/Sell).
@@ -67,6 +72,8 @@ public class CobbleDollarsShopScreen extends Screen {
     private static final int LIST_LEFT_OFFSET = 185;
     private static final int CLOSE_BUTTON_SIZE = 14;
     private static final int CLOSE_BUTTON_MARGIN = 6;
+    private static final int CYCLE_BUTTON_X = 58;
+    private static final int CYCLE_BUTTON_Y = 22;
     private static final int RIGHT_PANEL_HEADER_Y = 16;
     private static final float LIST_ICON_SCALE = 0.9f;
     private static final float LIST_TEXT_SCALE = 0.9f;
@@ -76,6 +83,9 @@ public class CobbleDollarsShopScreen extends Screen {
     private static final int LIST_ITEM_ICON_SIZE = Math.round(16 * LIST_ICON_SCALE);
     private static final int BALANCE_BG_X = 72;
     private static final int BALANCE_BG_Y = 181;
+    /** Bank button: left of GUI, text with "Bank" label. Three states: normal, hover, disabled. */
+    private static final int BANK_BUTTON_X = 8;
+    private static final int BANK_BUTTON_Y = BALANCE_BG_Y;
     private static final int BALANCE_TEXT_X_OFFSET = 6;
     private static final int BALANCE_TEXT_Y_OFFSET = 1;
     private static final int INVENTORY_LEFT_OFFSET = 3;
@@ -90,7 +100,6 @@ public class CobbleDollarsShopScreen extends Screen {
     private static final int LIST_PRICE_BADGE_OFFSET_Y = -3;
     private static final int PRICE_TEXT_OFFSET_Y = 4;
 
-    // GUI textures under this mod's namespace.
     private static final String GUI_TEXTURES_NAMESPACE = "cobbledollars_villagers_overhaul_rca";
 
     private static final ResourceLocation TEX_SHOP_BASE = rl(GUI_TEXTURES_NAMESPACE, "textures/gui/shop/shop_base.png");
@@ -99,6 +108,9 @@ public class CobbleDollarsShopScreen extends Screen {
     private static final ResourceLocation TEX_OFFER_BG = rl(GUI_TEXTURES_NAMESPACE, "textures/gui/shop/offer_background.png");
     private static final ResourceLocation TEX_OFFER_OUTLINE = rl(GUI_TEXTURES_NAMESPACE, "textures/gui/shop/offer_outline.png");
     private static final ResourceLocation TEX_BUY_BUTTON = rl(GUI_TEXTURES_NAMESPACE, "textures/gui/shop/buy_button.png");
+    private static final ResourceLocation TEX_BANK_BUTTON = rl(GUI_TEXTURES_NAMESPACE, "textures/gui/shop/bank_button.png");
+    private static final int TEX_BANK_BUTTON_W = 90;
+    private static final int TEX_BANK_BUTTON_H = 48;
     private static final ResourceLocation TEX_AMOUNT_UP = rl(GUI_TEXTURES_NAMESPACE, "textures/gui/shop/amount_arrow_up.png");
     private static final ResourceLocation TEX_AMOUNT_DOWN = rl(GUI_TEXTURES_NAMESPACE, "textures/gui/shop/amount_arrow_down.png");
     private static final int TEX_SHOP_BASE_W = 252;
@@ -150,12 +162,14 @@ public class CobbleDollarsShopScreen extends Screen {
     private int selectedTab = 0;
     private int selectedIndex = -1;
     private String selectedSeries = "";
-    private boolean showSeriesTooltip = false;
     private int scrollOffset = 0;
+    private boolean scrollbarDragging = false;
     private EditBox quantityBox;
     private Button actionButton;
     private Button amountMinusButton;
     private Button amountPlusButton;
+    private CycleTradesButton cycleTradesButton;
+    private BankButton bankButton;
     private int listVisibleRows = LIST_VISIBLE_ROWS;
     private int listItemHeight = LIST_ROW_HEIGHT;
 
@@ -168,9 +182,9 @@ public class CobbleDollarsShopScreen extends Screen {
         super(Component.translatable("gui.cobbledollars_villagers_overhaul_rca.shop"));
         this.villagerId = villagerId;
         this.balance = balance;
-        this.buyOffers = buyOffers != null ? buyOffers : List.of();
-        this.sellOffers = sellOffers != null ? sellOffers : List.of();
-        this.tradesOffers = tradesOffers != null ? tradesOffers : List.of();
+        this.buyOffers = buyOffers != null ? new ArrayList<>(buyOffers) : new ArrayList<>();
+        this.sellOffers = sellOffers != null ? new ArrayList<>(sellOffers) : new ArrayList<>();
+        this.tradesOffers = tradesOffers != null ? new ArrayList<>(tradesOffers) : new ArrayList<>();
         this.buyOffersFromConfig = buyOffersFromConfig;
         this.canCycleTrades = canCycleTrades;
         if (!this.buyOffers.isEmpty()) {
@@ -205,7 +219,45 @@ public class CobbleDollarsShopScreen extends Screen {
                                        boolean canCycleTrades) {
         Minecraft mc = Minecraft.getInstance();
         if (mc.level == null) return;
+        if (mc.screen instanceof CobbleDollarsShopScreen screen && screen.villagerId == villagerId) {
+            updateOffersFromServer(screen, villagerId, balance, buyOffers, sellOffers, tradesOffers, buyOffersFromConfig, canCycleTrades);
+            return;
+        }
         mc.setScreen(new CobbleDollarsShopScreen(villagerId, balance, buyOffers, sellOffers, tradesOffers, buyOffersFromConfig, canCycleTrades));
+    }
+
+    /**
+     * Updates an existing shop screen with new offer data (e.g. after cycling trades).
+     */
+    private static void updateOffersFromServer(CobbleDollarsShopScreen screen, int villagerId, long balance,
+                                               List<CobbleDollarsShopPayloads.ShopOfferEntry> buyOffers,
+                                               List<CobbleDollarsShopPayloads.ShopOfferEntry> sellOffers,
+                                               List<CobbleDollarsShopPayloads.ShopOfferEntry> tradesOffers,
+                                               boolean buyOffersFromConfig,
+                                               boolean canCycleTrades) {
+        screen.balance = Math.max(0, balance);
+        screen.balanceDelta = 0;
+        screen.balanceDeltaTicks = 0;
+        screen.buyOffers.clear();
+        screen.buyOffers.addAll(buyOffers != null ? buyOffers : List.of());
+        screen.sellOffers.clear();
+        screen.sellOffers.addAll(sellOffers != null ? sellOffers : List.of());
+        screen.tradesOffers.clear();
+        screen.tradesOffers.addAll(tradesOffers != null ? tradesOffers : List.of());
+        if (!screen.buyOffers.isEmpty()) {
+            screen.selectedTab = 0;
+            screen.selectedIndex = 0;
+        } else if (!screen.sellOffers.isEmpty()) {
+            screen.selectedTab = 1;
+            screen.selectedIndex = 0;
+        } else if (!screen.tradesOffers.isEmpty()) {
+            screen.selectedTab = 2;
+            screen.selectedIndex = 0;
+            screen.selectedSeries = screen.tradesOffers.get(0).seriesId();
+        } else {
+            screen.selectedIndex = -1;
+        }
+        screen.scrollOffset = 0;
     }
 
     public static void updateBalanceFromServer(int villagerId, long newBalance) {
@@ -242,6 +294,20 @@ public class CobbleDollarsShopScreen extends Screen {
         int closeX = left + WINDOW_WIDTH - CLOSE_BUTTON_SIZE - CLOSE_BUTTON_MARGIN;
         int closeY = top + 2;
         addRenderableWidget(new InvisibleButton(closeX, closeY, CLOSE_BUTTON_SIZE, CLOSE_BUTTON_SIZE, Component.literal("×"), b -> onClose()));
+
+        if (canCycleTrades && TradeCyclingModCompat.isTradeCyclingModLoaded()) {
+            cycleTradesButton = new CycleTradesButton(left + CYCLE_BUTTON_X, top + CYCLE_BUTTON_Y, b -> onCycleTrades());
+            addRenderableWidget(cycleTradesButton);
+        }
+        if (CobbleDollarsBankCompat.isBankAvailable()) {
+            bankButton = new BankButton(left + BANK_BUTTON_X, top + BANK_BUTTON_Y, b -> onBank());
+            addRenderableWidget(bankButton);
+        }
+    }
+
+    private void onBank() {
+        if (!CobbleDollarsBankCompat.isBankAvailable()) return;
+        CobbleDollarsBankCompat.tryOpenBankFromVillagerId(villagerId);
     }
 
     /** Called when cycle key (C) is pressed - same keybind as Trade Cycling / Easy Villagers. */
@@ -516,7 +582,6 @@ public class CobbleDollarsShopScreen extends Screen {
                     int maxStars = 5;
                     StringBuilder stars = new StringBuilder();
                     for (int star = 0; star < maxStars; star++) {
-                        float starThreshold = star + 0.5f; // 0.5, 1.5, 2.5, 3.5, 4.5
                         if (difficulty / 2f >= star + 1) {
                             stars.append("\u2605"); // ★ Full star
                         } else if (difficulty / 2f >= star + 0.5f) {
@@ -670,13 +735,36 @@ public class CobbleDollarsShopScreen extends Screen {
         renderTooltips(guiGraphics, mouseX, mouseY, left, top);
 
         super.render(guiGraphics, mouseX, mouseY, partialTick);
+
+        // Draw bank button last so nothing draws over it
+        if (bankButton != null) {
+            int bankX = bankButton.getX();
+            int bankY = bankButton.getY();
+            int bankStateIndex = !bankButton.active ? 2 : (bankButton.isHoveredOrFocused() ? 1 : 0);
+            int bankSrcY = bankStateIndex * (TEX_BANK_BUTTON_H / 3);
+            blitRegion(guiGraphics, TEX_BANK_BUTTON, bankX, bankY, 0, bankSrcY, BankButton.WIDTH, BankButton.HEIGHT, TEX_BANK_BUTTON_W, TEX_BANK_BUTTON_H);
+            if (!bankButton.active) {
+                guiGraphics.fill(bankX, bankY, bankX + BankButton.WIDTH, bankY + BankButton.HEIGHT, 0x55000000);
+            }
+            int textColor = bankButton.active ? 0xFFFFFFFF : 0xFFA0A0A0;
+            guiGraphics.drawCenteredString(font, bankButton.getMessage(), bankX + BankButton.WIDTH / 2, bankY + (BankButton.HEIGHT - 8) / 2, textColor);
+        }
     }
 
     private void renderTooltips(GuiGraphics guiGraphics, int mouseX, int mouseY, int left, int top) {
         if (minecraft == null) return;
+
+        if (cycleTradesButton != null && cycleTradesButton.isHoveredOrFocused()) {
+            cycleTradesButton.renderTooltipIfHovered(guiGraphics, mouseX, mouseY);
+            return;
+        }
+        if (bankButton != null && bankButton.isHoveredOrFocused()) {
+            bankButton.renderTooltipIfHovered(guiGraphics, mouseX, mouseY);
+            return;
+        }
         
         int listTop = top + LIST_TOP_OFFSET;
-        int rowL = left + LIST_LEFT_OFFSET;
+        int rowL = left + LIST_LEFT_OFFSET - 10;  // Match render loop for correct tooltip hit areas
         int rowR = rowL + LIST_WIDTH;
         var offers = currentOffers();
 
@@ -709,10 +797,11 @@ public class CobbleDollarsShopScreen extends Screen {
                     ItemStack costB = costBStackFrom(entry);
                     if (!costB.isEmpty()) {
                         int priceX = iconX + LIST_ITEM_ICON_SIZE + OFFER_ROW_GAP_AFTER_ICON;
-                        int priceY = y + (listItemHeight - font.lineHeight) / 2 + PRICE_TEXT_OFFSET_Y;
-                        int costBX = priceX + Math.round(font.width(formatPrice(priceForDisplay(entry))) * LIST_TEXT_SCALE);
-                        int costBY = y + (listItemHeight - LIST_ITEM_ICON_SIZE) / 2 + LIST_ICON_OFFSET_Y;
-                        int costBSize = Math.round(LIST_ITEM_ICON_SIZE * LIST_COSTB_SCALE);
+                        int priceW = Math.round(font.width(formatPrice(priceForDisplay(entry))) * LIST_TEXT_SCALE);
+                        int costBX = priceX + priceW + (selectedTab == 0 ? 2 : 4);  // Match render loop spacing
+                        int costBY = selectedTab == 2 ? iconY : y + (listItemHeight - LIST_ITEM_ICON_SIZE) / 2 + LIST_ICON_OFFSET_Y + 3;
+                        float costBScale = (selectedTab == 2) ? LIST_ICON_SCALE : LIST_COSTB_SCALE;
+                        int costBSize = Math.round(LIST_ITEM_ICON_SIZE * costBScale);
                         
                         if (mouseX >= costBX && mouseX < costBX + costBSize &&
                             mouseY >= costBY && mouseY < costBY + costBSize) {
@@ -907,6 +996,7 @@ public class CobbleDollarsShopScreen extends Screen {
     private long priceForDisplay(CobbleDollarsShopPayloads.ShopOfferEntry entry) {
         // directPrice: emeraldCount already holds CD value, do not multiply by rate
         if (entry.directPrice()) return entry.emeraldCount();
+        if (Config.FREE_MINIMUM_EMERALD_TRADE && entry.emeraldCount() == 1 && !isSellTab()) return 0;
         if (isSellTab()) return (long) entry.emeraldCount() * getRate();
         return (long) entry.emeraldCount() * getRate();
     }
@@ -956,9 +1046,26 @@ public class CobbleDollarsShopScreen extends Screen {
             }
         }
 
-        int rowL = left + LIST_LEFT_OFFSET;
-        int rowR = rowL + LIST_WIDTH + 4;
+        int rowL = left + LIST_LEFT_OFFSET - 10;
+        int rowR = rowL + LIST_WIDTH;
+        int scrollX = rowR;
         var offers = currentOffers();
+        int listHeight = listVisibleRows * listItemHeight;
+        int range = Math.max(0, offers.size() - listVisibleRows);
+        if (range > 0 && mouseX >= scrollX && mouseX < scrollX + SCROLLBAR_WIDTH) {
+            int thumbHeight = Math.max(20, (listVisibleRows * listHeight) / Math.max(1, offers.size()));
+            thumbHeight = Math.min(thumbHeight, listHeight - 4);
+            int thumbY = listTop + (scrollOffset * (listHeight - thumbHeight) / range);
+            if (mouseY >= listTop && mouseY < listTop + listHeight) {
+                if (mouseY >= thumbY && mouseY < thumbY + thumbHeight) {
+                    scrollbarDragging = true;
+                } else {
+                    scrollOffset = (int) Math.round((mouseY - listTop - thumbHeight / 2) * (double) range / (listHeight - thumbHeight));
+                    scrollOffset = Math.max(0, Math.min(range, scrollOffset));
+                }
+                return true;
+            }
+        }
         for (int i = 0; i < listVisibleRows; i++) {
             int idx = scrollOffset + i;
             if (idx >= offers.size()) break;
@@ -988,6 +1095,34 @@ public class CobbleDollarsShopScreen extends Screen {
             return true;
         }
         return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
+    }
+
+    @Override
+    public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
+        if (scrollbarDragging) {
+            int top = (guiHeight() - WINDOW_HEIGHT) / 2;
+            int listTop = top + LIST_TOP_OFFSET;
+            var offers = currentOffers();
+            int listHeight = listVisibleRows * listItemHeight;
+            int range = Math.max(0, offers.size() - listVisibleRows);
+            if (range > 0) {
+                int thumbHeight = Math.max(20, (listVisibleRows * listHeight) / Math.max(1, offers.size()));
+                thumbHeight = Math.min(thumbHeight, listHeight - 4);
+                scrollOffset = (int) Math.round((mouseY - listTop - thumbHeight / 2) * (double) range / (listHeight - thumbHeight));
+                scrollOffset = Math.max(0, Math.min(range, scrollOffset));
+            }
+            return true;
+        }
+        return super.mouseDragged(mouseX, mouseY, button, dragX, dragY);
+    }
+
+    @Override
+    public boolean mouseReleased(double mouseX, double mouseY, int button) {
+        if (scrollbarDragging && button == 0) {
+            scrollbarDragging = false;
+            return true;
+        }
+        return super.mouseReleased(mouseX, mouseY, button);
     }
 
     @Override

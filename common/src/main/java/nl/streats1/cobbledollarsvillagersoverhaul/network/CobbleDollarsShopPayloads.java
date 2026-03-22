@@ -7,11 +7,12 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import nl.streats1.cobbledollarsvillagersoverhaul.CobbleDollarsVillagersOverhaulRca;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+
+import nl.streats1.cobbledollarsvillagersoverhaul.CobbleDollarsVillagersOverhaulRca;
 
 @SuppressWarnings("null")
 public final class CobbleDollarsShopPayloads {
@@ -21,9 +22,6 @@ public final class CobbleDollarsShopPayloads {
     private static final StreamCodec<RegistryFriendlyByteBuf, Integer> VAR_INT = (StreamCodec) ByteBufCodecs.VAR_INT;
     @SuppressWarnings({"unchecked", "rawtypes"})
     private static final StreamCodec<RegistryFriendlyByteBuf, Long> VAR_LONG = (StreamCodec) ByteBufCodecs.VAR_LONG;
-    @SuppressWarnings({"unchecked", "rawtypes"})
-    private static final StreamCodec<RegistryFriendlyByteBuf, ResourceLocation> RESOURCE_LOCATION = (StreamCodec)
-            ByteBufCodecs.STRING_UTF8.map(ResourceLocation::parse, ResourceLocation::toString);
     @SuppressWarnings({"unchecked", "rawtypes"})
     private static final StreamCodec<RegistryFriendlyByteBuf, Boolean> BOOL = (StreamCodec) ByteBufCodecs.BOOL;
     @SuppressWarnings({"unchecked", "rawtypes"})
@@ -53,15 +51,12 @@ public final class CobbleDollarsShopPayloads {
                 new StreamCodec<>() {
                     @Override
                     public void encode(RegistryFriendlyByteBuf buf, ShopOfferEntry entry) {
-                        // Defensive null checks for encoding
                         ItemStack result = entry.result();
                         if (result == null || result.isEmpty()) result = new ItemStack(Items.BREAD);
 
                         ItemStack costB = entry.costB();
-                        // If costB is null or empty, use a placeholder item that we'll detect on decode
-                        // Using STONE with count 1 as a sentinel value for "no costB"
                         if (costB == null || costB.isEmpty() || costB.is(Items.AIR)) {
-                            costB = new ItemStack(Items.STONE);  // Sentinel value
+                            costB = new ItemStack(Items.STONE);
                         }
 
                         ITEM_STACK.encode(buf, result);
@@ -80,7 +75,6 @@ public final class CobbleDollarsShopPayloads {
                         ItemStack result = ITEM_STACK.decode(buf);
                         int emeraldCount = VAR_INT.decode(buf);
                         ItemStack costB = ITEM_STACK.decode(buf);
-                        // Check for sentinel value (STONE with count 1 means "no costB")
                         if (costB != null && costB.is(Items.STONE) && costB.getCount() == 1) {
                             costB = ItemStack.EMPTY;
                         }

@@ -2,18 +2,20 @@ package nl.streats1.cobbledollarsvillagersoverhaul.fabric;
 
 import com.terraformersmc.modmenu.api.ConfigScreenFactory;
 import com.terraformersmc.modmenu.api.ModMenuApi;
-import me.shedaniel.clothconfig2.api.ConfigBuilder;
-import me.shedaniel.clothconfig2.api.ConfigCategory;
-import me.shedaniel.clothconfig2.api.ConfigEntryBuilder;
+
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
-import nl.streats1.cobbledollarsvillagersoverhaul.CobbleDollarsVillagersOverhaulRca;
-import nl.streats1.cobbledollarsvillagersoverhaul.Config;
-import nl.streats1.cobbledollarsvillagersoverhaul.integration.CustomCurrencyConfig;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.stream.Collectors;
+
+import me.shedaniel.clothconfig2.api.ConfigBuilder;
+import me.shedaniel.clothconfig2.api.ConfigCategory;
+import me.shedaniel.clothconfig2.api.ConfigEntryBuilder;
+import nl.streats1.cobbledollarsvillagersoverhaul.Config;
+import nl.streats1.cobbledollarsvillagersoverhaul.integration.CustomCurrencyConfig;
 
 /**
  * Mod Menu integration: Config button in Mods list opens our in-game config screen.
@@ -45,6 +47,12 @@ public class ModMenuIntegration implements ModMenuApi {
                         Path file = dir.resolve("config.json");
                         Files.createDirectories(dir);
                         int emeraldDisplay = cdToStep(Config.COBBLEDOLLARS_EMERALD_RATE);
+                        String excludedNsJson = Config.EXCLUDED_VILLAGER_PROFESSION_NAMESPACES.stream()
+                                .map(s -> "\"" + s.replace("\\", "\\\\").replace("\"", "\\\"") + "\"")
+                                .collect(Collectors.joining(", "));
+                        String excludedIdsJson = Config.EXCLUDED_VILLAGER_PROFESSION_IDS.stream()
+                                .map(s -> "\"" + s.replace("\\", "\\\\").replace("\"", "\\\"") + "\"")
+                                .collect(Collectors.joining(", "));
                         String json = String.format("""
                                 {
                                   "cobbledollarsEmeraldRate": %d,
@@ -52,7 +60,9 @@ public class ModMenuIntegration implements ModMenuApi {
                                   "villagersAcceptCobbleDollars": %b,
                                   "useCobbleDollarsShopUi": %b,
                                   "useRctTradesOverhaul": %b,
-                                  "useDatapackTrades": %b
+                                  "useDatapackTrades": %b,
+                                  "excludedVillagerProfessionNamespaces": [%s],
+                                  "excludedVillagerProfessionIds": [%s]
                                 }
                                 """,
                                 emeraldDisplay,
@@ -60,12 +70,13 @@ public class ModMenuIntegration implements ModMenuApi {
                                 Config.VILLAGERS_ACCEPT_COBBLEDOLLARS,
                                 Config.USE_COBBLEDOLLARS_SHOP_UI,
                                 Config.USE_RCT_TRADES_OVERHAUL,
-                                Config.USE_DATAPACK_TRADES
+                                Config.USE_DATAPACK_TRADES,
+                                excludedNsJson,
+                                excludedIdsJson
                         );
                         Files.writeString(file, json);
                         ConfigFabric.loadConfig();
                     } catch (Exception e) {
-                        CobbleDollarsVillagersOverhaulRca.LOGGER.warn("Failed to save config: {}", e.getMessage());
                     }
                 });
 
@@ -94,6 +105,14 @@ public class ModMenuIntegration implements ModMenuApi {
                         Config.VILLAGERS_ACCEPT_COBBLEDOLLARS)
                 .setDefaultValue(true)
                 .setSaveConsumer(Config::setVillagersAcceptCobbleDollars)
+                .build());
+
+        general.addEntry(entryBuilder.startBooleanToggle(
+                        Component.translatable("config.cobbledollars_villagers_overhaul_rca.freeMinimumEmeraldTrade"),
+                        Config.FREE_MINIMUM_EMERALD_TRADE)
+                .setDefaultValue(false)
+                .setTooltip(Component.translatable("config.cobbledollars_villagers_overhaul_rca.freeMinimumEmeraldTrade.tooltip"))
+                .setSaveConsumer(Config::setFreeMinimumEmeraldTrade)
                 .build());
 
         general.addEntry(entryBuilder.startBooleanToggle(

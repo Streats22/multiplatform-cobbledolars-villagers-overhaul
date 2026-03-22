@@ -1,14 +1,18 @@
 package nl.streats1.cobbledollarsvillagersoverhaul.fabric;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+
 import net.fabricmc.loader.api.FabricLoader;
-import nl.streats1.cobbledollarsvillagersoverhaul.CobbleDollarsVillagersOverhaulRca;
-import nl.streats1.cobbledollarsvillagersoverhaul.Config;
-import nl.streats1.cobbledollarsvillagersoverhaul.integration.CustomCurrencyConfig;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+
+import nl.streats1.cobbledollarsvillagersoverhaul.CobbleDollarsVillagersOverhaulRca;
+import nl.streats1.cobbledollarsvillagersoverhaul.Config;
+import nl.streats1.cobbledollarsvillagersoverhaul.integration.CustomCurrencyConfig;
 
 /**
  * Fabric config loader. Creates config/cobbledollars_villagers_overhaul_rca/config.json
@@ -29,7 +33,6 @@ public final class ConfigFabric {
                 Files.createDirectories(dir);
                 String defaultJson = getDefaultConfigJson();
                 Files.writeString(file, defaultJson);
-                CobbleDollarsVillagersOverhaulRca.LOGGER.info("Created default config at {}", file);
             }
 
             String content = Files.readString(file);
@@ -44,6 +47,9 @@ public final class ConfigFabric {
             if (root.has("villagersAcceptCobbleDollars")) {
                 Config.setVillagersAcceptCobbleDollars(root.get("villagersAcceptCobbleDollars").getAsBoolean());
             }
+            if (root.has("freeMinimumEmeraldTrade")) {
+                Config.setFreeMinimumEmeraldTrade(root.get("freeMinimumEmeraldTrade").getAsBoolean());
+            }
             if (root.has("useCobbleDollarsShopUi")) {
                 Config.setUseCobbleDollarsShopUi(root.get("useCobbleDollarsShopUi").getAsBoolean());
             }
@@ -53,8 +59,23 @@ public final class ConfigFabric {
             if (root.has("useDatapackTrades")) {
                 Config.setUseDatapackTrades(root.get("useDatapackTrades").getAsBoolean());
             }
+            if (root.has("excludedVillagerProfessionNamespaces") && root.get("excludedVillagerProfessionNamespaces").isJsonArray()) {
+                JsonArray arr = root.getAsJsonArray("excludedVillagerProfessionNamespaces");
+                java.util.List<String> list = new java.util.ArrayList<>();
+                for (JsonElement el : arr) {
+                    if (el.isJsonPrimitive()) list.add(el.getAsString());
+                }
+                Config.setExcludedVillagerProfessionNamespaces(list);
+            }
+            if (root.has("excludedVillagerProfessionIds") && root.get("excludedVillagerProfessionIds").isJsonArray()) {
+                JsonArray arr = root.getAsJsonArray("excludedVillagerProfessionIds");
+                java.util.List<String> list = new java.util.ArrayList<>();
+                for (JsonElement el : arr) {
+                    if (el.isJsonPrimitive()) list.add(el.getAsString());
+                }
+                Config.setExcludedVillagerProfessionIds(list);
+            }
 
-            // Fabric uses custom_currency.json (CustomCurrencyConfig loads it, creates with defaults if missing)
             CustomCurrencyConfig.setConfigOverride(null);
             CustomCurrencyConfig.loadFromFile();
         } catch (Exception e) {
@@ -73,10 +94,15 @@ public final class ConfigFabric {
                   "cobbledollarsEmeraldRate": 3,
                   "syncCobbleDollarsBankRate": true,
                   "villagersAcceptCobbleDollars": true,
+                  "freeMinimumEmeraldTrade": false,
                   "useCobbleDollarsShopUi": true,
                   "useRctTradesOverhaul": true,
                   "useDatapackTrades": true,
+                  "excludedVillagerProfessionNamespaces": ["cobbledollars"],
+                  "excludedVillagerProfessionIds": ["casinorocket:casino_worker"],
                   "_comment_emeraldSteps": "1=250, 2=500, 3=750 CD per emerald (CobbleDollars scale)",
+                  "_comment_freeMinimum": "freeMinimumEmeraldTrade: when true, 1-emerald trades (after curing) are free - no CD charged.",
+                  "_comment_excluded": "excludedVillagerProfessionNamespaces: mod namespaces to exclude. excludedVillagerProfessionIds: specific professions (e.g. casinorocket:casino_worker). Excluded villagers use their native UI.",
                   "_comment": "Edit config/cobbledollars_villagers_overhaul_rca/custom_currency.json for Relic Coins, Poketokens, etc."
                 }
                 """;

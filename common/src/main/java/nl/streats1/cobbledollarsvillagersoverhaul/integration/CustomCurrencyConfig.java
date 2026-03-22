@@ -3,15 +3,16 @@ package nl.streats1.cobbledollarsvillagersoverhaul.integration;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.mojang.logging.LogUtils;
+
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
-import net.minecraft.world.item.Items;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+
 import org.slf4j.Logger;
 
 import java.lang.reflect.Type;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -84,9 +85,7 @@ public final class CustomCurrencyConfig {
             try {
                 Files.createDirectories(dir);
                 Files.writeString(file, getDefaultJson());
-                LOGGER.info("Created default custom_currency.json at {} with Relic Coins, Poketokens, etc.", file);
             } catch (Exception e) {
-                LOGGER.warn("Could not create default custom_currency.json: {}", e.getMessage());
             }
             if (configOverride == null) loadFromJson(getDefaultJson());
             loaded = true;
@@ -120,7 +119,6 @@ public final class CustomCurrencyConfig {
                         CURRENCY_VALUES.put(id.toLowerCase(), val);
                     }
                 }
-                LOGGER.info("Loaded {} custom currency items: {}", CURRENCY_VALUES.size(), CURRENCY_VALUES);
             }
         } catch (Exception e) {
             LOGGER.warn("Failed to parse custom currency JSON: {}", e.getMessage());
@@ -213,7 +211,6 @@ public final class CustomCurrencyConfig {
             String json = new Gson().toJson(list);
             Files.writeString(file, json);
         } catch (Exception ex) {
-            LOGGER.warn("Failed to save custom_currency.json: {}", ex.getMessage());
         }
     }
 
@@ -225,7 +222,6 @@ public final class CustomCurrencyConfig {
             Path file = dir.resolve(CONFIG_FILE);
             Files.writeString(file, entriesToJson(entries));
         } catch (Exception ex) {
-            LOGGER.warn("Failed to write custom_currency.json: {}", ex.getMessage());
         }
     }
 

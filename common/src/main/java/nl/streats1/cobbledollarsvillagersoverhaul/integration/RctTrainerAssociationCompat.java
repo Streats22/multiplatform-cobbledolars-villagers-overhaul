@@ -18,14 +18,12 @@ public final class RctTrainerAssociationCompat {
         if (entity == null) {
             return false;
         }
-        
-        // Check the entity type ID - this is the most reliable check
+
         ResourceLocation id = BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType());
         if (id != null && "rctmod".equals(id.getNamespace()) && "trainer_association".equals(id.getPath())) {
             return true;
         }
-        
-        // Fallback: check class name for TrainerAssociation
+
         String className = entity.getClass().getName();
         if (className.contains("TrainerAssociation")) {
             return true;
