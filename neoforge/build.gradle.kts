@@ -16,6 +16,7 @@ loom {
 
 repositories {
     mavenCentral()
+    maven("https://maven.architectury.dev/")
     maven("https://dl.cloudsmith.io/public/geckolib3/geckolib/maven/")
     maven("https://maven.impactdev.net/repository/development/")
     maven("https://hub.spigotmc.org/nexus/content/groups/public/")
@@ -33,7 +34,19 @@ dependencies {
     mappings(loom.officialMojangMappings())
     neoForge("net.neoforged:neoforge:${property("neoforge_version")}")
 
+    modImplementation("me.shedaniel.cloth:cloth-config-neoforge:${property("cloth_config_neoforge_version")}")
     modImplementation("com.cobblemon:neoforge:${property("cobblemon_version")}") { isTransitive = false }
+
+    // CobbleDollars: optional at runtime. For BankMixin compileOnly - put in libs/ or set -Pcobbledollars_jar=/path
+    val cobbledollarsPath = project.findProperty("cobbledollars_jar")?.toString()
+        ?: listOf(
+            project.rootDir.resolve("libs/CobbleDollars-neoforge-2.0.0+Beta-5.1+1.21.1"),
+            file(System.getProperty("user.home") + "/Downloads/Cobbledollars/CobbleDollars-neoforge-2.0.0+Beta-5.1+1.21.1")
+        ).firstOrNull { it.exists() }
+    if (cobbledollarsPath != null) {
+        compileOnly(files(cobbledollarsPath))
+    }
+
     //Needed for cobblemon
     forgeRuntimeLibrary("thedarkcolour:kotlinforforge-neoforge:${property("kotlin_for_forge_version")}") {
         exclude("net.neoforged.fancymodloader", "loader")

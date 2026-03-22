@@ -15,6 +15,7 @@ public final class FabricNetworking {
         PlatformNetwork.setServerToClientSender(ServerPlayNetworking::send);
 
         PayloadTypeRegistry.playC2S().register(CobbleDollarsShopPayloads.RequestShopData.TYPE, CobbleDollarsShopPayloads.RequestShopData.STREAM_CODEC);
+        PayloadTypeRegistry.playC2S().register(CobbleDollarsShopPayloads.CycleTrades.TYPE, CobbleDollarsShopPayloads.CycleTrades.STREAM_CODEC);
         PayloadTypeRegistry.playC2S().register(CobbleDollarsShopPayloads.BuyWithCobbleDollars.TYPE, CobbleDollarsShopPayloads.BuyWithCobbleDollars.STREAM_CODEC);
         PayloadTypeRegistry.playC2S().register(CobbleDollarsShopPayloads.SellForCobbleDollars.TYPE, CobbleDollarsShopPayloads.SellForCobbleDollars.STREAM_CODEC);
 
@@ -24,6 +25,12 @@ public final class FabricNetworking {
         ServerPlayNetworking.registerGlobalReceiver(CobbleDollarsShopPayloads.RequestShopData.TYPE, (payload, context) -> {
             if (context.player() instanceof ServerPlayer sp) {
                 context.server().execute(() -> CobbleDollarsShopPayloadHandlers.handleRequestShopData(sp, payload.villagerId()));
+            }
+        });
+
+        ServerPlayNetworking.registerGlobalReceiver(CobbleDollarsShopPayloads.CycleTrades.TYPE, (payload, context) -> {
+            if (context.player() instanceof ServerPlayer sp) {
+                context.server().execute(() -> CobbleDollarsShopPayloadHandlers.handleCycleTrades(sp, payload.villagerId()));
             }
         });
 

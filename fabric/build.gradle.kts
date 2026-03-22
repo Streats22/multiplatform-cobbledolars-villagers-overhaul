@@ -20,6 +20,11 @@ loom {
 
 val shadowCommon: Configuration by configurations.creating
 
+repositories {
+    maven("https://maven.architectury.dev/")
+    maven("https://maven.terraformersmc.com/releases/")
+}
+
 dependencies {
     minecraft("com.mojang:minecraft:${property("minecraft_version")}")
     mappings(loom.officialMojangMappings())
@@ -28,9 +33,30 @@ dependencies {
     modImplementation("net.fabricmc.fabric-api:fabric-api:${property("fabric_api_version")}")
     modImplementation(fabricApi.module("fabric-command-api-v2", property("fabric_api_version").toString()))
 
+    // In-game config screen (Mods menu → CobbleDollars Villagers Overhaul → Config)
+    modApi("me.shedaniel.cloth:cloth-config-fabric:${property("cloth_config_fabric_version")}")
+    // Mod Menu optional - when present, config button appears in Mods list
+    modCompileOnly("com.terraformersmc:modmenu:${property("modmenu_version")}")
+
     //needed for cobblemon
     modImplementation("net.fabricmc:fabric-language-kotlin:${property("fabric_kotlin")}")
     modImplementation("com.cobblemon:fabric:${property("cobblemon_version")}") { isTransitive = false }
+
+    // CobbleDollars: required at runtime (fabric.mod.json). For BankMixin compileOnly:
+    // - Put CobbleDollars JAR in libs/ or set -Pcobbledollars_jar=/path to use real mod
+    // - Otherwise cobbledollars-stub is used (allows build without CobbleDollars JAR)
+    val cobbledollarsJar = project.findProperty("cobbledollars_jar")?.toString()?.let { file(it).takeIf { f -> f.exists() } }
+        ?: listOf(
+            project.rootDir.resolve("libs/CobbleDollars-fabric-2.0.0+Beta-5.1+1.21.jar"),
+            project.rootDir.resolve("libs/CobbleDollars-fabric-2.0.0+Beta-5.1+1.21"),
+            file(System.getProperty("user.home") + "/Downloads/Cobbledollars/CobbleDollars-fabric-2.0.0+Beta-5.1+1.21.jar"),
+            file(System.getProperty("user.home") + "/Downloads/Cobbledollars/CobbleDollars-fabric-2.0.0+Beta-5.1+1.21")
+        ).firstOrNull { it.exists() }
+    if (cobbledollarsJar != null) {
+        compileOnly(files(cobbledollarsJar))
+    } else {
+        compileOnly(project(":cobbledollars-stub", configuration = "namedElements"))
+    }
 
     implementation(project(":common", configuration = "namedElements"))
     "developmentFabric"(project(":common", configuration = "namedElements"))

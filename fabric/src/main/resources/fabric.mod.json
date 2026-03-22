@@ -4,19 +4,14 @@
   "version": "${version}",
   "name": "CobbleDollars Villagers Overhaul",
   "description": "Integrates CobbleDollars with villager trading system",
-  "authors": [
-    "Streats1"
-  ],
+  "authors": ["Streats1"],
   "license": "All Rights Reserved",
   "icon": "icon.png",
   "environment": "*",
   "entrypoints": {
-    "main": [
-      "nl.streats1.cobbledollarsvillagersoverhaul.fabric.CobbleDollarsVillagersOverhaulFabric"
-    ],
-    "client": [
-      "nl.streats1.cobbledollarsvillagersoverhaul.fabric.CobbleDollarsVillagersOverhaulFabricClient"
-    ]
+    "main": ["nl.streats1.cobbledollarsvillagersoverhaul.fabric.CobbleDollarsVillagersOverhaulFabric"],
+    "client": ["nl.streats1.cobbledollarsvillagersoverhaul.fabric.CobbleDollarsVillagersOverhaulFabricClient"],
+    "modmenu": ["nl.streats1.cobbledollarsvillagersoverhaul.fabric.ModMenuIntegration"]
   },
   "depends": {
     "fabricloader": ">=0.15.0",
@@ -24,9 +19,14 @@
     "minecraft": "~1.21.1",
     "cobbledollars": "*",
     "cobblemon": ">=1.7.1 <1.8.0",
+    "cloth-config": "*",
     "java": ">=21"
   },
-  "mixins": [
-    "cobbledollars_villagers_overhaul_rca.mixins.json"
-  ]
+  "suggests": {
+    "modmenu": "*",
+    "casinorocket": "*",
+    "trade_cycling": "*",
+    "easy_villagers": "*"
+  },
+  "mixins": ["cobbledollars_villagers_overhaul_rca.mixins.json"]
 }

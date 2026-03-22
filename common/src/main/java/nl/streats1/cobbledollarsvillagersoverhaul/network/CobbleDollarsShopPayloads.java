@@ -7,11 +7,12 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import nl.streats1.cobbledollarsvillagersoverhaul.CobbleDollarsVillagersOverhaulRca;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+
+import nl.streats1.cobbledollarsvillagersoverhaul.CobbleDollarsVillagersOverhaulRca;
 
 @SuppressWarnings("null")
 public final class CobbleDollarsShopPayloads {
@@ -21,9 +22,6 @@ public final class CobbleDollarsShopPayloads {
     private static final StreamCodec<RegistryFriendlyByteBuf, Integer> VAR_INT = (StreamCodec) ByteBufCodecs.VAR_INT;
     @SuppressWarnings({"unchecked", "rawtypes"})
     private static final StreamCodec<RegistryFriendlyByteBuf, Long> VAR_LONG = (StreamCodec) ByteBufCodecs.VAR_LONG;
-    @SuppressWarnings({"unchecked", "rawtypes"})
-    private static final StreamCodec<RegistryFriendlyByteBuf, ResourceLocation> RESOURCE_LOCATION = (StreamCodec)
-            ByteBufCodecs.STRING_UTF8.map(ResourceLocation::parse, ResourceLocation::toString);
     @SuppressWarnings({"unchecked", "rawtypes"})
     private static final StreamCodec<RegistryFriendlyByteBuf, Boolean> BOOL = (StreamCodec) ByteBufCodecs.BOOL;
     @SuppressWarnings({"unchecked", "rawtypes"})
@@ -53,15 +51,12 @@ public final class CobbleDollarsShopPayloads {
                 new StreamCodec<>() {
                     @Override
                     public void encode(RegistryFriendlyByteBuf buf, ShopOfferEntry entry) {
-                        // Defensive null checks for encoding
                         ItemStack result = entry.result();
                         if (result == null || result.isEmpty()) result = new ItemStack(Items.BREAD);
 
                         ItemStack costB = entry.costB();
-                        // If costB is null or empty, use a placeholder item that we'll detect on decode
-                        // Using STONE with count 1 as a sentinel value for "no costB"
                         if (costB == null || costB.isEmpty() || costB.is(Items.AIR)) {
-                            costB = new ItemStack(Items.STONE);  // Sentinel value
+                            costB = new ItemStack(Items.STONE);
                         }
 
                         ITEM_STACK.encode(buf, result);
@@ -80,7 +75,6 @@ public final class CobbleDollarsShopPayloads {
                         ItemStack result = ITEM_STACK.decode(buf);
                         int emeraldCount = VAR_INT.decode(buf);
                         ItemStack costB = ITEM_STACK.decode(buf);
-                        // Check for sentinel value (STONE with count 1 means "no costB")
                         if (costB != null && costB.is(Items.STONE) && costB.getCount() == 1) {
                             costB = ItemStack.EMPTY;
                         }
@@ -142,31 +136,29 @@ public final class CobbleDollarsShopPayloads {
         }
     }
 
-    public record ShopData(int villagerId, long balance, List<ShopOfferEntry> buyOffers, List<ShopOfferEntry> sellOffers, List<ShopOfferEntry> tradesOffers, boolean buyOffersFromConfig) implements CustomPacketPayload {
+    public record ShopData(int villagerId, long balance, List<ShopOfferEntry> buyOffers, List<ShopOfferEntry> sellOffers, List<ShopOfferEntry> tradesOffers, boolean buyOffersFromConfig, boolean canCycleTrades) implements CustomPacketPayload {
         public static final CustomPacketPayload.Type<ShopData> TYPE =
                 new CustomPacketPayload.Type<>(Objects.requireNonNull(id("shop_data")));
         public static final StreamCodec<RegistryFriendlyByteBuf, ShopData> STREAM_CODEC =
-                Objects.requireNonNull(StreamCodec.composite(
-                        VAR_INT,
-                        ShopData::villagerId,
-                        VAR_LONG,
-                        ShopData::balance,
-                        OFFERS_LIST_CODEC,
-                        ShopData::buyOffers,
-                        OFFERS_LIST_CODEC,
-                        ShopData::sellOffers,
-                        OFFERS_LIST_CODEC,
-                        ShopData::tradesOffers,
-                        BOOL,
-                        ShopData::buyOffersFromConfig,
-                        (villagerId, balance, buyOffers, sellOffers, tradesOffers, buyOffersFromConfig) -> new ShopData(
-                                Objects.requireNonNull(villagerId),
-                                Objects.requireNonNull(balance),
-                                Objects.requireNonNull(buyOffers),
-                                Objects.requireNonNull(sellOffers),
-                                Objects.requireNonNull(tradesOffers),
-                                buyOffersFromConfig)
-                ));
+                StreamCodec.of(
+                        (buf, data) -> {
+                            VAR_INT.encode(buf, data.villagerId());
+                            VAR_LONG.encode(buf, data.balance());
+                            OFFERS_LIST_CODEC.encode(buf, data.buyOffers());
+                            OFFERS_LIST_CODEC.encode(buf, data.sellOffers());
+                            OFFERS_LIST_CODEC.encode(buf, data.tradesOffers());
+                            BOOL.encode(buf, data.buyOffersFromConfig());
+                            BOOL.encode(buf, data.canCycleTrades());
+                        },
+                        buf -> new ShopData(
+                                VAR_INT.decode(buf),
+                                VAR_LONG.decode(buf),
+                                OFFERS_LIST_CODEC.decode(buf),
+                                OFFERS_LIST_CODEC.decode(buf),
+                                OFFERS_LIST_CODEC.decode(buf),
+                                BOOL.decode(buf),
+                                BOOL.decode(buf))
+                );
 
         @Override
         public Type<? extends CustomPacketPayload> type() {
@@ -218,6 +210,22 @@ public final class CobbleDollarsShopPayloads {
                                 fromConfigShop,
                                 Objects.requireNonNull(tab),
                                 selectedSeries != null ? selectedSeries : "")
+                ));
+
+        @Override
+        public Type<? extends CustomPacketPayload> type() {
+            return TYPE;
+        }
+    }
+
+    public record CycleTrades(int villagerId) implements CustomPacketPayload {
+        public static final CustomPacketPayload.Type<CycleTrades> TYPE =
+                new CustomPacketPayload.Type<>(Objects.requireNonNull(id("cycle_trades")));
+        public static final StreamCodec<RegistryFriendlyByteBuf, CycleTrades> STREAM_CODEC =
+                Objects.requireNonNull(StreamCodec.composite(
+                        VAR_INT,
+                        CycleTrades::villagerId,
+                        CycleTrades::new
                 ));
 
         @Override
