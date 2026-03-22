@@ -27,10 +27,9 @@ public class CobbleDollarsVillagersOverhaulFabric implements ModInitializer {
     }
 
     /**
-     * Villager shop open: client sends {@link CobbleDollarsShopPayloads.RequestShopData}; server must also
-     * return SUCCESS here so vanilla does not open {@code MerchantMenu} in parallel (avoids flicker /
-     * instant close after other CobbleDollars UIs like CobbleMerchant). NeoForge already cancels via
-     * {@code PlayerInteractEvent}; Fabric previously only handled the logical client.
+     * Client returns {@link InteractionResult#FAIL} after sending {@code RequestShopData} so the vanilla
+     * use-entity packet is not also sent (SUCCESS would duplicate server handling and race merchant vs shop UI).
+     * Server still returns SUCCESS when a vanilla interaction packet is processed, to cancel {@code MerchantMenu}.
      */
     private void registerEvents() {
         UseEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
@@ -38,7 +37,7 @@ public class CobbleDollarsVillagersOverhaulFabric implements ModInitializer {
                 boolean handled = mod.onEntityInteract(entity, true, player.isShiftKeyDown(), () -> {});
                 if (!handled) return InteractionResult.PASS;
                 PlatformNetwork.sendToServer(new CobbleDollarsShopPayloads.RequestShopData(entity.getId()));
-                return InteractionResult.SUCCESS;
+                return InteractionResult.FAIL;
             }
             boolean handledServer = mod.onEntityInteract(entity, false, player.isShiftKeyDown(), () -> {});
             if (!handledServer) return InteractionResult.PASS;
