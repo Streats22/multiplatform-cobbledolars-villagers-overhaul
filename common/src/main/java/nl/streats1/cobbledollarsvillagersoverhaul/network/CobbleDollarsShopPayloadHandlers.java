@@ -22,7 +22,6 @@ import org.slf4j.Logger;
 
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
-import java.lang.invoke.MethodType;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -711,6 +710,7 @@ public final class CobbleDollarsShopPayloadHandlers {
                 if (Config.USE_DATAPACK_TRADES) {
                     buildDatapackOffers(allOffers, buyOffers, sellOffers);
                 }
+                buildItemForItemTrades(allOffers, tradesOffers);
             } finally {
                 villager.setTradingPlayer(null);
             }
@@ -821,6 +821,7 @@ public final class CobbleDollarsShopPayloadHandlers {
             if (Config.USE_DATAPACK_TRADES) {
                 buildDatapackOffers(allOffers, buyOffers, sellOffers);
             }
+            buildItemForItemTrades(allOffers, tradesOffers);
         } else {
             LOGGER.warn("[shop] handleRequestShopData: unsupported entity type {} id {} — no ShopData sent",
                     entity.getType().getDescriptionId(), villagerId);
@@ -1078,6 +1079,48 @@ public final class CobbleDollarsShopPayloadHandlers {
             }
         }
         return buyOffers;
+    }
+
+    /**
+     * Returns single-input item-for-item trades (no CobbleDollars/emerald pricing path) for
+     * the Trades tab.
+     */
+    private static List<MerchantOffer> getItemForItemTradesForVillager(List<MerchantOffer> allOffers) {
+        List<MerchantOffer> tradeOffers = new ArrayList<>();
+        for (MerchantOffer o : allOffers) {
+            if (o == null) continue;
+            ItemStack costA = o.getCostA();
+            ItemStack costB = o.getCostB();
+            ItemStack result = o.getResult();
+            if (costA == null || result == null || costA.isEmpty() || result.isEmpty()) continue;
+            if (costB != null && !costB.isEmpty()) continue;
+            if (costA.is(Items.EMERALD) || result.is(Items.EMERALD)) continue;
+            if (CustomCurrencyConfig.isCurrencyItem(costA) || CustomCurrencyConfig.isCurrencyItem(result)) continue;
+            // If this trade can be converted to CobbleDollars pricing, keep it in Buy tab behavior.
+            if (Config.USE_DATAPACK_TRADES && DatapackItemPricing.getPrice(costA) > 0) continue;
+            tradeOffers.add(o);
+        }
+        return tradeOffers;
+    }
+
+    private static void buildItemForItemTrades(List<MerchantOffer> allOffers,
+                                               List<CobbleDollarsShopPayloads.ShopOfferEntry> tradesOut) {
+        for (MerchantOffer o : getItemForItemTradesForVillager(allOffers)) {
+            ItemStack safeResult = o.getResult().copy();
+            ItemStack safeCostA = o.getCostA().copy();
+            if (safeResult.isEmpty() || safeCostA.isEmpty()) continue;
+            tradesOut.add(new CobbleDollarsShopPayloads.ShopOfferEntry(
+                    safeResult,
+                    0,
+                    safeCostA,
+                    false,
+                    "",
+                    "",
+                    "",
+                    0,
+                    0
+            ));
+        }
     }
 
     private static void buildOfferLists(List<MerchantOffer> allOffers,
@@ -1433,6 +1476,10 @@ public final class CobbleDollarsShopPayloadHandlers {
 
             if (offerIndex < 0 || offerIndex >= filteredOffers.size()) return;
             offer = filteredOffers.get(offerIndex);
+        } else if (tab == 2) {
+            List<MerchantOffer> tradeOffersList = getItemForItemTradesForVillager(allOffers);
+            if (offerIndex < 0 || offerIndex >= tradeOffersList.size()) return;
+            offer = tradeOffersList.get(offerIndex);
         } else {
             List<MerchantOffer> buyOffersList = getBuyOffersForVillager(allOffers);
             if (offerIndex < 0 || offerIndex >= buyOffersList.size()) return;
