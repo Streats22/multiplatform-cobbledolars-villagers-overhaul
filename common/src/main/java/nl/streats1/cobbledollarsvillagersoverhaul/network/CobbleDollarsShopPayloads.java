@@ -7,12 +7,11 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import nl.streats1.cobbledollarsvillagersoverhaul.CobbleDollarsVillagersOverhaulRca;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-
-import nl.streats1.cobbledollarsvillagersoverhaul.CobbleDollarsVillagersOverhaulRca;
 
 @SuppressWarnings("null")
 public final class CobbleDollarsShopPayloads {
@@ -33,8 +32,8 @@ public final class CobbleDollarsShopPayloads {
      * <p>
      * For RCT trainer association trades:
      * - {@code seriesId} is the series identifier (e.g. "bdsp", "radicalred") for server communication
-     * - {@code seriesName} is the translatable key for the title (e.g. "series.rctmod.bdsp.title")
-     * - {@code seriesTooltip} is the translatable key for the description (e.g. "series.rctmod.bdsp.description")
+     * - {@code seriesName} is the title: a translation key, or {@code literal:...} for plain text from datapack JSON
+     * - {@code seriesTooltip} is the description, same convention as {@code seriesName}
      * - {@code seriesDifficulty} is the difficulty rating (can be fractional for half stars, e.g. 4.5)
      * - {@code seriesCompleted} is the number of times the player has completed this series
      * <p>

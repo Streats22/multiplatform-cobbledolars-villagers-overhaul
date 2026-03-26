@@ -8,26 +8,23 @@ import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.world.entity.npc.Villager;
 import net.minecraft.world.entity.npc.WanderingTrader;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-
-import java.util.ArrayList;
-import java.util.List;
-
 import nl.streats1.cobbledollarsvillagersoverhaul.CobbleDollarsVillagersOverhaulRca;
 import nl.streats1.cobbledollarsvillagersoverhaul.Config;
 import nl.streats1.cobbledollarsvillagersoverhaul.client.screen.widget.BankButton;
 import nl.streats1.cobbledollarsvillagersoverhaul.client.screen.widget.CycleTradesButton;
-import nl.streats1.cobbledollarsvillagersoverhaul.integration.TradeCyclingModCompat;
 import nl.streats1.cobbledollarsvillagersoverhaul.client.screen.widget.InvisibleButton;
 import nl.streats1.cobbledollarsvillagersoverhaul.client.screen.widget.TextureOnlyButton;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.CobbleDollarsBankCompat;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.CobbleDollarsConfigHelper;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.RctTrainerAssociationCompat;
+import nl.streats1.cobbledollarsvillagersoverhaul.integration.TradeCyclingModCompat;
 import nl.streats1.cobbledollarsvillagersoverhaul.network.CobbleDollarsShopPayloads;
 import nl.streats1.cobbledollarsvillagersoverhaul.platform.PlatformNetwork;
 
@@ -188,8 +185,8 @@ public class CobbleDollarsShopScreen extends Screen {
     private Button amountPlusButton;
     private CycleTradesButton cycleTradesButton;
     private BankButton bankButton;
-    private int listVisibleRows = LIST_VISIBLE_ROWS;
-    private int listItemHeight = LIST_ROW_HEIGHT;
+    private final int listVisibleRows = LIST_VISIBLE_ROWS;
+    private final int listItemHeight = LIST_ROW_HEIGHT;
 
     public CobbleDollarsShopScreen(int villagerId, long balance,
                                    List<CobbleDollarsShopPayloads.ShopOfferEntry> buyOffers,
@@ -634,12 +631,12 @@ public class CobbleDollarsShopScreen extends Screen {
                     java.util.List<net.minecraft.network.chat.Component> tooltipComponents = new java.util.ArrayList<>();
 
                     // Title in yellow
-                    tooltipComponents.add(net.minecraft.network.chat.Component.translatable(entry.seriesName())
+                    tooltipComponents.add(seriesStoredTextToComponent(entry.seriesName())
                             .withStyle(net.minecraft.ChatFormatting.YELLOW));
 
                     // Description in light purple/italic
                     if (entry.seriesTooltip() != null && !entry.seriesTooltip().isEmpty()) {
-                        tooltipComponents.add(net.minecraft.network.chat.Component.translatable(entry.seriesTooltip())
+                        tooltipComponents.add(seriesStoredTextToComponent(entry.seriesTooltip())
                                 .withStyle(net.minecraft.ChatFormatting.LIGHT_PURPLE, net.minecraft.ChatFormatting.ITALIC));
                     }
 
@@ -671,7 +668,7 @@ public class CobbleDollarsShopScreen extends Screen {
                             stars.append("\u2606"); // ☆ Empty star
                         }
                     }
-                    String difficultyText = net.minecraft.network.chat.Component.translatable("gui.rctmod.trainer_association.difficulty").getString() + ": " + stars.toString();
+                    String difficultyText = net.minecraft.network.chat.Component.translatable("gui.rctmod.trainer_association.difficulty").getString() + ": " + stars;
                     tooltipComponents.add(net.minecraft.network.chat.Component.literal(difficultyText)
                             .withStyle(net.minecraft.ChatFormatting.GOLD));
 
@@ -906,10 +903,10 @@ public class CobbleDollarsShopScreen extends Screen {
                             if (isTradesTab() && entry.seriesName() != null && !entry.seriesName().isEmpty()) {
                                 List<FormattedCharSequence> tooltipLines = new ArrayList<>();
                                 // Title in yellow
-                                tooltipLines.add(net.minecraft.network.chat.Component.translatable(entry.seriesName()).withStyle(net.minecraft.ChatFormatting.YELLOW).getVisualOrderText());
+                                tooltipLines.add(seriesStoredTextToComponent(entry.seriesName()).withStyle(net.minecraft.ChatFormatting.YELLOW).getVisualOrderText());
                                 // Description in light purple italic
                                 if (entry.seriesTooltip() != null && !entry.seriesTooltip().isEmpty()) {
-                                    tooltipLines.add(net.minecraft.network.chat.Component.translatable(entry.seriesTooltip()).withStyle(net.minecraft.ChatFormatting.LIGHT_PURPLE, net.minecraft.ChatFormatting.ITALIC).getVisualOrderText());
+                                    tooltipLines.add(seriesStoredTextToComponent(entry.seriesTooltip()).withStyle(net.minecraft.ChatFormatting.LIGHT_PURPLE, net.minecraft.ChatFormatting.ITALIC).getVisualOrderText());
                                 }
                                 // Empty line
                                 tooltipLines.add(net.minecraft.network.chat.Component.literal("").getVisualOrderText());
@@ -991,6 +988,19 @@ public class CobbleDollarsShopScreen extends Screen {
                 guiGraphics.renderItemDecorations(font, stack, sx + itemInset, sy + itemInset);
             }
         }
+    }
+
+    /**
+     * Server sends a translation key or {@code literal:...} for datapack-defined text.
+     */
+    private static MutableComponent seriesStoredTextToComponent(String stored) {
+        if (stored == null || stored.isEmpty()) {
+            return Component.literal("");
+        }
+        if (stored.startsWith("literal:")) {
+            return Component.literal(stored.substring("literal:".length()));
+        }
+        return Component.translatable(stored);
     }
 
     private static ItemStack resultStackFrom(CobbleDollarsShopPayloads.ShopOfferEntry entry) {

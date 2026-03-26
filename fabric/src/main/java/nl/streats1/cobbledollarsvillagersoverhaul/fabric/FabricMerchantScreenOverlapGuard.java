@@ -5,7 +5,6 @@ import net.minecraft.client.gui.screens.PauseScreen;
 import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.client.gui.screens.inventory.MerchantScreen;
 import net.minecraft.world.inventory.MerchantMenu;
-
 import nl.streats1.cobbledollarsvillagersoverhaul.CobbleDollarsVillagersOverhaulRca;
 import nl.streats1.cobbledollarsvillagersoverhaul.client.screen.CobbleDollarsShopScreen;
 import nl.streats1.cobbledollarsvillagersoverhaul.network.CobbleDollarsShopPayloads;
@@ -19,6 +18,10 @@ public final class FabricMerchantScreenOverlapGuard {
 
     private static final int WINDOW_TICKS = 45;
     private static final int MAX_REOPEN = 16;
+    /**
+     * Wait this many END ticks after ShopData before merchant/null recovery (avoids double-open flicker).
+     */
+    private static final int RECOVERY_START_TICK = 2;
 
     private static int ticksRemaining;
     private static int ticksSinceArm;
@@ -37,7 +40,7 @@ public final class FabricMerchantScreenOverlapGuard {
         ticksSinceArm = 0;
         reopenAttempts = 0;
         earlyNullRecoveryAttempts = 0;
-        CobbleDollarsVillagersOverhaulRca.LOGGER.info(
+        CobbleDollarsVillagersOverhaulRca.LOGGER.debug(
                 "[shop] Fabric guard: armed villagerId={} (overlap recovery, {} tick window)",
                 expectedEntityId, WINDOW_TICKS);
     }
@@ -76,7 +79,7 @@ public final class FabricMerchantScreenOverlapGuard {
                         "[shop] Fabric guard: deferred-recheck skipped (level null)");
                 return;
             }
-            if (mc.screen instanceof CobbleDollarsShopScreen s && s.shopTargetEntityId() == expectedEntityId) {
+            if (alreadyShowingOurShop(mc)) {
                 CobbleDollarsVillagersOverhaulRca.LOGGER.debug(
                         "[shop] Fabric guard: deferred-recheck ok (shop already open villagerId={})",
                         expectedEntityId);
@@ -105,10 +108,11 @@ public final class FabricMerchantScreenOverlapGuard {
             ticksRemaining--;
         }
 
+        if (alreadyShowingOurShop(mc)) {
+            return;
+        }
+
         if (mc.screen instanceof CobbleDollarsShopScreen shop) {
-            if (shop.shopTargetEntityId() == expectedEntityId) {
-                return;
-            }
             CobbleDollarsVillagersOverhaulRca.LOGGER.debug(
                     "[shop] Fabric guard: tick armed but open shop is other villager (open={} expected={})",
                     shop.shopTargetEntityId(), expectedEntityId);
@@ -131,9 +135,9 @@ public final class FabricMerchantScreenOverlapGuard {
             return;
         }
 
-        // Instant close: no GUI at all (first ~2 ticks only — normal gameplay is screen==null too).
+        // No GUI: recover only after a short delay so we do not stack reopens on the same frame as the first open.
         if (mc.screen == null && mc.player != null && mc.level != null
-                && ticksSinceArm <= 2 && earlyNullRecoveryAttempts < 4) {
+                && ticksSinceArm >= RECOVERY_START_TICK && ticksSinceArm <= 5 && earlyNullRecoveryAttempts < 4) {
             earlyNullRecoveryAttempts++;
             CobbleDollarsVillagersOverhaulRca.LOGGER.debug(
                     "[shop] Fabric guard: early-null recovery ticksSinceArm={} attempt={}/4 ticksRemaining={}",
@@ -143,7 +147,9 @@ public final class FabricMerchantScreenOverlapGuard {
             return;
         }
 
-        if (mc.screen instanceof MerchantScreen merchantScreen && shouldReopenOverMerchant(merchantScreen)) {
+        if (ticksSinceArm >= RECOVERY_START_TICK
+                && mc.screen instanceof MerchantScreen merchantScreen
+                && shouldReopenOverMerchant(merchantScreen)) {
             var menu = merchantScreen.getMenu();
             CobbleDollarsVillagersOverhaulRca.LOGGER.debug(
                     "[shop] Fabric guard: merchant screen during armed window (menu={}), reopening ticksSinceArm={}",
@@ -165,6 +171,10 @@ public final class FabricMerchantScreenOverlapGuard {
         return true;
     }
 
+    private static boolean alreadyShowingOurShop(Minecraft mc) {
+        return mc.screen instanceof CobbleDollarsShopScreen s && s.shopTargetEntityId() == expectedEntityId;
+    }
+
     private static void reopenFromCache(Minecraft mc, String reason) {
         CobbleDollarsShopPayloads.ShopData p = cachedPayload;
         if (p == null || mc.level == null) {
@@ -173,9 +183,15 @@ public final class FabricMerchantScreenOverlapGuard {
                     reason, p == null, mc.level == null);
             return;
         }
+        if (mc.screen instanceof CobbleDollarsShopScreen s && s.shopTargetEntityId() == p.villagerId()) {
+            CobbleDollarsVillagersOverhaulRca.LOGGER.debug(
+                    "[shop] Fabric guard: reopenFromCache skipped ({}) — shop already open for villagerId={}",
+                    reason, p.villagerId());
+            return;
+        }
         String screenBefore = mc.screen == null ? "null" : mc.screen.getClass().getSimpleName();
         reopenAttempts++;
-        CobbleDollarsVillagersOverhaulRca.LOGGER.info(
+        CobbleDollarsVillagersOverhaulRca.LOGGER.debug(
                 "[shop] Fabric guard: reopen CobbleDollars shop ({}) attempt {}/{} villagerId={} screenBefore={}",
                 reason, reopenAttempts, MAX_REOPEN, p.villagerId(), screenBefore);
         CobbleDollarsShopScreen.openFromPayload(

@@ -3,7 +3,6 @@ package nl.streats1.cobbledollarsvillagersoverhaul.fabric;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.server.level.ServerPlayer;
-
 import nl.streats1.cobbledollarsvillagersoverhaul.CobbleDollarsVillagersOverhaulRca;
 import nl.streats1.cobbledollarsvillagersoverhaul.network.CobbleDollarsShopPayloadHandlers;
 import nl.streats1.cobbledollarsvillagersoverhaul.network.CobbleDollarsShopPayloads;
@@ -25,6 +24,7 @@ public final class FabricNetworking {
         PayloadTypeRegistry.playS2C().register(CobbleDollarsShopPayloads.ShopData.TYPE, CobbleDollarsShopPayloads.ShopData.STREAM_CODEC);
         PayloadTypeRegistry.playS2C().register(CobbleDollarsShopPayloads.BalanceUpdate.TYPE, CobbleDollarsShopPayloads.BalanceUpdate.STREAM_CODEC);
         PayloadTypeRegistry.playS2C().register(CobbleDollarsShopPayloads.ServerShopConfigSync.TYPE, CobbleDollarsShopPayloads.ServerShopConfigSync.STREAM_CODEC);
+        PayloadTypeRegistry.playS2C().register(CobbleDollarsShopPayloads.AssignModeUpdate.TYPE, CobbleDollarsShopPayloads.AssignModeUpdate.STREAM_CODEC);
 
         ServerPlayNetworking.registerGlobalReceiver(CobbleDollarsShopPayloads.RequestShopData.TYPE, (payload, context) -> {
             if (!(context.player() instanceof ServerPlayer sp)) {

@@ -1,7 +1,6 @@
 package nl.streats1.cobbledollarsvillagersoverhaul.network;
 
 import com.mojang.logging.LogUtils;
-
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
@@ -17,17 +16,11 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.trading.Merchant;
 import net.minecraft.world.item.trading.MerchantOffer;
-import nl.streats1.cobbledollarsvillagersoverhaul.Config;
-import nl.streats1.cobbledollarsvillagersoverhaul.integration.CobbleDollarsConfigHelper;
-import nl.streats1.cobbledollarsvillagersoverhaul.integration.CobbleDollarsIntegration;
-import nl.streats1.cobbledollarsvillagersoverhaul.integration.CustomCurrencyConfig;
-import nl.streats1.cobbledollarsvillagersoverhaul.integration.DatapackItemPricing;
-import nl.streats1.cobbledollarsvillagersoverhaul.integration.TradeCyclingCompat;
-import nl.streats1.cobbledollarsvillagersoverhaul.integration.RctTrainerAssociationCompat;
-import nl.streats1.cobbledollarsvillagersoverhaul.integration.VillagerShopConfig;
-import nl.streats1.cobbledollarsvillagersoverhaul.platform.PlatformNetwork;
 import nl.streats1.cobbledollarsvillagersoverhaul.AssignModeTracker;
+import nl.streats1.cobbledollarsvillagersoverhaul.Config;
 import nl.streats1.cobbledollarsvillagersoverhaul.VirtualShopIds;
+import nl.streats1.cobbledollarsvillagersoverhaul.integration.*;
+import nl.streats1.cobbledollarsvillagersoverhaul.platform.PlatformNetwork;
 import org.slf4j.Logger;
 
 import java.lang.invoke.MethodHandle;
@@ -35,10 +28,6 @@ import java.lang.invoke.MethodHandles;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-
-import nl.streats1.cobbledollarsvillagersoverhaul.Config;
-import nl.streats1.cobbledollarsvillagersoverhaul.integration.*;
-import nl.streats1.cobbledollarsvillagersoverhaul.platform.PlatformNetwork;
 
 public final class CobbleDollarsShopPayloadHandlers {
     private static final Logger LOGGER = LogUtils.getLogger();
@@ -156,8 +145,7 @@ public final class CobbleDollarsShopPayloadHandlers {
                         var getAvailableSeriesMethod = trainerPlayerDataClass.getMethod("getAvailableSeries");
                         var availableSeriesObj = getAvailableSeriesMethod.invoke(trainerPlayerData);
 
-                        if (availableSeriesObj instanceof List) {
-                            var availableSeriesList = (List<?>) availableSeriesObj;
+                        if (availableSeriesObj instanceof List<?> availableSeriesList) {
 
                             var playableSeries = availableSeriesList.stream()
                                     .map(Object::toString)
@@ -276,8 +264,8 @@ public final class CobbleDollarsShopPayloadHandlers {
                         for (Object seriesObj : iterable) {
                             String seriesId = getSeriesId(seriesObj);
                             if (!seriesId.isEmpty()) {
-                                String titleKey = "series.rctmod." + seriesId + ".title";
-                                String tooltipKey = "series.rctmod." + seriesId + ".description";
+                                String titleKey = defaultSeriesTitleKey(seriesId);
+                                String tooltipKey = defaultSeriesDescriptionKey(seriesId);
                                 int difficulty = getSeriesDifficulty(seriesObj);
                                 int completed = getSeriesCompletedCount(trainerPlayerData, seriesId);
                                 availableSeries.add(new SeriesDisplay(seriesId, titleKey, tooltipKey, difficulty, completed));
@@ -302,8 +290,8 @@ public final class CobbleDollarsShopPayloadHandlers {
                             for (Object seriesIdObj : (Iterable<?>) seriesIdsFallback) {
                                 String seriesId = seriesIdObj.toString();
                                 if (!seriesId.isEmpty()) {
-                                    String titleKey = "series.rctmod." + seriesId + ".title";
-                                    String tooltipKey = "series.rctmod." + seriesId + ".description";
+                                    String titleKey = defaultSeriesTitleKey(seriesId);
+                                    String tooltipKey = defaultSeriesDescriptionKey(seriesId);
                                     availableSeries.add(new SeriesDisplay(seriesId, titleKey, tooltipKey, 1, 0));
                                 }
                             }
@@ -315,6 +303,25 @@ public final class CobbleDollarsShopPayloadHandlers {
             }
         } catch (ClassNotFoundException e) {
         } catch (Exception e) {
+        }
+
+        if (!availableSeries.isEmpty()) {
+            List<SeriesDisplay> enriched = new ArrayList<>(availableSeries.size());
+            for (SeriesDisplay d : availableSeries) {
+                SeriesDataFromJson data = getSeriesDataFromData(d.id(), serverPlayer);
+                String title = d.title();
+                String tooltip = d.tooltip();
+                if (data.title != null && !data.title.isEmpty() && !isPlaceholderDatapackSeriesText(data.title)) {
+                    title = data.title;
+                }
+                if (data.description != null && !data.description.isEmpty()
+                        && !isPlaceholderDatapackSeriesText(data.description)) {
+                    tooltip = data.description;
+                }
+                int diff = data.resolveDifficulty(d.difficulty());
+                enriched.add(new SeriesDisplay(d.id(), title, tooltip, diff, d.completed()));
+            }
+            availableSeries = enriched;
         }
 
         if (availableSeries.isEmpty()) {
@@ -329,14 +336,17 @@ public final class CobbleDollarsShopPayloadHandlers {
                             String seriesId = filename.substring(7, filename.length() - 5);
 
                             SeriesDataFromJson data = getSeriesDataFromData(seriesId, serverPlayer);
-                            String displayTitle = (data.title != null && !data.title.isEmpty())
+                            String displayTitle = (data.title != null && !data.title.isEmpty()
+                                    && !isPlaceholderDatapackSeriesText(data.title))
                                     ? data.title
-                                    : "series.rctmod." + seriesId + ".title";
-                            String displayTooltip = (data.description != null && !data.description.isEmpty())
+                                    : defaultSeriesTitleKey(seriesId);
+                            String displayTooltip = (data.description != null && !data.description.isEmpty()
+                                    && !isPlaceholderDatapackSeriesText(data.description))
                                     ? data.description
-                                    : "series.rctmod." + seriesId + ".description";
+                                    : defaultSeriesDescriptionKey(seriesId);
                             int completed = getSeriesCompletedFromData(seriesId, serverPlayer);
-                            availableSeries.add(new SeriesDisplay(seriesId, displayTitle, displayTooltip, data.difficulty, completed));
+                            int difficulty = data.resolveDifficulty(5);
+                            availableSeries.add(new SeriesDisplay(seriesId, displayTitle, displayTooltip, difficulty, completed));
                         }
                     }
                 }
@@ -504,19 +514,84 @@ public final class CobbleDollarsShopPayloadHandlers {
 
     /**
      * Result of reading series metadata from datapack JSON.
-     * When title/description are non-null, use them as display text (from datapack);
-     * otherwise use translation keys series.rctmod.<id>.title / .description.
+     * Title/description are stored for the client as either a translation key or
+     * a {@code literal:} prefixed string for plain datapack text.
+     *
+     * @param difficultyOverride {@code null} when JSON has no {@code difficulty} key — keep caller fallback.
      */
-    private static class SeriesDataFromJson {
-        final String title;
-        final String description;
-        final int difficulty;
+        private record SeriesDataFromJson(String title, String description, Integer difficultyOverride) {
 
-        SeriesDataFromJson(String title, String description, int difficulty) {
-            this.title = title;
-            this.description = description;
-            this.difficulty = difficulty;
+        int resolveDifficulty(int fallback) {
+                return difficultyOverride != null ? difficultyOverride : fallback;
+            }
         }
+
+    private static final String SERIES_LITERAL_PREFIX = "literal:";
+
+    /**
+     * RCT datapacks often use Minecraft-style text JSON: {@code {"literal":"..."}} or
+     * {@code {"translate":"key"}}. Plain JSON strings are treated as literal display text.
+     */
+    private static String parseSeriesTextFromJson(com.google.gson.JsonElement el) {
+        if (el == null || el.isJsonNull()) {
+            return null;
+        }
+        if (el.isJsonPrimitive() && el.getAsJsonPrimitive().isString()) {
+            return SERIES_LITERAL_PREFIX + el.getAsString();
+        }
+        if (el.isJsonObject()) {
+            var obj = el.getAsJsonObject();
+            if (obj.has("literal")) {
+                var lit = obj.get("literal");
+                if (lit != null && lit.isJsonPrimitive() && lit.getAsJsonPrimitive().isString()) {
+                    return SERIES_LITERAL_PREFIX + lit.getAsString();
+                }
+            }
+            if (obj.has("translate")) {
+                var tr = obj.get("translate");
+                if (tr != null && tr.isJsonPrimitive() && tr.getAsJsonPrimitive().isString()) {
+                    return tr.getAsString();
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Datapacks sometimes ship {@code literal:"WORK IN PROGRESS"} (or W.I.P, etc.) until proper lang exists.
+     * In that case keep the RCT translation key so packs like Cobbleverse still show e.g. {@code series.rctmod.bdsp.title}.
+     */
+    private static boolean isPlaceholderDatapackSeriesText(String stored) {
+        if (stored == null || stored.isEmpty() || !stored.startsWith(SERIES_LITERAL_PREFIX)) {
+            return false;
+        }
+        String plain = stored.substring(SERIES_LITERAL_PREFIX.length()).trim();
+        if (plain.isEmpty()) {
+            return true;
+        }
+        String n = plain.toUpperCase(java.util.Locale.ROOT).replaceAll("\\s+", " ");
+        if (n.contains("WORK IN PROGRESS")) {
+            return true;
+        }
+        String lettersOnly = n.replaceAll("[^A-Z]", "");
+        if (lettersOnly.equals("WIP")) {
+            return true;
+        }
+        if (lettersOnly.equals("WORKINPROGRESS")) {
+            return true;
+        }
+        return switch (n) {
+            case "TBD", "TODO", "PLACEHOLDER", "N/A", "NA", "COMING SOON", "NOT YET AVAILABLE", "TBA" -> true;
+            default -> n.contains("PLACEHOLDER") || n.contains("COMING SOON");
+        };
+    }
+
+    private static String defaultSeriesTitleKey(String seriesId) {
+        return "series.rctmod." + seriesId + ".title";
+    }
+
+    private static String defaultSeriesDescriptionKey(String seriesId) {
+        return "series.rctmod." + seriesId + ".description";
     }
 
     /**
@@ -534,16 +609,16 @@ public final class CobbleDollarsShopPayloadHandlers {
                     com.google.gson.JsonElement jsonElement = com.google.gson.JsonParser.parseReader(reader);
                     if (jsonElement != null && jsonElement.isJsonObject()) {
                         var json = jsonElement.getAsJsonObject();
-                        String title = json.has("title") ? json.get("title").getAsString() : null;
-                        String description = json.has("description") ? json.get("description").getAsString() : null;
-                        int difficulty = json.has("difficulty") ? json.get("difficulty").getAsInt() : 5;
-                        return new SeriesDataFromJson(title, description, difficulty);
+                        String title = json.has("title") ? parseSeriesTextFromJson(json.get("title")) : null;
+                        String description = json.has("description") ? parseSeriesTextFromJson(json.get("description")) : null;
+                        Integer difficultyOverride = json.has("difficulty") ? json.get("difficulty").getAsInt() : null;
+                        return new SeriesDataFromJson(title, description, difficultyOverride);
                     }
                 }
             }
         } catch (Exception e) {
         }
-        return new SeriesDataFromJson(null, null, 5);
+        return new SeriesDataFromJson(null, null, null);
     }
 
     /**
@@ -551,7 +626,7 @@ public final class CobbleDollarsShopPayloadHandlers {
      */
     @SuppressWarnings("unused")
     private static int getSeriesDifficultyFromData(String seriesId, ServerPlayer serverPlayer) {
-        return getSeriesDataFromData(seriesId, serverPlayer).difficulty;
+        return getSeriesDataFromData(seriesId, serverPlayer).resolveDifficulty(5);
     }
 
     /**
@@ -753,7 +828,7 @@ public final class CobbleDollarsShopPayloadHandlers {
 
         if (entity instanceof Villager v) {
             ResourceLocation profId = BuiltInRegistries.VILLAGER_PROFESSION.getKey(v.getVillagerData().getProfession());
-            if (profId != null && Config.isVillagerProfessionExcluded(profId)) {
+            if (Config.isVillagerProfessionExcluded(profId)) {
                 LOGGER.debug("[shop] handleRequestShopData: profession {} excluded — vanilla menu", profId);
                 if (entity instanceof MenuProvider menuProvider) {
                     serverPlayer.openMenu(menuProvider);
@@ -873,7 +948,7 @@ public final class CobbleDollarsShopPayloadHandlers {
             try {
                 var merchantOffers = ((net.minecraft.world.item.trading.Merchant) entity).getOffers();
                 if (merchantOffers instanceof List) {
-                    for (var offer : (List<MerchantOffer>) merchantOffers) {
+                    for (var offer : merchantOffers) {
                         if (offer != null && !rctaOffers.contains(offer)) {
                             rctaOffers.add(offer);
                         }
