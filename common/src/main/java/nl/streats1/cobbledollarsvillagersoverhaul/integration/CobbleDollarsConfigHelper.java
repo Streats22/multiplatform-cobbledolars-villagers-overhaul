@@ -20,6 +20,14 @@ import java.util.OptionalInt;
 public final class CobbleDollarsConfigHelper {
 
     private static final String COBBLEDOLLARS_CONFIG_SUBDIR = "cobbledollars";
+    private static Path configRootOverride = null;
+
+    /**
+     * Set config root (e.g. FabricLoader.getConfigDir()). Null = use default.
+     */
+    public static void setConfigRoot(Path path) {
+        configRootOverride = path;
+    }
     private static final String BANK_FILE = "bank.json";
     private static final String DEFAULT_SHOP_FILE = "default_shop.json";
     private static final String EMERALD_ITEM = "minecraft:emerald";
@@ -100,7 +108,7 @@ public final class CobbleDollarsConfigHelper {
                                 if (id == null) continue;
                                 var item = BuiltInRegistries.ITEM.get(id);
                                 if (item == Items.AIR) continue;
-                                out.add(new CobbleDollarsShopPayloads.ShopOfferEntry(new ItemStack(item, 1), price, empty, true, "", "", "", 0, 0));
+                                out.add(new CobbleDollarsShopPayloads.ShopOfferEntry(new ItemStack(item, 1), price, empty, true, "", "", "", 0, 0, catName != null ? catName : ""));
                             }
                         }
                     }
@@ -118,7 +126,7 @@ public final class CobbleDollarsConfigHelper {
                         if (id == null) continue;
                         var item = BuiltInRegistries.ITEM.get(id);
                         if (item == Items.AIR) continue;
-                        out.add(new CobbleDollarsShopPayloads.ShopOfferEntry(new ItemStack(item, 1), price, empty, true, "", "", "", 0, 0));
+                        out.add(new CobbleDollarsShopPayloads.ShopOfferEntry(new ItemStack(item, 1), price, empty, true, "", "", "", 0, 0, ""));
                     }
                 }
             }
@@ -146,6 +154,45 @@ public final class CobbleDollarsConfigHelper {
         return 0;
     }
 
+    /**
+     * Get bank sell offers from CobbleDollars bank.json.
+     * Each entry: player sells item for price (CobbleDollars).
+     * Format: { "bank": [ { "item": "id", "price": X }, ... ] }
+     * ShopOfferEntry for sell: result = item player sells, emeraldCount = CD they receive.
+     */
+    public static List<CobbleDollarsShopPayloads.ShopOfferEntry> getBankSellOffers() {
+        Path configDir = getConfigDirectory();
+        Path bankFile = configDir.resolve(COBBLEDOLLARS_CONFIG_SUBDIR).resolve(BANK_FILE);
+        if (!Files.isRegularFile(bankFile)) return List.of();
+        try {
+            String content = Files.readString(bankFile);
+            JsonObject root = JsonParser.parseString(content).getAsJsonObject();
+            List<CobbleDollarsShopPayloads.ShopOfferEntry> out = new ArrayList<>();
+            if (!root.has("bank")) return List.of();
+            JsonElement bankEl = root.get("bank");
+            if (!bankEl.isJsonArray()) return List.of();
+            JsonArray bank = bankEl.getAsJsonArray();
+            for (JsonElement entry : bank) {
+                if (!entry.isJsonObject()) continue;
+                JsonObject obj = entry.getAsJsonObject();
+                String itemId = obj.has("item") ? obj.get("item").getAsString() : null;
+                if (itemId == null || itemId.isEmpty()) continue;
+                int price = parsePrice(obj.get("price"));
+                if (price <= 0) continue;
+                ResourceLocation id = ResourceLocation.tryParse(itemId);
+                if (id == null) continue;
+                var item = BuiltInRegistries.ITEM.get(id);
+                if (item == null || item == Items.AIR) continue;
+                // Sell offer: result = item player gives, emeraldCount = CD they receive (directPrice=true)
+                out.add(new CobbleDollarsShopPayloads.ShopOfferEntry(
+                        new ItemStack(item, 1), price, ItemStack.EMPTY, true, "", "", "", 0, 0, ""));
+            }
+            return out;
+        } catch (Exception e) {
+            return List.of();
+        }
+    }
+
     public static int getEffectiveEmeraldRate() {
         if (Config.SYNC_COBBLEDOLLARS_BANK_RATE) {
             OptionalInt bank = getBankEmeraldPrice();
@@ -154,8 +201,11 @@ public final class CobbleDollarsConfigHelper {
         return Config.COBBLEDOLLARS_EMERALD_RATE;
     }
 
-    private static Path getConfigDirectory() {
-        // Platform-specific implementation will be provided
+    /**
+     * Config root (e.g. .minecraft/config). Used by CobbleDollars config files.
+     */
+    public static Path getConfigDirectory() {
+        if (configRootOverride != null) return configRootOverride;
         return Path.of("config").toAbsolutePath();
     }
 }

@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import nl.streats1.cobbledollarsvillagersoverhaul.Config;
+import nl.streats1.cobbledollarsvillagersoverhaul.integration.ItemPriceConfig;
 
 public class ConfigNeoForge {
     private static final ModConfigSpec.Builder BUILDER = new ModConfigSpec.Builder();
@@ -74,5 +75,6 @@ public class ConfigNeoForge {
         String customCurrency = CUSTOM_CURRENCY_ITEMS.get();
         nl.streats1.cobbledollarsvillagersoverhaul.integration.CustomCurrencyConfig.setConfigOverride(
                 customCurrency == null || customCurrency.isBlank() || "[]".equals(customCurrency.trim()) ? null : customCurrency);
+        ItemPriceConfig.loadAndApply();
     }
 }

@@ -11,6 +11,8 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 import nl.streats1.cobbledollarsvillagersoverhaul.CobbleDollarsVillagersOverhaulRca;
+import nl.streats1.cobbledollarsvillagersoverhaul.Config;
+import nl.streats1.cobbledollarsvillagersoverhaul.command.CvmCommand;
 import nl.streats1.cobbledollarsvillagersoverhaul.command.VillagerShopCommand;
 import nl.streats1.cobbledollarsvillagersoverhaul.network.CobbleDollarsShopPayloads;
 import nl.streats1.cobbledollarsvillagersoverhaul.platform.PlatformNetwork;
@@ -30,15 +32,19 @@ public class CobbleDollarsVillagersOverhaulFabric implements ModInitializer {
             this.atMs = atMs;
         }
     }
-    
+
     @Override
     public void onInitialize() {
         mod = new CobbleDollarsVillagersOverhaulRca();
         registerEvents();
 
-        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) ->
-                VillagerShopCommand.register(dispatcher));
-
+        // Register commands
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
+            VillagerShopCommand.register(dispatcher);
+            CvmCommand.register(dispatcher);
+        });
+        
+        // Register networking
         FabricNetworking.register();
         ConfigFabric.loadConfig();
     }
@@ -54,6 +60,16 @@ public class CobbleDollarsVillagersOverhaulFabric implements ModInitializer {
             if (hand != InteractionHand.MAIN_HAND) {
                 return InteractionResult.PASS;
             }
+            if (nl.streats1.cobbledollarsvillagersoverhaul.client.ClientAssignMode.isInMode()
+                    && player.isShiftKeyDown()
+                    && entity instanceof net.minecraft.world.entity.npc.Villager) {
+                PlatformNetwork.sendToServer(new CobbleDollarsShopPayloads.AssignVillager(entity.getId()));
+                return InteractionResult.SUCCESS;
+            }
+            boolean handled = mod.onEntityInteract(entity, true, player.isShiftKeyDown(), () -> {});
+            if (!handled) return InteractionResult.PASS;
+
+            PlatformNetwork.sendToServer(new CobbleDollarsShopPayloads.RequestShopData(entity.getId()));
 
             if (world.isClientSide) {
                 long now = System.currentTimeMillis();

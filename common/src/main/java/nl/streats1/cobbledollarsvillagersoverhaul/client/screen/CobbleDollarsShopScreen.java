@@ -31,6 +31,11 @@ import nl.streats1.cobbledollarsvillagersoverhaul.integration.RctTrainerAssociat
 import nl.streats1.cobbledollarsvillagersoverhaul.network.CobbleDollarsShopPayloads;
 import nl.streats1.cobbledollarsvillagersoverhaul.platform.PlatformNetwork;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
 /**
  * CobbleDollars-style shop screen: layout aligned with CobbleDollars (balance, category tabs, offer list, quantity, Buy/Sell).
  */
@@ -160,6 +165,18 @@ public class CobbleDollarsShopScreen extends Screen {
     private final List<CobbleDollarsShopPayloads.ShopOfferEntry> tradesOffers;
     private final boolean buyOffersFromConfig;
     private final boolean canCycleTrades;
+    /**
+     * Tab names (e.g. "Buy", "Sell", "Trades" or custom category names when buyOffersFromConfig).
+     */
+    private final List<String> tabNames;
+    /**
+     * Offers per tab.
+     */
+    private final List<List<CobbleDollarsShopPayloads.ShopOfferEntry>> tabOffers;
+    /**
+     * Number of buy category tabs (0 = single Buy, or N custom categories).
+     */
+    private final int buyTabCount;
     private int selectedTab = 0;
     private int selectedIndex = -1;
     private String selectedSeries = "";
@@ -188,28 +205,69 @@ public class CobbleDollarsShopScreen extends Screen {
         this.tradesOffers = tradesOffers != null ? new ArrayList<>(tradesOffers) : new ArrayList<>();
         this.buyOffersFromConfig = buyOffersFromConfig;
         this.canCycleTrades = canCycleTrades;
-        if (!this.buyOffers.isEmpty()) {
-            selectedTab = 0;
-            selectedIndex = 0;
-        } else if (!this.sellOffers.isEmpty()) {
-            selectedTab = 1;
-            selectedIndex = 0;
-        } else if (!this.tradesOffers.isEmpty()) {
-            selectedTab = 2;
-            selectedIndex = 0;
-            // Set the initial series from the first trade offer
-            if (selectedIndex >= 0 && !tradesOffers.isEmpty()) {
-                selectedSeries = tradesOffers.get(0).seriesId();
+
+        List<String> names = new ArrayList<>();
+        List<List<CobbleDollarsShopPayloads.ShopOfferEntry>> offers = new ArrayList<>();
+        int buyTabs = 0;
+        if (buyOffersFromConfig && !this.buyOffers.isEmpty()) {
+            Map<String, List<CobbleDollarsShopPayloads.ShopOfferEntry>> byCat = new LinkedHashMap<>();
+            for (CobbleDollarsShopPayloads.ShopOfferEntry e : this.buyOffers) {
+                String cat = (e.categoryName() != null && !e.categoryName().isEmpty()) ? e.categoryName() : "Buy";
+                byCat.computeIfAbsent(cat, k -> new ArrayList<>()).add(e);
+            }
+            for (Map.Entry<String, List<CobbleDollarsShopPayloads.ShopOfferEntry>> e : byCat.entrySet()) {
+                names.add(e.getKey());
+                offers.add(e.getValue());
+                buyTabs++;
+            }
+        } else if (!this.buyOffers.isEmpty()) {
+            names.add(Component.translatable("gui.cobbledollars_villagers_overhaul_rca.buy").getString());
+            offers.add(this.buyOffers);
+            buyTabs = 1;
+        }
+        names.add(Component.translatable("gui.cobbledollars_villagers_overhaul_rca.sell").getString());
+        offers.add(this.sellOffers);
+        names.add(Component.translatable("gui.cobbledollars_villagers_overhaul_rca.trades").getString());
+        offers.add(this.tradesOffers);
+        this.tabNames = List.copyOf(names);
+        this.tabOffers = List.copyOf(offers);
+        this.buyTabCount = buyTabs;
+
+        for (int t = 0; t < offers.size(); t++) {
+            if (!offers.get(t).isEmpty()) {
+                selectedTab = t;
+                selectedIndex = 0;
+                if (t == buyTabCount + 1 && !this.tradesOffers.isEmpty()) {
+                    selectedSeries = this.tradesOffers.get(0).seriesId();
+                }
+                break;
             }
         }
     }
 
     private List<CobbleDollarsShopPayloads.ShopOfferEntry> currentOffers() {
-        return selectedTab == 0 ? buyOffers : selectedTab == 1 ? sellOffers : tradesOffers;
+        if (selectedTab < 0 || selectedTab >= tabOffers.size()) return List.of();
+        return tabOffers.get(selectedTab);
     }
 
     private boolean isSellTab() {
-        return selectedTab == 1;
+        return selectedTab == buyTabCount;
+    }
+
+    private boolean isTradesTab() {
+        return selectedTab == buyTabCount + 1;
+    }
+
+    /**
+     * For buy tabs: global index in buyOffers for server. For sell/trades: same as selectedIndex.
+     */
+    private int serverOfferIndex() {
+        if (selectedTab < buyTabCount) {
+            int base = 0;
+            for (int t = 0; t < selectedTab; t++) base += tabOffers.get(t).size();
+            return base + selectedIndex;
+        }
+        return selectedIndex;
     }
 
     public static void openFromPayload(int villagerId, long balance,
@@ -317,6 +375,22 @@ public class CobbleDollarsShopScreen extends Screen {
     private void onBank() {
         if (!CobbleDollarsBankCompat.isBankAvailable()) return;
         CobbleDollarsBankCompat.tryOpenBankFromVillagerId(villagerId);
+
+        if (buyOffersFromConfig) {
+            int editW = 36;
+            int editX = closeX - editW - 4;
+            addRenderableWidget(new TextureOnlyButton(editX, closeY, editW, CLOSE_BUTTON_SIZE,
+                    Component.translatable("gui.cobbledollars_villagers_overhaul_rca.edit"), b -> openShopEditor()));
+        }
+    }
+
+    private void openShopEditor() {
+        if (minecraft == null) return;
+        Runnable onSave = () -> {
+            minecraft.setScreen(null);
+            PlatformNetwork.sendToServer(new CobbleDollarsShopPayloads.RequestShopData(villagerId));
+        };
+        minecraft.setScreen(new DefaultShopEditorScreen(this, null, onSave));
     }
 
     /** Called when cycle key (C) is pressed - same keybind as Trade Cycling / Easy Villagers. */
@@ -345,9 +419,12 @@ public class CobbleDollarsShopScreen extends Screen {
         } else {
             long total = (long) qty * price;
             if (balance < total || !hasRequiredBuyItems(entry, qty)) return;
-            // For trades tab (tab == 2), include the selected series
-            String seriesToSend = (selectedTab == 2) ? selectedSeries : "";
-            PlatformNetwork.sendToServer(new CobbleDollarsShopPayloads.BuyWithCobbleDollars(villagerId, selectedIndex, qty, buyOffersFromConfig, selectedTab, seriesToSend));
+            // For trades tab, include the selected series
+            String seriesToSend = isTradesTab() ? selectedSeries : "";
+            int serverIdx = selectedTab < buyTabCount ? serverOfferIndex() : selectedIndex;
+            // Server expects tab: 0=buy, 1=sell (handled elsewhere), 2=trades
+            int logicalTab = isTradesTab() ? 2 : 0;
+            PlatformNetwork.sendToServer(new CobbleDollarsShopPayloads.BuyWithCobbleDollars(villagerId, serverIdx, qty, buyOffersFromConfig, logicalTab, seriesToSend));
             applyBalanceDelta(-price * qty, 100);
         }
         if (quantityBox != null) quantityBox.setValue("1");
@@ -431,25 +508,16 @@ public class CobbleDollarsShopScreen extends Screen {
         int tabX = left + CATEGORY_LIST_X;
         int tabY = top + CATEGORY_LIST_Y;
         int tabGapY = 2;
-        int buyY = tabY;
-        int sellY = tabY + CATEGORY_ENTRY_H + tabGapY;
-        int tradesY = sellY + CATEGORY_ENTRY_H + tabGapY;
-        
-        blitFull(guiGraphics, TEX_CATEGORY_BG, tabX, buyY, TEX_CATEGORY_BG_W, TEX_CATEGORY_BG_H);
-        blitFull(guiGraphics, TEX_CATEGORY_BG, tabX, sellY, TEX_CATEGORY_BG_W, TEX_CATEGORY_BG_H);
-        blitFull(guiGraphics, TEX_CATEGORY_BG, tabX, tradesY, TEX_CATEGORY_BG_W, TEX_CATEGORY_BG_H);
-        
-        if (selectedTab == 0) {
-            blitStretched(guiGraphics, TEX_CATEGORY_OUTLINE, tabX + TAB_OUTLINE_OFFSET_X, buyY + TAB_OUTLINE_OFFSET_Y, TEX_CATEGORY_OUTLINE_W, TEX_CATEGORY_OUTLINE_H, TEX_CATEGORY_OUTLINE_W, TEX_CATEGORY_OUTLINE_H);
-        } else if (selectedTab == 1) {
-            blitStretched(guiGraphics, TEX_CATEGORY_OUTLINE, tabX + TAB_OUTLINE_OFFSET_X, sellY + TAB_OUTLINE_OFFSET_Y, TEX_CATEGORY_OUTLINE_W, TEX_CATEGORY_OUTLINE_H, TEX_CATEGORY_OUTLINE_W, TEX_CATEGORY_OUTLINE_H);
-        } else {
-            blitStretched(guiGraphics, TEX_CATEGORY_OUTLINE, tabX + TAB_OUTLINE_OFFSET_X, tradesY + TAB_OUTLINE_OFFSET_Y, TEX_CATEGORY_OUTLINE_W, TEX_CATEGORY_OUTLINE_H, TEX_CATEGORY_OUTLINE_W, TEX_CATEGORY_OUTLINE_H);
+        for (int t = 0; t < tabNames.size(); t++) {
+            int y = tabY + t * (CATEGORY_ENTRY_H + tabGapY);
+            blitFull(guiGraphics, TEX_CATEGORY_BG, tabX, y, TEX_CATEGORY_BG_W, TEX_CATEGORY_BG_H);
+            if (t == selectedTab) {
+                blitStretched(guiGraphics, TEX_CATEGORY_OUTLINE, tabX + TAB_OUTLINE_OFFSET_X, y + TAB_OUTLINE_OFFSET_Y, TEX_CATEGORY_OUTLINE_W, TEX_CATEGORY_OUTLINE_H, TEX_CATEGORY_OUTLINE_W, TEX_CATEGORY_OUTLINE_H);
+            }
+            String label = tabNames.get(t);
+            int textColor = t == selectedTab ? 0xFFE0E0E0 : 0xFFA0A0A0;
+            guiGraphics.drawString(font, Component.literal(label), tabX + 4, y + (CATEGORY_ENTRY_H - font.lineHeight) / 2, textColor, false);
         }
-        
-        guiGraphics.drawString(font, Component.translatable("gui.cobbledollars_villagers_overhaul_rca.buy"), tabX + 4, buyY + (CATEGORY_ENTRY_H - font.lineHeight) / 2, selectedTab == 0 ? 0xFFE0E0E0 : 0xFFA0A0A0, false);
-        guiGraphics.drawString(font, Component.translatable("gui.cobbledollars_villagers_overhaul_rca.sell"), tabX + 4, sellY + (CATEGORY_ENTRY_H - font.lineHeight) / 2, selectedTab == 1 ? 0xFFE0E0E0 : 0xFFA0A0A0, false);
-        guiGraphics.drawString(font, Component.translatable("gui.cobbledollars_villagers_overhaul_rca.trades"), tabX + 4, tradesY + (CATEGORY_ENTRY_H - font.lineHeight) / 2, selectedTab == 2 ? 0xFFE0E0E0 : 0xFFA0A0A0, false);
 
         Component professionLabel = getProfessionLabel();
         int headerLeft = left + 8;
@@ -535,7 +603,7 @@ public class CobbleDollarsShopScreen extends Screen {
             boolean hasCostB = !isSellTab() && entry.hasCostB();
             
             // Only show price for buy/sell tabs, not trades tab (trades are item-to-item)
-            if (selectedTab != 2) {
+            if (!isTradesTab()) {
                 int badgeX = priceX + LIST_PRICE_BADGE_OFFSET_X;
                 int badgeY = priceY + LIST_PRICE_BADGE_OFFSET_Y - (TEX_COBBLEDOLLARS_LOGO_H - font.lineHeight) / 2;
                 blitFull(guiGraphics, TEX_COBBLEDOLLARS_LOGO, badgeX, badgeY, TEX_COBBLEDOLLARS_LOGO_W, TEX_COBBLEDOLLARS_LOGO_H);
@@ -549,7 +617,7 @@ public class CobbleDollarsShopScreen extends Screen {
                 guiGraphics.pose().popPose();
             }
             // For trades tab, show tooltip on hover with series info
-            if (selectedTab == 2 && !entry.seriesName().isEmpty()) {
+            if (isTradesTab() && !entry.seriesName().isEmpty()) {
                 // Check if mouse is hovering over where the series would be displayed (use price area)
                 // Show tooltip on hover
                 if (mouseX >= priceX && mouseX <= priceX + 60 && mouseY >= priceY - font.lineHeight && mouseY <= priceY + font.lineHeight) {
@@ -615,17 +683,17 @@ public class CobbleDollarsShopScreen extends Screen {
                 ItemStack costB = costBStackFrom(entry);
                 if (!costB.isEmpty()) {
                     // Use same scale for both items on trades tab
-                    float costBScale = (selectedTab == 2) ? LIST_ICON_SCALE : LIST_COSTB_SCALE;
+                    float costBScale = isTradesTab() ? LIST_ICON_SCALE : LIST_COSTB_SCALE;
 
-                    int costBX = priceX + Math.round(font.width(priceStr) * LIST_TEXT_SCALE) + (selectedTab == 0 ? 2 : 4); // Less spacing for buy tab
-                    int costBY = selectedTab == 2 ? iconY : iconY + 3;
+                    int costBX = priceX + Math.round(font.width(priceStr) * LIST_TEXT_SCALE) + (selectedTab < buyTabCount ? 2 : 4); // Less spacing for buy tab
+                    int costBY = isTradesTab() ? iconY : iconY + 3;
                     guiGraphics.pose().pushPose();
                     float plusScale = hasCostB ? LIST_COSTB_PLUS_SCALE : LIST_TEXT_SCALE;
                     guiGraphics.pose().scale(plusScale, plusScale, 1.0f);
                     int plusDrawX = Math.round((costBX - 2) / plusScale);
                     int plusDrawY = Math.round((textY + PRICE_TEXT_OFFSET_Y) / plusScale);
 
-                    if (selectedTab == 2) {
+                    if (isTradesTab()) {
                         // Use arrow character for trades tab instead of text - more like vanilla GUI
                         guiGraphics.pose().popPose();
                         guiGraphics.pose().pushPose();
@@ -693,7 +761,7 @@ public class CobbleDollarsShopScreen extends Screen {
             String buttonKey;
             if (isSellTab()) {
                 buttonKey = "gui.cobbledollars_villagers_overhaul_rca.sell";
-            } else if (selectedTab == 2) { // Trades tab
+            } else if (isTradesTab()) {
                 buttonKey = "gui.cobbledollars_villagers_overhaul_rca.trade";
             } else {
                 buttonKey = "gui.cobbledollars_villagers_overhaul_rca.buy";
@@ -771,7 +839,7 @@ public class CobbleDollarsShopScreen extends Screen {
             bankButton.renderTooltipIfHovered(guiGraphics, mouseX, mouseY);
             return;
         }
-        
+
         int listTop = top + LIST_TOP_OFFSET;
         int rowL = left + LIST_LEFT_OFFSET - 10;  // Match render loop for correct tooltip hit areas
         int rowR = rowL + LIST_WIDTH;
@@ -815,7 +883,7 @@ public class CobbleDollarsShopScreen extends Screen {
                         if (mouseX >= costBX && mouseX < costBX + costBSize &&
                             mouseY >= costBY && mouseY < costBY + costBSize) {
                             // For trades tab, use translatable keys for series tooltip
-                            if (selectedTab == 2 && entry.seriesName() != null && !entry.seriesName().isEmpty()) {
+                            if (isTradesTab() && entry.seriesName() != null && !entry.seriesName().isEmpty()) {
                                 List<FormattedCharSequence> tooltipLines = new ArrayList<>();
                                 // Title in yellow
                                 tooltipLines.add(net.minecraft.network.chat.Component.translatable(entry.seriesName()).withStyle(net.minecraft.ChatFormatting.YELLOW).getVisualOrderText());
@@ -1028,30 +1096,19 @@ public class CobbleDollarsShopScreen extends Screen {
         int tabGapY = 2;
 
         if (mouseX >= tabX && mouseX < tabX + tabW) {
-            if (mouseY >= tabY && mouseY < tabY + CATEGORY_ENTRY_H) {
-                selectedTab = 0;
-                var off = currentOffers();
-                selectedIndex = off.isEmpty() ? -1 : 0;
-                scrollOffset = 0;
-                return true;
-            }
-            if (mouseY >= tabY + CATEGORY_ENTRY_H + tabGapY && mouseY < tabY + CATEGORY_ENTRY_H + tabGapY + CATEGORY_ENTRY_H) {
-                selectedTab = 1;
-                var off = currentOffers();
-                selectedIndex = off.isEmpty() ? -1 : 0;
-                scrollOffset = 0;
-                return true;
-            }
-            if (mouseY >= tabY + CATEGORY_ENTRY_H + tabGapY + CATEGORY_ENTRY_H + tabGapY && mouseY < tabY + CATEGORY_ENTRY_H + tabGapY + CATEGORY_ENTRY_H + tabGapY + CATEGORY_ENTRY_H) {
-                selectedTab = 2;
-                var off = currentOffers();
-                selectedIndex = off.isEmpty() ? -1 : 0;
-                if (selectedIndex >= 0) {
-                    CobbleDollarsShopPayloads.ShopOfferEntry selEntry = currentOffers().get(selectedIndex);
-                    selectedSeries = selEntry.seriesId();
+            for (int t = 0; t < tabNames.size(); t++) {
+                int tY = tabY + t * (CATEGORY_ENTRY_H + tabGapY);
+                if (mouseY >= tY && mouseY < tY + CATEGORY_ENTRY_H) {
+                    selectedTab = t;
+                    var off = tabOffers.get(t);
+                    selectedIndex = off.isEmpty() ? -1 : 0;
+                    scrollOffset = 0;
+                    if (isTradesTab() && selectedIndex >= 0) {
+                        CobbleDollarsShopPayloads.ShopOfferEntry selEntry = off.get(selectedIndex);
+                        selectedSeries = selEntry.seriesId();
+                    }
+                    return true;
                 }
-                scrollOffset = 0;
-                return true;
             }
         }
 

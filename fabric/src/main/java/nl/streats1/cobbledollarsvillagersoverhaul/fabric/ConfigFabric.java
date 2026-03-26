@@ -12,7 +12,10 @@ import java.nio.file.Path;
 
 import nl.streats1.cobbledollarsvillagersoverhaul.CobbleDollarsVillagersOverhaulRca;
 import nl.streats1.cobbledollarsvillagersoverhaul.Config;
+import nl.streats1.cobbledollarsvillagersoverhaul.integration.CobbleDollarsConfigHelper;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.CustomCurrencyConfig;
+import nl.streats1.cobbledollarsvillagersoverhaul.integration.VillagerShopConfig;
+import nl.streats1.cobbledollarsvillagersoverhaul.integration.ItemPriceConfig;
 
 /**
  * Fabric config loader. Creates config/cobbledollars_villagers_overhaul_rca/config.json
@@ -25,6 +28,9 @@ public final class ConfigFabric {
     public static void loadConfig() {
         Path configDir = FabricLoader.getInstance().getConfigDir();
         CustomCurrencyConfig.setConfigRoot(configDir);
+        CobbleDollarsConfigHelper.setConfigRoot(configDir);
+        VillagerShopConfig.setConfigRoot(configDir);
+        VillagerShopConfig.load();
         Path dir = configDir.resolve(CONFIG_SUBDIR);
         Path file = dir.resolve(CONFIG_FILE);
 
@@ -78,6 +84,7 @@ public final class ConfigFabric {
 
             CustomCurrencyConfig.setConfigOverride(null);
             CustomCurrencyConfig.loadFromFile();
+            ItemPriceConfig.loadAndApply();
         } catch (Exception e) {
             CobbleDollarsVillagersOverhaulRca.LOGGER.warn("Failed to load Fabric config: {}", e.getMessage());
         }

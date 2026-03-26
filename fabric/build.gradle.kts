@@ -20,6 +20,11 @@ loom {
 
 val shadowCommon: Configuration by configurations.creating
 
+// Force cloth-config 15.x for 1.21.1 (17.x requires 1.21.4+)
+configurations.all {
+    resolutionStrategy.force("me.shedaniel.cloth:cloth-config-fabric:${property("cloth_config_fabric_version")}")
+}
+
 repositories {
     maven("https://maven.architectury.dev/")
     maven("https://maven.terraformersmc.com/releases/")
