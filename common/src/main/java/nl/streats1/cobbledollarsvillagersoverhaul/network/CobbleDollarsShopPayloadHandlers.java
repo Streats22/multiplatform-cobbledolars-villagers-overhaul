@@ -266,8 +266,13 @@ public final class CobbleDollarsShopPayloadHandlers {
                         for (Object seriesObj : iterable) {
                             String seriesId = getSeriesId(seriesObj);
                             if (!seriesId.isEmpty()) {
-                                String titleKey = "series.rctmod." + seriesId + ".title";
-                                String tooltipKey = "series.rctmod." + seriesId + ".description";
+                                SeriesDataFromJson data = getSeriesDataFromData(seriesId, serverPlayer);
+                                String titleKey = (data.title != null && !data.title.isEmpty())
+                                        ? data.title
+                                        : "series.rctmod." + seriesId + ".title";
+                                String tooltipKey = (data.description != null && !data.description.isEmpty())
+                                        ? data.description
+                                        : "series.rctmod." + seriesId + ".description";
                                 int difficulty = getSeriesDifficulty(seriesObj);
                                 int completed = getSeriesCompletedCount(trainerPlayerData, seriesId);
                                 availableSeries.add(new SeriesDisplay(seriesId, titleKey, tooltipKey, difficulty, completed));
@@ -292,9 +297,14 @@ public final class CobbleDollarsShopPayloadHandlers {
                             for (Object seriesIdObj : (Iterable<?>) seriesIdsFallback) {
                                 String seriesId = seriesIdObj.toString();
                                 if (!seriesId.isEmpty()) {
-                                    String titleKey = "series.rctmod." + seriesId + ".title";
-                                    String tooltipKey = "series.rctmod." + seriesId + ".description";
-                                    availableSeries.add(new SeriesDisplay(seriesId, titleKey, tooltipKey, 1, 0));
+                                    SeriesDataFromJson data = getSeriesDataFromData(seriesId, serverPlayer);
+                                    String titleKey = (data.title != null && !data.title.isEmpty())
+                                            ? data.title
+                                            : "series.rctmod." + seriesId + ".title";
+                                    String tooltipKey = (data.description != null && !data.description.isEmpty())
+                                            ? data.description
+                                            : "series.rctmod." + seriesId + ".description";
+                                    availableSeries.add(new SeriesDisplay(seriesId, titleKey, tooltipKey, data.difficulty, 0));
                                 }
                             }
                         }
@@ -524,8 +534,8 @@ public final class CobbleDollarsShopPayloadHandlers {
                     com.google.gson.JsonElement jsonElement = com.google.gson.JsonParser.parseReader(reader);
                     if (jsonElement != null && jsonElement.isJsonObject()) {
                         var json = jsonElement.getAsJsonObject();
-                        String title = json.has("title") ? json.get("title").getAsString() : null;
-                        String description = json.has("description") ? json.get("description").getAsString() : null;
+                        String title = json.has("title") ? extractTextFromJson(json.get("title")) : null;
+                        String description = json.has("description") ? extractTextFromJson(json.get("description")) : null;
                         int difficulty = json.has("difficulty") ? json.get("difficulty").getAsInt() : 5;
                         return new SeriesDataFromJson(title, description, difficulty);
                     }
@@ -534,6 +544,30 @@ public final class CobbleDollarsShopPayloadHandlers {
         } catch (Exception e) {
         }
         return new SeriesDataFromJson(null, null, 5);
+    }
+
+    private static String extractTextFromJson(com.google.gson.JsonElement element) {
+        if (element == null || element.isJsonNull()) return null;
+        if (element.isJsonPrimitive()) return element.getAsString();
+        if (!element.isJsonObject()) return null;
+
+        var obj = element.getAsJsonObject();
+        if (obj.has("literal")) {
+            return obj.get("literal").getAsString();
+        }
+        if (obj.has("text")) {
+            return obj.get("text").getAsString();
+        }
+        if (obj.has("fallback")) {
+            return obj.get("fallback").getAsString();
+        }
+        if (obj.has("translatable")) {
+            return obj.get("translatable").getAsString();
+        }
+        if (obj.has("translate")) {
+            return obj.get("translate").getAsString();
+        }
+        return obj.toString();
     }
 
     /**
@@ -1065,19 +1099,6 @@ public final class CobbleDollarsShopPayloadHandlers {
                 buyOffers.add(o);
             }
         }
-        if (Config.USE_DATAPACK_TRADES) {
-            for (MerchantOffer o : allOffers) {
-                if (o == null) continue;
-                ItemStack costA = o.getCostA();
-                ItemStack result = o.getResult();
-                if (costA == null || result == null || costA.isEmpty() || result.isEmpty()) continue;
-                if (costA.is(Items.EMERALD) || result.is(Items.EMERALD)) continue;
-                if (CustomCurrencyConfig.isCurrencyItem(costA) || CustomCurrencyConfig.isCurrencyItem(result)) continue;
-                if (DatapackItemPricing.getPrice(costA) > 0) {
-                    buyOffers.add(o);
-                }
-            }
-        }
         return buyOffers;
     }
 
@@ -1096,8 +1117,6 @@ public final class CobbleDollarsShopPayloadHandlers {
             if (costB != null && !costB.isEmpty()) continue;
             if (costA.is(Items.EMERALD) || result.is(Items.EMERALD)) continue;
             if (CustomCurrencyConfig.isCurrencyItem(costA) || CustomCurrencyConfig.isCurrencyItem(result)) continue;
-            // If this trade can be converted to CobbleDollars pricing, keep it in Buy tab behavior.
-            if (Config.USE_DATAPACK_TRADES && DatapackItemPricing.getPrice(costA) > 0) continue;
             tradeOffers.add(o);
         }
         return tradeOffers;
@@ -1237,41 +1256,10 @@ public final class CobbleDollarsShopPayloadHandlers {
     private static void buildDatapackOffers(List<MerchantOffer> allOffers,
                                             List<CobbleDollarsShopPayloads.ShopOfferEntry> buyOut,
                                             List<CobbleDollarsShopPayloads.ShopOfferEntry> sellOut) {
-        if (!Config.USE_DATAPACK_TRADES) {
-            return;
-        }
-
-        for (MerchantOffer o : allOffers) {
-            if (o == null) continue;
-            ItemStack costA = o.getCostA();
-            ItemStack costB = o.getCostB();
-            ItemStack result = o.getResult();
-
-            if (costA == null || result == null) continue;
-            if (costA.isEmpty() || result.isEmpty()) continue;
-
-            if (costA.is(Items.EMERALD) || result.is(Items.EMERALD)) continue;
-            if (CustomCurrencyConfig.isCurrencyItem(costA) || CustomCurrencyConfig.isCurrencyItem(result)) continue;
-
-            int price = DatapackItemPricing.getPrice(costA);
-
-            if (price > 0) {
-                ItemStack safeResult = result.copy();
-                ItemStack safeCostB = (costB != null && !costB.isEmpty()) ? costB.copy() : ItemStack.EMPTY;
-
-                buyOut.add(new CobbleDollarsShopPayloads.ShopOfferEntry(
-                        safeResult,
-                        price,
-                        safeCostB,
-                        true, // directPrice: DatapackItemPricing returns CD value, do not multiply by emerald rate
-                        "", // No series
-                        "", // No series name
-                        "", // No tooltip
-                        0,
-                        0
-                ));
-            }
-        }
+        // Datapack-defined barter trades (buy item -> sell item) should be represented as item-to-item
+        // in the Trades tab. Converting them here into CobbleDollars pricing makes the action semantics
+        // mismatch (paying currency vs consuming the buy item), so this is intentionally a no-op.
+        return;
     }
 
     @SuppressWarnings("unused")
