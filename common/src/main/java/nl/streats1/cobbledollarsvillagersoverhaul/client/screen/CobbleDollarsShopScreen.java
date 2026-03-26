@@ -245,6 +245,11 @@ public class CobbleDollarsShopScreen extends Screen {
         }
     }
 
+    /** Entity id for the villager / trader this shop session targets (used by Fabric client recovery). */
+    public int shopTargetEntityId() {
+        return villagerId;
+    }
+
     private List<CobbleDollarsShopPayloads.ShopOfferEntry> currentOffers() {
         if (selectedTab < 0 || selectedTab >= tabOffers.size()) return List.of();
         return tabOffers.get(selectedTab);
@@ -370,18 +375,17 @@ public class CobbleDollarsShopScreen extends Screen {
             bankButton = new BankButton(left + BANK_BUTTON_X, top + BANK_BUTTON_Y, b -> onBank());
             addRenderableWidget(bankButton);
         }
-    }
-
-    private void onBank() {
-        if (!CobbleDollarsBankCompat.isBankAvailable()) return;
-        CobbleDollarsBankCompat.tryOpenBankFromVillagerId(villagerId);
-
         if (buyOffersFromConfig) {
             int editW = 36;
             int editX = closeX - editW - 4;
             addRenderableWidget(new TextureOnlyButton(editX, closeY, editW, CLOSE_BUTTON_SIZE,
                     Component.translatable("gui.cobbledollars_villagers_overhaul_rca.edit"), b -> openShopEditor()));
         }
+    }
+
+    private void onBank() {
+        if (!CobbleDollarsBankCompat.isBankAvailable()) return;
+        CobbleDollarsBankCompat.tryOpenBankFromVillagerId(villagerId);
     }
 
     private void openShopEditor() {
@@ -418,7 +422,7 @@ public class CobbleDollarsShopScreen extends Screen {
             applyBalanceDelta(price * qty, 100);
         } else {
             long total = (long) qty * price;
-            if (balance < total || !hasRequiredBuyItems(entry, qty)) return;
+            if (balance < total || !hasRequiredIngredientsForBuyOrTrade(entry, qty)) return;
             // For trades tab, include the selected series
             String seriesToSend = isTradesTab() ? selectedSeries : "";
             int serverIdx = selectedTab < buyTabCount ? serverOfferIndex() : selectedIndex;
@@ -715,6 +719,22 @@ public class CobbleDollarsShopScreen extends Screen {
                     guiGraphics.renderItem(costB, costDrawX, costDrawY);
                     guiGraphics.renderItemDecorations(font, costB, costDrawX, costDrawY);
                     guiGraphics.pose().popPose();
+                    if (selectedTab == 2 && entry.hasItemTradeSecondary()) {
+                        ItemStack sec = itemTradeSecondaryFrom(entry);
+                        if (!sec.isEmpty()) {
+                            int firstRight = costBX + 2 + Math.round(LIST_ITEM_ICON_SIZE * costBScale);
+                            int plusY = iconY + (LIST_ITEM_ICON_SIZE - font.lineHeight) / 2;
+                            guiGraphics.drawString(font, "+", firstRight + 2, plusY, 0xFFAAAAAA, false);
+                            int secondBX = firstRight + 2 + font.width("+") + 3;
+                            guiGraphics.pose().pushPose();
+                            guiGraphics.pose().scale(costBScale, costBScale, 1.0f);
+                            int secDrawX = Math.round(secondBX / costBScale);
+                            int secDrawY = costDrawY;
+                            guiGraphics.renderItem(sec, secDrawX, secDrawY);
+                            guiGraphics.renderItemDecorations(font, sec, secDrawX, secDrawY);
+                            guiGraphics.pose().popPose();
+                        }
+                    }
                 }
             }
         }
@@ -752,7 +772,7 @@ public class CobbleDollarsShopScreen extends Screen {
             CobbleDollarsShopPayloads.ShopOfferEntry entry = offers.get(selectedIndex);
             long price = priceForDisplay(entry);
             long total = (long) parseQuantity() * price;
-            canAfford = balance >= total && hasRequiredBuyItems(entry, parseQuantity());
+            canAfford = balance >= total && hasRequiredIngredientsForBuyOrTrade(entry, parseQuantity());
         } else if (hasSelection) {
             CobbleDollarsShopPayloads.ShopOfferEntry entry = offers.get(selectedIndex);
             canSell = hasRequiredSellItems(entry, parseQuantity());
@@ -904,6 +924,17 @@ public class CobbleDollarsShopScreen extends Screen {
                                 guiGraphics.renderTooltip(font, costB, mouseX, mouseY);
                             }
                         }
+                        if (selectedTab == 2 && entry.hasItemTradeSecondary()) {
+                            ItemStack sec = itemTradeSecondaryFrom(entry);
+                            if (!sec.isEmpty()) {
+                                int firstRight = costBX + 2 + costBSize;
+                                int secondBX = firstRight + 2 + font.width("+") + 3;
+                                if (mouseX >= secondBX && mouseX < secondBX + costBSize
+                                        && mouseY >= costBY && mouseY < costBY + costBSize) {
+                                    guiGraphics.renderTooltip(font, sec, mouseX, mouseY);
+                                }
+                            }
+                        }
                     }
                 }
                 break; // Only show tooltip for topmost item
@@ -974,6 +1005,53 @@ public class CobbleDollarsShopScreen extends Screen {
         ItemStack stack = entry.costB();
         if (stack.isEmpty() || stack.is(Items.AIR)) return ItemStack.EMPTY;
         return stack.copy();
+    }
+
+    /** Merchant second input for Trades-tab barters (datapack two-ingredient trades). */
+    private static ItemStack itemTradeSecondaryFrom(CobbleDollarsShopPayloads.ShopOfferEntry entry) {
+        if (entry == null || !entry.hasItemTradeSecondary() || entry.itemTradeSecondary() == null) {
+            return ItemStack.EMPTY;
+        }
+        ItemStack stack = entry.itemTradeSecondary();
+        if (stack.isEmpty() || stack.is(Items.AIR)) return ItemStack.EMPTY;
+        return stack.copy();
+    }
+
+    private static boolean playerInventoryHasItemCount(ItemStack offerStack, int qty) {
+        if (offerStack == null || offerStack.isEmpty()) return false;
+        int required = Math.max(1, offerStack.getCount()) * Math.max(1, qty);
+        int have = 0;
+        ItemStack needle = offerStack.copy();
+        needle.setCount(1);
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null) return false;
+        var inv = mc.player.getInventory();
+        for (int slot = 0; slot < inv.getContainerSize(); slot++) {
+            ItemStack stack = inv.getItem(slot);
+            if (stack.isEmpty()) continue;
+            if (ItemStack.isSameItemSameComponents(stack, needle)) {
+                have += stack.getCount();
+                if (have >= required) return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean hasRequiredTradeTabItems(CobbleDollarsShopPayloads.ShopOfferEntry entry, int qty) {
+        if (entry == null || !entry.hasCostB()) return false;
+        if (!playerInventoryHasItemCount(costBStackFrom(entry), qty)) return false;
+        if (entry.hasItemTradeSecondary()) {
+            return playerInventoryHasItemCount(itemTradeSecondaryFrom(entry), qty);
+        }
+        return true;
+    }
+
+    /** Buy tab: checks emerald-line second ingredient. Trades tab: both barter inputs when present. */
+    private boolean hasRequiredIngredientsForBuyOrTrade(CobbleDollarsShopPayloads.ShopOfferEntry entry, int qty) {
+        if (selectedTab == 2) {
+            return hasRequiredTradeTabItems(entry, qty);
+        }
+        return hasRequiredBuyItems(entry, qty);
     }
 
     private Component getProfessionLabel() {

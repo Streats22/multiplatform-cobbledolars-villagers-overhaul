@@ -68,6 +68,18 @@ public class Config {
         EXCLUDED_VILLAGER_PROFESSION_IDS = list != null ? new ArrayList<>(list) : new ArrayList<>();
     }
 
+    /**
+     * Applies shop-related booleans from the server (multiplayer). Client local config files are not used
+     * for the authoritative server when connected; this keeps client behavior aligned with the dedicated server.
+     */
+    public static void applyServerShopRuntimeConfig(boolean useCobbleDollarsShopUi, boolean villagersAcceptCobbleDollars,
+                                                    boolean useDatapackTrades, boolean useRctTradesOverhaul) {
+        USE_COBBLEDOLLARS_SHOP_UI = useCobbleDollarsShopUi;
+        VILLAGERS_ACCEPT_COBBLEDOLLARS = villagersAcceptCobbleDollars;
+        USE_DATAPACK_TRADES = useDatapackTrades;
+        USE_RCT_TRADES_OVERHAUL = useRctTradesOverhaul;
+    }
+
     /** Check by namespace (all professions from that mod). */
     public static boolean isVillagerProfessionExcluded(String namespace) {
         return namespace != null && !EXCLUDED_VILLAGER_PROFESSION_NAMESPACES.isEmpty()

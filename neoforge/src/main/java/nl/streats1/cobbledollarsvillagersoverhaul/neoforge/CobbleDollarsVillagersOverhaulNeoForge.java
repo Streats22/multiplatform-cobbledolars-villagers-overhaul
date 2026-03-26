@@ -23,8 +23,8 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.npc.Villager;
 
 import nl.streats1.cobbledollarsvillagersoverhaul.AssignModeTracker;
-import nl.streats1.cobbledollarsvillagersoverhaul.network.CobbleDollarsShopPayloadHandlers;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
 
@@ -32,6 +32,7 @@ import nl.streats1.cobbledollarsvillagersoverhaul.CobbleDollarsVillagersOverhaul
 import nl.streats1.cobbledollarsvillagersoverhaul.Config;
 import nl.streats1.cobbledollarsvillagersoverhaul.command.CvmCommand;
 import nl.streats1.cobbledollarsvillagersoverhaul.command.VillagerShopCommand;
+import nl.streats1.cobbledollarsvillagersoverhaul.network.CobbleDollarsShopPayloadHandlers;
 import nl.streats1.cobbledollarsvillagersoverhaul.network.CobbleDollarsShopPayloads;
 
 @Mod(CobbleDollarsVillagersOverhaulNeoForge.MOD_ID)
@@ -112,6 +113,14 @@ public class CobbleDollarsVillagersOverhaulNeoForge {
     public void onRegisterCommands(RegisterCommandsEvent event) {
         VillagerShopCommand.register(event.getDispatcher());
         CvmCommand.register(event.getDispatcher());
+    }
+
+    /** Align client shop flags with dedicated server config (multiplayer); singleplayer receives the same values. */
+    @SubscribeEvent
+    public void onPlayerLoggedIn(PlayerEvent.PlayerLoggedInEvent event) {
+        if (event.getEntity() instanceof ServerPlayer sp) {
+            CobbleDollarsShopPayloadHandlers.sendServerShopConfigTo(sp);
+        }
     }
 
     /** Fires before EntityInteract; needed so we cancel before vanilla opens the merchant GUI. */

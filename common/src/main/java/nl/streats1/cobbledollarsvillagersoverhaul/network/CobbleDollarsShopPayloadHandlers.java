@@ -659,23 +659,46 @@ public final class CobbleDollarsShopPayloadHandlers {
     public static void registerPayloads() {
     }
 
+    /** Send server shop flags to a client so multiplayer matches dedicated-server config (not local client files). */
+    public static void sendServerShopConfigTo(ServerPlayer player) {
+        PlatformNetwork.sendToPlayer(player, new CobbleDollarsShopPayloads.ServerShopConfigSync(
+                Config.USE_COBBLEDOLLARS_SHOP_UI,
+                Config.VILLAGERS_ACCEPT_COBBLEDOLLARS,
+                Config.USE_DATAPACK_TRADES,
+                Config.USE_RCT_TRADES_OVERHAUL));
+    }
+
     public static void handleRequestShopData(ServerPlayer serverPlayer, int villagerId) {
-        LOGGER.debug("[shop] handleRequestShopData: player={} villagerEntityId={}", serverPlayer.getName().getString(), villagerId);
+        handleRequestShopData(serverPlayer, villagerId, 0);
+    }
+
+    /**
+     * Opens the vanilla merchant menu for this entity id when the CobbleDollars shop cannot be used
+     * (avoids clients that suppressed the vanilla use-entity packet from getting no UI).
+     */
+    private static void openVanillaMerchantMenu(ServerPlayer serverPlayer, int villagerId) {
+        Entity entity = serverPlayer.serverLevel().getEntity(villagerId);
+        if (entity instanceof MenuProvider menuProvider) {
+            serverPlayer.openMenu(menuProvider);
+        }
+    }
+
+    private static void handleRequestShopData(ServerPlayer serverPlayer, int villagerId, int entityLookupRetry) {
+        LOGGER.debug("[shop] handleRequestShopData: player={} villagerEntityId={} retry={}", serverPlayer.getName().getString(), villagerId, entityLookupRetry);
 
         if (!Config.USE_COBBLEDOLLARS_SHOP_UI) {
             LOGGER.debug("[shop] handleRequestShopData: USE_COBBLEDOLLARS_SHOP_UI=false, opening vanilla menu if applicable");
-            Entity entity = serverPlayer.serverLevel().getEntity(villagerId);
-            if (entity instanceof MenuProvider menuProvider) {
-                serverPlayer.openMenu(menuProvider);
-            }
+            openVanillaMerchantMenu(serverPlayer, villagerId);
             return;
         }
         if (!Config.VILLAGERS_ACCEPT_COBBLEDOLLARS) {
-            LOGGER.warn("[shop] handleRequestShopData: abort — VILLAGERS_ACCEPT_COBBLEDOLLARS=false (no ShopData sent)");
+            LOGGER.debug("[shop] handleRequestShopData: VILLAGERS_ACCEPT_COBBLEDOLLARS=false — opening vanilla menu");
+            openVanillaMerchantMenu(serverPlayer, villagerId);
             return;
         }
         if (!CobbleDollarsIntegration.isAvailable()) {
-            LOGGER.warn("[shop] handleRequestShopData: abort — CobbleDollars integration not available (no ShopData sent)");
+            LOGGER.warn("[shop] handleRequestShopData: CobbleDollars integration not available — opening vanilla menu");
+            openVanillaMerchantMenu(serverPlayer, villagerId);
             return;
         }
 
@@ -742,21 +765,27 @@ public final class CobbleDollarsShopPayloadHandlers {
         List<MerchantOffer> allOffers = null;
 
         if (entity instanceof Villager villager) {
-            // Assigned villagers use config shop instead of vanilla trades
-            if (VillagerShopConfig.usesConfigShop(villager.getUUID())) {
-                List<CobbleDollarsShopPayloads.ShopOfferEntry> configBuy = CobbleDollarsConfigHelper.getDefaultShopBuyOffers();
-                if (!configBuy.isEmpty()) {
-                    buyOffers.addAll(configBuy);
-                    buyOffersFromConfig = true;
+            villager.setTradingPlayer(serverPlayer);
+            updateVillagerSpecialPrices(villager, serverPlayer);
+            try {
+                VillagerConfigCompat.prepareVillagerForShop(serverPlayer.serverLevel(), villager);
+                if (VillagerShopConfig.usesConfigShop(villager.getUUID())) {
+                    List<CobbleDollarsShopPayloads.ShopOfferEntry> configBuy = CobbleDollarsConfigHelper.getDefaultShopBuyOffers();
+                    if (!configBuy.isEmpty()) {
+                        buyOffers.addAll(configBuy);
+                        buyOffersFromConfig = true;
+                    }
+                } else {
+                    LOGGER.info("Entity is Villager, processing villager trades");
+                    allOffers = villager.getOffers();
+                    buildOfferLists(allOffers, buyOffers, sellOffers);
+                    if (Config.USE_DATAPACK_TRADES) {
+                        buildDatapackOffers(allOffers, buyOffers, sellOffers);
+                    }
+                    buildItemForItemTrades(allOffers, tradesOffers);
                 }
-                // canCycleTrades stays false for config shop
-            } else {
-                LOGGER.info("Entity is Villager, processing villager trades");
-                allOffers = villager.getOffers();
-                buildOfferLists(allOffers, buyOffers, sellOffers);
-                if (Config.USE_DATAPACK_TRADES) {
-                    buildDatapackOffers(allOffers, buyOffers, sellOffers);
-                }
+            } finally {
+                villager.setTradingPlayer(null);
             }
         } else if (Config.USE_RCT_TRADES_OVERHAUL && RctTrainerAssociationCompat.isTrainerAssociation(entity)) {
             try {
@@ -860,6 +889,7 @@ public final class CobbleDollarsShopPayloadHandlers {
                 buildOfferLists(fallbackOffers, buyOffers, sellOffers);
             }
         } else if (entity instanceof WanderingTrader trader) {
+            MerchantTradeGenerationHelper.ensureMerchantOffersReady(serverPlayer.serverLevel(), trader);
             allOffers = trader.getOffers();
             buildOfferLists(allOffers, buyOffers, sellOffers);
             if (Config.USE_DATAPACK_TRADES) {
@@ -1049,6 +1079,7 @@ public final class CobbleDollarsShopPayloadHandlers {
                         "",  // No tooltip for non‑series offers
                         0,
                         0,
+                        ItemStack.EMPTY,
                         ""
                 ));
             }
@@ -1110,6 +1141,7 @@ public final class CobbleDollarsShopPayloadHandlers {
                             "",  // No tooltip for non‑series offers
                             0,   // No difficulty for non-series offers
                             0,   // No completed count for non-series offers
+                            ItemStack.EMPTY,
                             ""
                     ));
                 }
@@ -1123,7 +1155,9 @@ public final class CobbleDollarsShopPayloadHandlers {
                             0,
                             safeCostB,
                             false,
-                            "", "", "", 0, 0
+                            "", "", "", 0, 0,
+                            ItemStack.EMPTY,
+                            ""
                     ));
                 }
             } else if (result.is(Items.EMERALD) && !costA.isEmpty()) {
@@ -1139,6 +1173,7 @@ public final class CobbleDollarsShopPayloadHandlers {
                             "",  // No tooltip for non‑series offers
                             0,   // No difficulty for non-series offers
                             0,   // No completed count for non-series offers
+                            ItemStack.EMPTY,
                             ""
                     ));
                 }
@@ -1146,6 +1181,7 @@ public final class CobbleDollarsShopPayloadHandlers {
                     !costA.is(Items.EMERALD) && !result.is(Items.EMERALD)) {
                 ItemStack safeResult = result.copy();
                 ItemStack safeCostA = costA.copy();
+                ItemStack safeTradeB = (costB != null && !costB.isEmpty()) ? costB.copy() : ItemStack.EMPTY;
 
                 if (safeResult != null && !safeResult.isEmpty() && safeCostA != null) {
                     tradesOut.add(new CobbleDollarsShopPayloads.ShopOfferEntry(
@@ -1158,6 +1194,7 @@ public final class CobbleDollarsShopPayloadHandlers {
                             seriesTooltip,
                             seriesDifficulty,
                             seriesCompleted,
+                            safeTradeB,
                             ""
                     ));
                 }
@@ -1202,21 +1239,19 @@ public final class CobbleDollarsShopPayloadHandlers {
     }
 
     /**
-     * Returns single-input item-for-item trades (no CobbleDollars/emerald pricing path) for
-     * the Trades tab.
+     * Item-for-item trades for the Trades tab: no emerald/currency result or cost, and not priced
+     * as CobbleDollars via {@link DatapackItemPricing} (those stay on Buy when {@link Config#USE_DATAPACK_TRADES}).
+     * Includes datapack trades that use one or two input items.
      */
     private static List<MerchantOffer> getItemForItemTradesForVillager(List<MerchantOffer> allOffers) {
         List<MerchantOffer> tradeOffers = new ArrayList<>();
         for (MerchantOffer o : allOffers) {
             if (o == null) continue;
             ItemStack costA = o.getCostA();
-            ItemStack costB = o.getCostB();
             ItemStack result = o.getResult();
             if (costA == null || result == null || costA.isEmpty() || result.isEmpty()) continue;
-            if (costB != null && !costB.isEmpty()) continue;
             if (costA.is(Items.EMERALD) || result.is(Items.EMERALD)) continue;
             if (CustomCurrencyConfig.isCurrencyItem(costA) || CustomCurrencyConfig.isCurrencyItem(result)) continue;
-            // If this trade can be converted to CobbleDollars pricing, keep it in Buy tab behavior.
             if (Config.USE_DATAPACK_TRADES && DatapackItemPricing.getPrice(costA) > 0) continue;
             tradeOffers.add(o);
         }
@@ -1228,6 +1263,8 @@ public final class CobbleDollarsShopPayloadHandlers {
         for (MerchantOffer o : getItemForItemTradesForVillager(allOffers)) {
             ItemStack safeResult = o.getResult().copy();
             ItemStack safeCostA = o.getCostA().copy();
+            ItemStack costB = o.getCostB();
+            ItemStack safeCostB = (costB != null && !costB.isEmpty()) ? costB.copy() : ItemStack.EMPTY;
             if (safeResult.isEmpty() || safeCostA.isEmpty()) continue;
             tradesOut.add(new CobbleDollarsShopPayloads.ShopOfferEntry(
                     safeResult,
@@ -1238,7 +1275,9 @@ public final class CobbleDollarsShopPayloadHandlers {
                     "",
                     "",
                     0,
-                    0
+                    0,
+                    safeCostB,
+                    ""
             ));
         }
     }
@@ -1270,6 +1309,7 @@ public final class CobbleDollarsShopPayloadHandlers {
                             "",
                             0,
                             0,
+                            ItemStack.EMPTY,
                             ""
                     ));
                 }
@@ -1289,7 +1329,9 @@ public final class CobbleDollarsShopPayloadHandlers {
                             "",
                             "",
                             0,
-                            0
+                            0,
+                            ItemStack.EMPTY,
+                            ""
                     ));
                 }
                 continue;
@@ -1309,6 +1351,7 @@ public final class CobbleDollarsShopPayloadHandlers {
                             "",
                             0,
                             0,
+                            ItemStack.EMPTY,
                             ""
                     ));
                 }
@@ -1327,6 +1370,7 @@ public final class CobbleDollarsShopPayloadHandlers {
                             "",
                             0,
                             0,
+                            ItemStack.EMPTY,
                             ""
                     ));
                 }
@@ -1346,6 +1390,7 @@ public final class CobbleDollarsShopPayloadHandlers {
                             "",
                             0,
                             0,
+                            ItemStack.EMPTY,
                             ""
                     ));
                 }
@@ -1393,6 +1438,7 @@ public final class CobbleDollarsShopPayloadHandlers {
                         "", // No tooltip
                         0,
                         0,
+                        ItemStack.EMPTY,
                         ""
                 ));
             }

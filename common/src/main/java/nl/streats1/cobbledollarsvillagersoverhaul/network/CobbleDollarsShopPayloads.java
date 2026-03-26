@@ -37,6 +37,11 @@ public final class CobbleDollarsShopPayloads {
      * - {@code seriesTooltip} is the translatable key for the description (e.g. "series.rctmod.bdsp.description")
      * - {@code seriesDifficulty} is the difficulty rating (can be fractional for half stars, e.g. 4.5)
      * - {@code seriesCompleted} is the number of times the player has completed this series
+     * <p>
+     * Trades tab (item-for-item): {@code costB} holds the merchant's first input ({@code MerchantOffer#getCostA()}).
+     * {@code itemTradeSecondary} holds the merchant's second input when the datapack trade uses two ingredients;
+     * otherwise {@link ItemStack#EMPTY}. Buy/Sell entries always use EMPTY for {@code itemTradeSecondary}.
+     * {@code categoryName} is used for default/config shop buy tabs (empty for villager trades).
      */
     public record ShopOfferEntry(ItemStack result,
                                  int emeraldCount,
@@ -47,6 +52,7 @@ public final class CobbleDollarsShopPayloads {
                                  String seriesTooltip,
                                  float seriesDifficulty,
                                  int seriesCompleted,
+                                 ItemStack itemTradeSecondary,
                                  String categoryName) {
         public static final StreamCodec<RegistryFriendlyByteBuf, ShopOfferEntry> STREAM_CODEC =
                 new StreamCodec<>() {
@@ -60,6 +66,11 @@ public final class CobbleDollarsShopPayloads {
                             costB = new ItemStack(Items.STONE);
                         }
 
+                        ItemStack sec = entry.itemTradeSecondary();
+                        if (sec == null || sec.isEmpty() || sec.is(Items.AIR)) {
+                            sec = new ItemStack(Items.STONE);
+                        }
+
                         ITEM_STACK.encode(buf, result);
                         VAR_INT.encode(buf, entry.emeraldCount());
                         ITEM_STACK.encode(buf, costB);
@@ -69,6 +80,7 @@ public final class CobbleDollarsShopPayloads {
                         STRING_UTF8.encode(buf, entry.seriesTooltip() != null ? entry.seriesTooltip() : "");
                         buf.writeFloat(entry.seriesDifficulty());
                         VAR_INT.encode(buf, entry.seriesCompleted());
+                        ITEM_STACK.encode(buf, sec);
                         STRING_UTF8.encode(buf, entry.categoryName() != null ? entry.categoryName() : "");
                     }
 
@@ -86,6 +98,11 @@ public final class CobbleDollarsShopPayloads {
                         String seriesTooltip = STRING_UTF8.decode(buf);
                         float seriesDifficulty = buf.readFloat();
                         int seriesCompleted = VAR_INT.decode(buf);
+                        ItemStack itemTradeSecondary = ITEM_STACK.decode(buf);
+                        if (itemTradeSecondary != null && itemTradeSecondary.is(Items.STONE)
+                                && itemTradeSecondary.getCount() == 1) {
+                            itemTradeSecondary = ItemStack.EMPTY;
+                        }
                         String categoryName = STRING_UTF8.decode(buf);
                         return new ShopOfferEntry(
                                 result,
@@ -97,12 +114,18 @@ public final class CobbleDollarsShopPayloads {
                                 seriesTooltip != null ? seriesTooltip : "",
                                 seriesDifficulty,
                                 seriesCompleted,
+                                itemTradeSecondary != null ? itemTradeSecondary : ItemStack.EMPTY,
                                 categoryName != null ? categoryName : "");
                     }
                 };
 
         public boolean hasCostB() {
             return costB != null && !costB.isEmpty() && !costB.is(Items.AIR);
+        }
+
+        /** Second merchant input for Trades-tab barters; empty for Buy/Sell. */
+        public boolean hasItemTradeSecondary() {
+            return itemTradeSecondary != null && !itemTradeSecondary.isEmpty() && !itemTradeSecondary.is(Items.AIR);
         }
     }
 
@@ -160,6 +183,39 @@ public final class CobbleDollarsShopPayloads {
                                 OFFERS_LIST_CODEC.decode(buf),
                                 OFFERS_LIST_CODEC.decode(buf),
                                 OFFERS_LIST_CODEC.decode(buf),
+                                BOOL.decode(buf),
+                                BOOL.decode(buf))
+                );
+
+        @Override
+        public Type<? extends CustomPacketPayload> type() {
+            return TYPE;
+        }
+    }
+
+    /**
+     * Server → client: authoritative shop flags so multiplayer clients match the dedicated server
+     * (singleplayer already shares one config file; remote clients otherwise read local config only).
+     */
+    public record ServerShopConfigSync(
+            boolean useCobbleDollarsShopUi,
+            boolean villagersAcceptCobbleDollars,
+            boolean useDatapackTrades,
+            boolean useRctTradesOverhaul
+    ) implements CustomPacketPayload {
+        public static final CustomPacketPayload.Type<ServerShopConfigSync> TYPE =
+                new CustomPacketPayload.Type<>(Objects.requireNonNull(id("server_shop_config_sync")));
+        public static final StreamCodec<RegistryFriendlyByteBuf, ServerShopConfigSync> STREAM_CODEC =
+                StreamCodec.of(
+                        (buf, data) -> {
+                            BOOL.encode(buf, data.useCobbleDollarsShopUi());
+                            BOOL.encode(buf, data.villagersAcceptCobbleDollars());
+                            BOOL.encode(buf, data.useDatapackTrades());
+                            BOOL.encode(buf, data.useRctTradesOverhaul());
+                        },
+                        buf -> new ServerShopConfigSync(
+                                BOOL.decode(buf),
+                                BOOL.decode(buf),
                                 BOOL.decode(buf),
                                 BOOL.decode(buf))
                 );

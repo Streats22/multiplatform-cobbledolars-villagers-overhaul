@@ -108,7 +108,7 @@ public final class CobbleDollarsConfigHelper {
                                 if (id == null) continue;
                                 var item = BuiltInRegistries.ITEM.get(id);
                                 if (item == Items.AIR) continue;
-                                out.add(new CobbleDollarsShopPayloads.ShopOfferEntry(new ItemStack(item, 1), price, empty, true, "", "", "", 0, 0, catName != null ? catName : ""));
+                                out.add(new CobbleDollarsShopPayloads.ShopOfferEntry(new ItemStack(item, 1), price, empty, true, "", "", "", 0, 0, ItemStack.EMPTY, catName != null ? catName : ""));
                             }
                         }
                     }
@@ -126,7 +126,7 @@ public final class CobbleDollarsConfigHelper {
                         if (id == null) continue;
                         var item = BuiltInRegistries.ITEM.get(id);
                         if (item == Items.AIR) continue;
-                        out.add(new CobbleDollarsShopPayloads.ShopOfferEntry(new ItemStack(item, 1), price, empty, true, "", "", "", 0, 0, ""));
+                        out.add(new CobbleDollarsShopPayloads.ShopOfferEntry(new ItemStack(item, 1), price, empty, true, "", "", "", 0, 0, ItemStack.EMPTY, category));
                     }
                 }
             }
@@ -185,7 +185,7 @@ public final class CobbleDollarsConfigHelper {
                 if (item == null || item == Items.AIR) continue;
                 // Sell offer: result = item player gives, emeraldCount = CD they receive (directPrice=true)
                 out.add(new CobbleDollarsShopPayloads.ShopOfferEntry(
-                        new ItemStack(item, 1), price, ItemStack.EMPTY, true, "", "", "", 0, 0, ""));
+                        new ItemStack(item, 1), price, ItemStack.EMPTY, true, "", "", "", 0, 0, ItemStack.EMPTY, ""));
             }
             return out;
         } catch (Exception e) {

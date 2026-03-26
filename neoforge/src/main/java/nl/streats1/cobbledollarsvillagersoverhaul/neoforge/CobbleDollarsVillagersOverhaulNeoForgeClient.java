@@ -6,6 +6,7 @@ import net.minecraft.network.chat.Component;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
+import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
 import net.neoforged.neoforge.client.event.InputEvent;
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
 import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
@@ -97,6 +98,12 @@ public class CobbleDollarsVillagersOverhaulNeoForgeClient {
             ConfigNeoForge.CUSTOM_CURRENCY_ITEMS.set(CustomCurrencyConfig.entriesToJson(list));
             ConfigNeoForge.saveFromScreen();
         });
+    }
+
+    /** Restore local config after leaving a remote server (multiplayer sync overwrites in-memory flags). */
+    @SubscribeEvent
+    public static void onClientLoggingOut(ClientPlayerNetworkEvent.LoggingOut event) {
+        ConfigNeoForge.loadConfig(ConfigNeoForge.SPEC);
     }
 
     @SubscribeEvent

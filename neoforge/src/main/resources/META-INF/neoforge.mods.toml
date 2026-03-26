@@ -52,3 +52,11 @@ type = "optional"
 versionRange = "*"
 ordering = "NONE"
 side = "BOTH"
+
+# Optional: VillagerConfig — datapack villager trades; we call updateTrades before reading offers when the list is empty.
+[[dependencies.cobbledollars_villagers_overhaul_rca]]
+modId = "villagerconfig"
+type = "optional"
+versionRange = "*"
+ordering = "NONE"
+side = "BOTH"

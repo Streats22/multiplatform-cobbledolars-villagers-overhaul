@@ -27,7 +27,9 @@ public class CobbleDollarsVillagersOverhaulRca {
 
     public boolean onEntityInteract(Entity target, boolean isClientSide, boolean isSneaking,
                                    Runnable cancelAction) {
-        if (!Config.USE_COBBLEDOLLARS_SHOP_UI || !CobbleDollarsIntegration.isModLoaded()) return false;
+        if (!CobbleDollarsIntegration.isModLoaded()) {
+            return false;
+        }
 
         ResourceLocation typeId = BuiltInRegistries.ENTITY_TYPE.getKey(target.getType());
         if (typeId != null && "cobbledollars".equals(typeId.getNamespace())) {
@@ -35,11 +37,18 @@ public class CobbleDollarsVillagersOverhaulRca {
         }
 
         if (RctTrainerAssociationCompat.isTrainerAssociation(target)) {
-            if (!Config.USE_RCT_TRADES_OVERHAUL) {
+            if (!Config.USE_COBBLEDOLLARS_SHOP_UI) {
+                return false;
+            }
+            if (!isClientSide && !Config.USE_RCT_TRADES_OVERHAUL) {
                 return false;
             }
             cancelAction.run();
             return true;
+        }
+
+        if (!Config.USE_COBBLEDOLLARS_SHOP_UI) {
+            return false;
         }
 
         if (target instanceof Villager villager) {
