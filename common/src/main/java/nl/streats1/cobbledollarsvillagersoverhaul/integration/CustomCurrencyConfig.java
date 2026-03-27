@@ -3,13 +3,11 @@ package nl.streats1.cobbledollarsvillagersoverhaul.integration;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.mojang.logging.LogUtils;
-
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-
 import org.slf4j.Logger;
 
 import java.lang.reflect.Type;

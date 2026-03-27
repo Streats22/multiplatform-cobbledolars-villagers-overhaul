@@ -1,9 +1,9 @@
 package nl.streats1.cobbledollarsvillagersoverhaul;
 
+import net.minecraft.resources.ResourceLocation;
+
 import java.util.ArrayList;
 import java.util.List;
-
-import net.minecraft.resources.ResourceLocation;
 
 public class Config {
     public static int COBBLEDOLLARS_EMERALD_RATE = 750;

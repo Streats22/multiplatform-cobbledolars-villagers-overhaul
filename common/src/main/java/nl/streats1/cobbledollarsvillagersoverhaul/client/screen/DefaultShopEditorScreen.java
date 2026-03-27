@@ -12,15 +12,10 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.DefaultShopConfig;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.ShopEntryRecord;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * GUI for editing default shop buy offers (CobbleDollars default_shop.json).
@@ -222,11 +217,7 @@ public class DefaultShopEditorScreen extends Screen {
         DefaultShopConfig.saveCategories(categories);
         if (onSaveCallback != null) {
             onSaveCallback.run();
-        } else if (parent != null) {
-            minecraft.setScreen(parent);
-        } else {
-            minecraft.setScreen(null);
-        }
+        } else minecraft.setScreen(parent);
     }
 
     @Override

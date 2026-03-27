@@ -1,7 +1,6 @@
 package nl.streats1.cobbledollarsvillagersoverhaul.client.screen;
 
 import com.google.gson.Gson;
-
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
@@ -14,11 +13,10 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-
-import java.util.*;
-
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.DatapackItemPricing;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.ItemPriceConfig;
+
+import java.util.*;
 
 /**
  * GUI for editing custom item prices used in villager item-for-item trades.
@@ -136,8 +134,7 @@ public class ItemPriceEditorScreen extends Screen {
         ItemPriceConfig.saveEntries(entries);
         // Reload into DatapackItemPricing
         DatapackItemPricing.loadCustomPrices(buildJsonFromEntries());
-        if (parent != null) minecraft.setScreen(parent);
-        else minecraft.setScreen(null);
+        minecraft.setScreen(parent);
     }
 
     private String buildJsonFromEntries() {

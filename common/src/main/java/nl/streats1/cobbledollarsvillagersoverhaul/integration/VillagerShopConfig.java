@@ -1,6 +1,7 @@
 package nl.streats1.cobbledollarsvillagersoverhaul.integration;
 
 import com.google.gson.*;
+import nl.streats1.cobbledollarsvillagersoverhaul.CobbleDollarsVillagersOverhaulRca;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -9,8 +10,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-
-import nl.streats1.cobbledollarsvillagersoverhaul.CobbleDollarsVillagersOverhaulRca;
 
 /**
  * Tracks which villager entities use the config shop instead of vanilla trades.

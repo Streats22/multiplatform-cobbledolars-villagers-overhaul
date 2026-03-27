@@ -2,12 +2,10 @@ package nl.streats1.cobbledollarsvillagersoverhaul.command;
 
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.context.CommandContext;
-
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
-
 import nl.streats1.cobbledollarsvillagersoverhaul.AssignModeTracker;
 import nl.streats1.cobbledollarsvillagersoverhaul.VirtualShopIds;
 import nl.streats1.cobbledollarsvillagersoverhaul.network.CobbleDollarsShopPayloadHandlers;

@@ -12,7 +12,6 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.BankConfig;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.BankEntryRecord;
 
@@ -136,8 +135,7 @@ public class BankEditorScreen extends Screen {
     private void saveAndClose() {
         applyValueFromEdit();
         BankConfig.saveEntries(entries);
-        if (parent != null) minecraft.setScreen(parent);
-        else minecraft.setScreen(null);
+        minecraft.setScreen(parent);
     }
 
     @Override

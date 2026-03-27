@@ -12,11 +12,10 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import nl.streats1.cobbledollarsvillagersoverhaul.integration.CustomCurrencyConfig;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.CurrencyEntryRecord;
+import nl.streats1.cobbledollarsvillagersoverhaul.integration.CustomCurrencyConfig;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -163,11 +162,7 @@ public class CustomCurrencyConfigScreen extends Screen {
         } else {
             onSave.accept(entries);
         }
-        if (parent != null) {
-            minecraft.setScreen(parent);
-        } else {
-            minecraft.setScreen(null);
-        }
+        minecraft.setScreen(parent);
     }
 
     @Override
