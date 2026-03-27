@@ -4,21 +4,19 @@ import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
-
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-
 import nl.streats1.cobbledollarsvillagersoverhaul.CobbleDollarsVillagersOverhaulRca;
-import net.minecraft.server.level.ServerPlayer;
-
 import nl.streats1.cobbledollarsvillagersoverhaul.command.CvmCommand;
 import nl.streats1.cobbledollarsvillagersoverhaul.command.VillagerShopCommand;
 import nl.streats1.cobbledollarsvillagersoverhaul.network.CobbleDollarsShopPayloadHandlers;
 import nl.streats1.cobbledollarsvillagersoverhaul.network.CobbleDollarsShopPayloads;
 import nl.streats1.cobbledollarsvillagersoverhaul.platform.PlatformNetwork;
+
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class CobbleDollarsVillagersOverhaulFabric implements ModInitializer {
     private static final long REQUEST_DEBOUNCE_MS = 250L;
@@ -26,14 +24,7 @@ public class CobbleDollarsVillagersOverhaulFabric implements ModInitializer {
 
     private CobbleDollarsVillagersOverhaulRca mod;
 
-    private static final class RequestGate {
-        final int entityId;
-        final long atMs;
-
-        RequestGate(int entityId, long atMs) {
-            this.entityId = entityId;
-            this.atMs = atMs;
-        }
+    private record RequestGate(int entityId, long atMs) {
     }
 
     @Override
@@ -100,6 +91,7 @@ public class CobbleDollarsVillagersOverhaulFabric implements ModInitializer {
                         "[shop] Fabric client use-entity: sending RequestShopData, entity={} id={}, result=CONSUME",
                         entity.getType().getDescriptionId(), entity.getId());
                 REQUEST_GATES.put(playerId, new RequestGate(entity.getId(), now));
+                FabricPendingCustomShopScreen.beginAwaitingShopData(entity.getId());
                 PlatformNetwork.sendToServer(new CobbleDollarsShopPayloads.RequestShopData(entity.getId()));
                 return InteractionResult.CONSUME;
             }

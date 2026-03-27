@@ -20,6 +20,7 @@ public final class FabricNetworking {
         PayloadTypeRegistry.playC2S().register(CobbleDollarsShopPayloads.BuyWithCobbleDollars.TYPE, CobbleDollarsShopPayloads.BuyWithCobbleDollars.STREAM_CODEC);
         PayloadTypeRegistry.playC2S().register(CobbleDollarsShopPayloads.SellForCobbleDollars.TYPE, CobbleDollarsShopPayloads.SellForCobbleDollars.STREAM_CODEC);
         PayloadTypeRegistry.playC2S().register(CobbleDollarsShopPayloads.AssignVillager.TYPE, CobbleDollarsShopPayloads.AssignVillager.STREAM_CODEC);
+        PayloadTypeRegistry.playC2S().register(CobbleDollarsShopPayloads.ShopScreenClosed.TYPE, CobbleDollarsShopPayloads.ShopScreenClosed.STREAM_CODEC);
 
         PayloadTypeRegistry.playS2C().register(CobbleDollarsShopPayloads.ShopData.TYPE, CobbleDollarsShopPayloads.ShopData.STREAM_CODEC);
         PayloadTypeRegistry.playS2C().register(CobbleDollarsShopPayloads.BalanceUpdate.TYPE, CobbleDollarsShopPayloads.BalanceUpdate.STREAM_CODEC);
@@ -59,6 +60,12 @@ public final class FabricNetworking {
         ServerPlayNetworking.registerGlobalReceiver(CobbleDollarsShopPayloads.AssignVillager.TYPE, (payload, context) -> {
             if (context.player() instanceof ServerPlayer sp) {
                 context.server().execute(() -> CobbleDollarsShopPayloadHandlers.handleAssignVillager(sp, payload.villagerId()));
+            }
+        });
+
+        ServerPlayNetworking.registerGlobalReceiver(CobbleDollarsShopPayloads.ShopScreenClosed.TYPE, (payload, context) -> {
+            if (context.player() instanceof ServerPlayer sp) {
+                context.server().execute(() -> CobbleDollarsShopPayloadHandlers.handleShopScreenClosed(sp, payload.villagerId()));
             }
         });
     }

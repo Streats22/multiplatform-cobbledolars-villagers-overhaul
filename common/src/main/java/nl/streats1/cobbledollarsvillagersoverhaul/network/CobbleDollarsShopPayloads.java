@@ -37,9 +37,10 @@ public final class CobbleDollarsShopPayloads {
      * - {@code seriesDifficulty} is the difficulty rating (can be fractional for half stars, e.g. 4.5)
      * - {@code seriesCompleted} is the number of times the player has completed this series
      * <p>
-     * Trades tab (item-for-item): {@code costB} holds the merchant's first input ({@code MerchantOffer#getCostA()}).
-     * {@code itemTradeSecondary} holds the merchant's second input when the datapack trade uses two ingredients;
-     * otherwise {@link ItemStack#EMPTY}. Buy/Sell entries always use EMPTY for {@code itemTradeSecondary}.
+     * Trades tab (item-for-item): {@code result} is drawn on the left = merchant {@code getCostA()} (first input).
+     * {@code costB} is after the arrow = merchant {@code getResult()} (output). {@code itemTradeSecondary} is
+     * merchant {@code getCostB()} when the trade uses two inputs; otherwise {@link ItemStack#EMPTY}.
+     * Buy/Sell entries use {@code result}/{@code costB} with normal buy/sell meaning.
      * {@code categoryName} is used for default/config shop buy tabs (empty for villager trades).
      */
     public record ShopOfferEntry(ItemStack result,
@@ -310,6 +311,23 @@ public final class CobbleDollarsShopPayloads {
                                 Objects.requireNonNull(quantity)
                         )
                 ));
+
+        @Override
+        public Type<? extends CustomPacketPayload> type() {
+            return TYPE;
+        }
+    }
+
+    /**
+     * Client -> Server: Player dismissed the CobbleDollars shop (Esc or close). On integrated singleplayer / LAN,
+     * we avoid {@link net.minecraft.world.entity.npc.AbstractVillager#setTradingPlayer} during trades so the GUI
+     * stays open; this clears the merchant session when the UI actually closes.
+     */
+    public record ShopScreenClosed(int villagerId) implements CustomPacketPayload {
+        public static final CustomPacketPayload.Type<ShopScreenClosed> TYPE =
+                new CustomPacketPayload.Type<>(Objects.requireNonNull(id("shop_screen_closed")));
+        public static final StreamCodec<RegistryFriendlyByteBuf, ShopScreenClosed> STREAM_CODEC =
+                StreamCodec.composite(VAR_INT, ShopScreenClosed::villagerId, ShopScreenClosed::new);
 
         @Override
         public Type<? extends CustomPacketPayload> type() {

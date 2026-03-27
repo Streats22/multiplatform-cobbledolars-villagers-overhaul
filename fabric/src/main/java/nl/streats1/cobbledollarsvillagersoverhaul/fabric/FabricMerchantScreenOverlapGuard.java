@@ -137,10 +137,10 @@ public final class FabricMerchantScreenOverlapGuard {
 
         // No GUI: recover only after a short delay so we do not stack reopens on the same frame as the first open.
         if (mc.screen == null && mc.player != null && mc.level != null
-                && ticksSinceArm >= RECOVERY_START_TICK && ticksSinceArm <= 5 && earlyNullRecoveryAttempts < 4) {
+                && ticksSinceArm >= RECOVERY_START_TICK && ticksSinceArm <= 5 && earlyNullRecoveryAttempts < 1) {
             earlyNullRecoveryAttempts++;
             CobbleDollarsVillagersOverhaulRca.LOGGER.debug(
-                    "[shop] Fabric guard: early-null recovery ticksSinceArm={} attempt={}/4 ticksRemaining={}",
+                    "[shop] Fabric guard: early-null recovery ticksSinceArm={} attempt={}/1 ticksRemaining={}",
                     ticksSinceArm, earlyNullRecoveryAttempts, ticksRemaining);
             reopenFromCache(mc, "early-null");
             ticksRemaining = Math.max(ticksRemaining, 28);

@@ -5,14 +5,13 @@ import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import nl.streats1.cobbledollarsvillagersoverhaul.CobbleDollarsVillagersOverhaulRca;
-
-import java.util.Objects;
-
 import nl.streats1.cobbledollarsvillagersoverhaul.Config;
 import nl.streats1.cobbledollarsvillagersoverhaul.client.screen.CobbleDollarsShopScreen;
 import nl.streats1.cobbledollarsvillagersoverhaul.network.CobbleDollarsShopPayloadHandlers;
 import nl.streats1.cobbledollarsvillagersoverhaul.network.CobbleDollarsShopPayloads;
 import nl.streats1.cobbledollarsvillagersoverhaul.platform.PlatformNetwork;
+
+import java.util.Objects;
 
 public final class NeoForgeNetworking {
     private NeoForgeNetworking() {
@@ -104,6 +103,16 @@ public final class NeoForgeNetworking {
                 (data, context) -> context.enqueueWork(() -> {
                     if (context.player() instanceof ServerPlayer sp) {
                         CobbleDollarsShopPayloadHandlers.handleAssignVillager(sp, data.villagerId());
+                    }
+                })
+        );
+
+        registrar.playToServer(
+                Objects.requireNonNull(CobbleDollarsShopPayloads.ShopScreenClosed.TYPE),
+                Objects.requireNonNull(CobbleDollarsShopPayloads.ShopScreenClosed.STREAM_CODEC),
+                (data, context) -> context.enqueueWork(() -> {
+                    if (context.player() instanceof ServerPlayer sp) {
+                        CobbleDollarsShopPayloadHandlers.handleShopScreenClosed(sp, data.villagerId());
                     }
                 })
         );

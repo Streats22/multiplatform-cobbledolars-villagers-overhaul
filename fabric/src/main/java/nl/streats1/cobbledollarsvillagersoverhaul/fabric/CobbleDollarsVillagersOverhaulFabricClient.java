@@ -5,14 +5,10 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
-
 import nl.streats1.cobbledollarsvillagersoverhaul.CobbleDollarsVillagersOverhaulRca;
-import net.minecraft.client.Minecraft;
-
+import nl.streats1.cobbledollarsvillagersoverhaul.Config;
 import nl.streats1.cobbledollarsvillagersoverhaul.client.ClientAssignMode;
 import nl.streats1.cobbledollarsvillagersoverhaul.client.CycleTradesKeybind;
-import nl.streats1.cobbledollarsvillagersoverhaul.Config;
-import nl.streats1.cobbledollarsvillagersoverhaul.fabric.ConfigFabric;
 import nl.streats1.cobbledollarsvillagersoverhaul.client.screen.CobbleDollarsShopScreen;
 import nl.streats1.cobbledollarsvillagersoverhaul.network.CobbleDollarsShopPayloads;
 import nl.streats1.cobbledollarsvillagersoverhaul.platform.PlatformNetwork;
@@ -26,10 +22,14 @@ public class CobbleDollarsVillagersOverhaulFabricClient implements ClientModInit
 
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
             FabricMerchantScreenOverlapGuard.clear();
+            FabricPendingCustomShopScreen.clear("disconnect");
             ConfigFabric.loadConfig();
         });
 
-        ClientTickEvents.END_CLIENT_TICK.register(FabricMerchantScreenOverlapGuard::onEndClientTick);
+        ClientTickEvents.END_CLIENT_TICK.register(client -> {
+            FabricPendingCustomShopScreen.onClientTick();
+            FabricMerchantScreenOverlapGuard.onEndClientTick(client);
+        });
 
         KeyBindingHelper.registerKeyBinding(CYCLE_TRADES_KEY);
 
@@ -50,6 +50,7 @@ public class CobbleDollarsVillagersOverhaulFabricClient implements ClientModInit
         ClientPlayNetworking.registerGlobalReceiver(CobbleDollarsShopPayloads.ShopData.TYPE, 
             (payload, context) -> {
                 context.client().execute(() -> {
+                    FabricPendingCustomShopScreen.onShopDataReceived(payload.villagerId());
                     CobbleDollarsVillagersOverhaulRca.LOGGER.debug(
                             "[shop] ShopData S2C: villagerId={} balance={} buyOffers={} sellOffers={} tradesOffers={} fromConfig={} canCycle={}",
                             payload.villagerId(),
@@ -59,7 +60,12 @@ public class CobbleDollarsVillagersOverhaulFabricClient implements ClientModInit
                             payload.tradesOffers() != null ? payload.tradesOffers().size() : 0,
                             payload.buyOffersFromConfig(),
                             payload.canCycleTrades());
-                    FabricMerchantScreenOverlapGuard.arm(payload);
+                    var client = context.client();
+                    boolean shopAlreadyOpen = client.screen instanceof CobbleDollarsShopScreen s
+                            && s.shopTargetEntityId() == payload.villagerId();
+                    if (!shopAlreadyOpen) {
+                        FabricMerchantScreenOverlapGuard.arm(payload);
+                    }
                     CobbleDollarsShopScreen.openFromPayload(
                         payload.villagerId(), 
                         payload.balance(), 
@@ -69,8 +75,9 @@ public class CobbleDollarsVillagersOverhaulFabricClient implements ClientModInit
                         payload.buyOffersFromConfig(),
                         payload.canCycleTrades()
                     );
-                    var client = context.client();
-                    FabricMerchantScreenOverlapGuard.scheduleDeferredRecheck(client);
+                    if (!shopAlreadyOpen) {
+                        FabricMerchantScreenOverlapGuard.scheduleDeferredRecheck(client);
+                    }
                     CobbleDollarsVillagersOverhaulRca.LOGGER.debug(
                             "[shop] ShopData handler: after openFromPayload screen={}",
                             client.screen != null ? client.screen.getClass().getSimpleName() : "null");
