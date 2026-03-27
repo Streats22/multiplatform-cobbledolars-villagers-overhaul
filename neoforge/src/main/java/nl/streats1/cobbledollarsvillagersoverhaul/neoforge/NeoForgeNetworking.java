@@ -32,13 +32,19 @@ public final class NeoForgeNetworking {
         );
 
         registrar.playToClient(
+                Objects.requireNonNull(CobbleDollarsShopPayloads.ServerShopConfigSync.TYPE),
+                Objects.requireNonNull(CobbleDollarsShopPayloads.ServerShopConfigSync.STREAM_CODEC),
+                (data, context) -> context.enqueueWork(() ->
+                        Config.applyServerShopRuntimeConfig(
+                                data.useCobbleDollarsShopUi(),
+                                data.villagersAcceptCobbleDollars(),
+                                data.useDatapackTrades(),
+                                data.useRctTradesOverhaul())));
+
+        registrar.playToClient(
                 Objects.requireNonNull(CobbleDollarsShopPayloads.ShopData.TYPE),
                 Objects.requireNonNull(CobbleDollarsShopPayloads.ShopData.STREAM_CODEC),
                 (data, context) -> context.enqueueWork(() -> {
-                        if (!Config.USE_COBBLEDOLLARS_SHOP_UI) {
-                            CobbleDollarsVillagersOverhaulRca.LOGGER.debug("[shop] ShopData S2C ignored: USE_COBBLEDOLLARS_SHOP_UI=false");
-                            return;
-                        }
                         CobbleDollarsVillagersOverhaulRca.LOGGER.debug(
                                 "[shop] ShopData S2C: villagerId={} balance={} buyOffers={} sellOffers={} tradesOffers={} fromConfig={} canCycle={}",
                                 data.villagerId(),
@@ -89,6 +95,33 @@ public final class NeoForgeNetworking {
                         CobbleDollarsShopPayloadHandlers.handleSell(sp, data.villagerId(), data.offerIndex(), data.quantity());
                     }
                 })
+        );
+
+        registrar.playToServer(
+                Objects.requireNonNull(CobbleDollarsShopPayloads.AssignVillager.TYPE),
+                Objects.requireNonNull(CobbleDollarsShopPayloads.AssignVillager.STREAM_CODEC),
+                (data, context) -> context.enqueueWork(() -> {
+                    if (context.player() instanceof ServerPlayer sp) {
+                        CobbleDollarsShopPayloadHandlers.handleAssignVillager(sp, data.villagerId());
+                    }
+                })
+        );
+
+        registrar.playToServer(
+                Objects.requireNonNull(CobbleDollarsShopPayloads.ShopScreenClosed.TYPE),
+                Objects.requireNonNull(CobbleDollarsShopPayloads.ShopScreenClosed.STREAM_CODEC),
+                (data, context) -> context.enqueueWork(() -> {
+                    if (context.player() instanceof ServerPlayer sp) {
+                        CobbleDollarsShopPayloadHandlers.handleShopScreenClosed(sp, data.villagerId());
+                    }
+                })
+        );
+
+        registrar.playToClient(
+                Objects.requireNonNull(CobbleDollarsShopPayloads.AssignModeUpdate.TYPE),
+                Objects.requireNonNull(CobbleDollarsShopPayloads.AssignModeUpdate.STREAM_CODEC),
+                (data, context) -> context.enqueueWork(() ->
+                        nl.streats1.cobbledollarsvillagersoverhaul.client.ClientAssignMode.setInMode(data.on()))
         );
     }
 

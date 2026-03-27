@@ -4,7 +4,8 @@
   "package": "nl.streats1.cobbledollarsvillagersoverhaul.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
-    "BankMixin"
+    "BankMixin",
+    "MerchantTradeOrbSuppressionMixin"
   ],
   "client": [],
   "server": []

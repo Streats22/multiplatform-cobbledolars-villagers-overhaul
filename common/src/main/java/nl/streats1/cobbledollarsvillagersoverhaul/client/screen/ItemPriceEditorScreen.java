@@ -1,5 +1,6 @@
 package nl.streats1.cobbledollarsvillagersoverhaul.client.screen;
 
+import com.google.gson.Gson;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
@@ -12,96 +13,78 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import nl.streats1.cobbledollarsvillagersoverhaul.integration.CurrencyEntryRecord;
-import nl.streats1.cobbledollarsvillagersoverhaul.integration.CustomCurrencyConfig;
+import nl.streats1.cobbledollarsvillagersoverhaul.integration.DatapackItemPricing;
+import nl.streats1.cobbledollarsvillagersoverhaul.integration.ItemPriceConfig;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.function.Consumer;
+import java.util.*;
 
 /**
- * GUI for editing custom currency items. Users can add items by:
- * - Holding an item and clicking "Add held item"
- * - Clicking "Browse items" to pick from all registered items
+ * GUI for editing custom item prices used in villager item-for-item trades.
+ * Affects trades where players give items (e.g. diamonds) to receive other items.
+ * Items without a custom price use the emerald rate (1 item = 1 emerald value).
  */
-public class CustomCurrencyConfigScreen extends Screen {
+public class ItemPriceEditorScreen extends Screen {
 
     private final Screen parent;
-    private final Consumer<List<CurrencyEntryRecord>> onSave;
-    private final boolean useFile; // Fabric: save to file. NeoForge: pass JSON to callback
-    private List<CurrencyEntryRecord> entries = new ArrayList<>();
-    private CurrencyListWidget listWidget;
+    private Map<String, Integer> entries = new LinkedHashMap<>();
+    private PriceListWidget listWidget;
     private EditBox valueEdit;
     private Button minusBtn;
     private Button plusBtn;
     private boolean valueEditWasFocused;
     private static final int ROW_HEIGHT = 24;
-    private static final int DEFAULT_VALUE = 750;
+    private static final int DEFAULT_PRICE = 100;
     private static final int PANEL_PAD = 16;
 
-    public CustomCurrencyConfigScreen(Screen parent, Consumer<List<CurrencyEntryRecord>> onSave, boolean useFile) {
-        this(parent, onSave, useFile, null);
+    public ItemPriceEditorScreen(Screen parent) {
+        this(parent, null);
     }
 
-    /** Constructor with initial entries - use when returning from picker so changes are visible. */
-    public CustomCurrencyConfigScreen(Screen parent, Consumer<List<CurrencyEntryRecord>> onSave, boolean useFile,
-                                      List<CurrencyEntryRecord> initialEntries) {
-        super(Component.translatable("gui.cobbledollars_villagers_overhaul_rca.custom_currencies"));
+    public ItemPriceEditorScreen(Screen parent, Map<String, Integer> initialEntries) {
+        super(Component.translatable("gui.cobbledollars_villagers_overhaul_rca.edit_item_prices_title"));
         this.parent = parent;
-        this.onSave = onSave;
-        this.useFile = useFile;
-        if (initialEntries != null) this.entries = new ArrayList<>(initialEntries);
+        if (initialEntries != null) this.entries = new LinkedHashMap<>(initialEntries);
     }
 
     @Override
     protected void init() {
         if (entries.isEmpty()) {
-            CustomCurrencyConfig.ensureLoadedForUi();
-            entries = new ArrayList<>(CustomCurrencyConfig.getEntries());
+            entries = new LinkedHashMap<>(ItemPriceConfig.loadEntries());
         }
 
         int panelLeft = PANEL_PAD;
         int panelRight = width - PANEL_PAD;
         int listTop = 48;
         int listBottom = height - 88;
-        listWidget = new CurrencyListWidget(minecraft, panelRight - panelLeft - 24, listBottom - listTop, listTop, ROW_HEIGHT);
+        listWidget = new PriceListWidget(minecraft, panelRight - panelLeft - 24, listBottom - listTop, listTop, ROW_HEIGHT);
         listWidget.setX(panelLeft + 12);
         listWidget.setY(listTop);
         addRenderableWidget(listWidget);
         listWidget.refresh();
 
-        // Add held item
         addRenderableWidget(Button.builder(
                         Component.translatable("gui.cobbledollars_villagers_overhaul_rca.add_held_item"),
                         b -> addHeldItem())
                 .bounds(width / 2 - 155, height - 56, 150, 20)
                 .build());
 
-        // Browse items - pass callback that adds then opens fresh screen so new items are visible
         addRenderableWidget(Button.builder(
                         Component.translatable("gui.cobbledollars_villagers_overhaul_rca.browse_items"),
-                        b -> minecraft.setScreen(new nl.streats1.cobbledollarsvillagersoverhaul.client.screen.ItemPickerScreen(this, (id, val) -> {
+                        b -> minecraft.setScreen(new ItemPickerScreen(this, (id, val) -> {
                             addEntry(id, val);
-                            minecraft.setScreen(new CustomCurrencyConfigScreen(parent, onSave, useFile, getEntries()));
-                        }, DEFAULT_VALUE)))
+                            minecraft.setScreen(new ItemPriceEditorScreen(parent, getEntries()));
+                        }, DEFAULT_PRICE)))
                 .bounds(width / 2 - 5, height - 56, 150, 20)
                 .build());
 
-        // Back (discard changes)
-        addRenderableWidget(Button.builder(
-                        Component.translatable("gui.back"),
-                        b -> minecraft.setScreen(parent))
+        addRenderableWidget(Button.builder(Component.translatable("gui.back"), b -> minecraft.setScreen(parent))
                 .bounds(width / 2 - 155, height - 32, 100, 20)
                 .build());
 
-        // Done (save and close)
-        addRenderableWidget(Button.builder(
-                        Component.translatable("gui.done"),
-                        b -> saveAndClose())
+        addRenderableWidget(Button.builder(Component.translatable("gui.done"), b -> saveAndClose())
                 .bounds(width / 2 - 50, height - 32, 100, 20)
                 .build());
 
-        // Value editor row: [-] [EditBox] [+] - click an item above to edit its value
         int valueRowY = height - 86;
         int valueCenterX = width / 2;
         minusBtn = Button.builder(Component.literal("−"), b -> adjustValue(-1))
@@ -113,9 +96,7 @@ public class CustomCurrencyConfigScreen extends Screen {
 
         valueEdit = new EditBox(font, valueCenterX - 70, valueRowY, 46, 20, Component.translatable("gui.cobbledollars_villagers_overhaul_rca.value"));
         valueEdit.setHint(Component.translatable("gui.cobbledollars_villagers_overhaul_rca.value_hint"));
-        valueEdit.setVisible(true);
         valueEdit.setFilter(s -> s.isEmpty() || s.matches("\\d*"));
-        valueEdit.setResponder(s -> {}); // Don't update on every keystroke - use blur/Done
         addRenderableWidget(valueEdit);
     }
 
@@ -123,53 +104,41 @@ public class CustomCurrencyConfigScreen extends Screen {
         if (minecraft.player == null) return;
         ItemStack held = minecraft.player.getMainHandItem();
         if (held.isEmpty()) {
-            if (minecraft.player != null) {
-                minecraft.player.displayClientMessage(Component.translatable("gui.cobbledollars_villagers_overhaul_rca.hold_item_first"), true);
-            }
+            minecraft.player.displayClientMessage(Component.translatable("gui.cobbledollars_villagers_overhaul_rca.hold_item_first"), true);
             return;
         }
-        addEntry(BuiltInRegistries.ITEM.getKey(held.getItem()).toString(), DEFAULT_VALUE);
+        addEntry(BuiltInRegistries.ITEM.getKey(held.getItem()).toString(), DEFAULT_PRICE);
     }
 
-    private void addEntry(String itemId, int value) {
+    private void addEntry(String itemId, int price) {
         String id = itemId.contains(":") ? itemId : "minecraft:" + itemId;
-        if (entries.stream().anyMatch(e -> e.itemId().equalsIgnoreCase(id))) return;
-        entries.add(new CurrencyEntryRecord(id, value));
+        if (entries.containsKey(id)) return;
+        entries.put(id, price);
         listWidget.refresh();
     }
 
     private void removeEntry(String itemId) {
-        entries.removeIf(e -> e.itemId().equalsIgnoreCase(itemId));
+        entries.remove(itemId);
         listWidget.refresh();
     }
 
     private void updateValue(String itemId, int newValue) {
-        for (int i = 0; i < entries.size(); i++) {
-            if (entries.get(i).itemId().equalsIgnoreCase(itemId)) {
-                entries.set(i, new CurrencyEntryRecord(itemId, newValue));
-                break;
-            }
+        if (entries.containsKey(itemId)) {
+            entries.put(itemId, newValue);
+            listWidget.refresh();
         }
-        listWidget.refresh();
     }
 
     private void saveAndClose() {
         applyValueFromEdit();
-        CustomCurrencyConfig.replaceEntries(entries);
-        CustomCurrencyConfig.writeEntriesToFile(entries);
-        if (useFile) {
-            CustomCurrencyConfig.saveToFile();
-        } else {
-            onSave.accept(entries);
-        }
+        ItemPriceConfig.saveEntries(entries);
+        // Reload into DatapackItemPricing
+        DatapackItemPricing.loadCustomPrices(buildJsonFromEntries());
         minecraft.setScreen(parent);
     }
 
-    @Override
-    public void onClose() {
-        if (parent != null) {
-            minecraft.setScreen(parent);
-        }
+    private String buildJsonFromEntries() {
+        return new Gson().toJson(entries);
     }
 
     @Override
@@ -188,42 +157,41 @@ public class CustomCurrencyConfigScreen extends Screen {
             String s = valueEdit.getValue().trim();
             if (!s.isEmpty()) {
                 int v = Integer.parseInt(s);
-                if (v > 0) updateValue(sel.getRecord().itemId(), Math.min(v, 999999));
+                if (v > 0) updateValue(sel.getItemId(), Math.min(v, 999999));
             }
-        } catch (NumberFormatException ignored) {}
+        } catch (NumberFormatException ignored) {
+        }
     }
 
     private void adjustValue(int delta) {
         if (listWidget == null) return;
         var sel = listWidget.getSelected();
         if (sel == null) return;
-        int current = sel.getRecord().value();
+        int current = sel.getPrice();
         int next = Math.max(1, Math.min(999999, current + delta));
-        updateValue(sel.getRecord().itemId(), next);
+        updateValue(sel.getItemId(), next);
         if (valueEdit != null) valueEdit.setValue(String.valueOf(next));
     }
 
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
-        var sel = listWidget.getSelected();
+        var sel = listWidget != null ? listWidget.getSelected() : null;
         boolean hasSel = sel != null;
-        if (hasSel) {
-            valueEdit.setEditable(true);
-            valueEdit.setHint(Component.literal(""));
-            if (!valueEdit.isFocused() && !valueEdit.getValue().equals(String.valueOf(sel.getRecord().value()))) {
-                valueEdit.setValue(String.valueOf(sel.getRecord().value()));
+        if (valueEdit != null) {
+            valueEdit.setEditable(hasSel);
+            if (hasSel) {
+                if (!valueEdit.isFocused() && !valueEdit.getValue().equals(String.valueOf(sel.getPrice()))) {
+                    valueEdit.setValue(String.valueOf(sel.getPrice()));
+                }
+            } else {
+                valueEdit.setValue("");
+                valueEdit.setHint(Component.translatable("gui.cobbledollars_villagers_overhaul_rca.value_hint"));
             }
-        } else {
-            valueEdit.setEditable(false);
-            valueEdit.setValue("");
-            valueEdit.setHint(Component.translatable("gui.cobbledollars_villagers_overhaul_rca.value_hint"));
         }
         if (minusBtn != null) minusBtn.active = hasSel;
         if (plusBtn != null) plusBtn.active = hasSel;
 
         renderBackground(guiGraphics, mouseX, mouseY, partialTick);
-
-        // Panel background
         int panelLeft = PANEL_PAD;
         int panelRight = width - PANEL_PAD;
         int panelTop = 36;
@@ -234,81 +202,80 @@ public class CustomCurrencyConfigScreen extends Screen {
         guiGraphics.fill(panelLeft, panelTop, panelLeft + 1, panelBottom, 0xFF404040);
         guiGraphics.fill(panelRight - 1, panelTop, panelRight, panelBottom, 0xFF202020);
 
-        listWidget.render(guiGraphics, mouseX, mouseY, partialTick);
+        if (listWidget != null) listWidget.render(guiGraphics, mouseX, mouseY, partialTick);
         guiGraphics.drawCenteredString(font, title, width / 2, 12, 0xFFFFFF);
-        guiGraphics.drawCenteredString(font, Component.translatable("gui.cobbledollars_villagers_overhaul_rca.currency_edit_hint"), width / 2, 26, 0xAAAAAA);
+        guiGraphics.drawCenteredString(font, Component.translatable("gui.cobbledollars_villagers_overhaul_rca.item_prices_edit_hint"), width / 2, 26, 0xAAAAAA);
         guiGraphics.drawString(font, Component.translatable("gui.cobbledollars_villagers_overhaul_rca.value_label"), width / 2 - 115, height - 82, 0xCCCCCC);
         super.render(guiGraphics, mouseX, mouseY, partialTick);
     }
 
-    public List<CurrencyEntryRecord> getEntries() {
-        return entries;
+    public Map<String, Integer> getEntries() {
+        return new LinkedHashMap<>(entries);
     }
 
-    private class CurrencyListWidget extends ObjectSelectionList<CurrencyListWidget.Entry> {
-
-        public CurrencyListWidget(Minecraft mc, int w, int h, int y, int itemHeight) {
+    private class PriceListWidget extends ObjectSelectionList<PriceListWidget.Entry> {
+        public PriceListWidget(Minecraft mc, int w, int h, int y, int itemHeight) {
             super(mc, w, h, y, itemHeight);
         }
 
         public void refresh() {
             clearEntries();
-            entries.sort((a, b) -> {
-                boolean aEmerald = "minecraft:emerald".equalsIgnoreCase(a.itemId());
-                boolean bEmerald = "minecraft:emerald".equalsIgnoreCase(b.itemId());
-                if (aEmerald && !bEmerald) return -1;
-                if (!aEmerald && bEmerald) return 1;
-                return a.itemId().compareToIgnoreCase(b.itemId());
-            });
-            for (CurrencyEntryRecord e : entries) {
-                addEntry(new Entry(e));
+            List<Map.Entry<String, Integer>> sorted = new ArrayList<>(entries.entrySet());
+            sorted.sort(Comparator.comparing(e -> e.getKey().toLowerCase()));
+            for (Map.Entry<String, Integer> e : sorted) {
+                addEntry(new Entry(e.getKey(), e.getValue()));
             }
         }
 
         public class Entry extends ObjectSelectionList.Entry<Entry> {
-            private final CurrencyEntryRecord record;
+            private final String itemId;
+            private final int price;
 
-            Entry(CurrencyEntryRecord record) {
-                this.record = record;
+            Entry(String itemId, int price) {
+                this.itemId = itemId;
+                this.price = price;
             }
 
             @Override
             public void render(GuiGraphics guiGraphics, int index, int top, int left, int width, int height, int mouseX, int mouseY, boolean hovered, float partialTick) {
                 Item item;
                 try {
-                    item = BuiltInRegistries.ITEM.get(ResourceLocation.parse(record.itemId()));
+                    item = BuiltInRegistries.ITEM.get(ResourceLocation.parse(itemId));
                 } catch (Exception e) {
                     item = Items.BARRIER;
                 }
                 if (item == null || item == Items.AIR) item = Items.BARRIER;
-                ItemStack stack = new ItemStack(item);
-                guiGraphics.renderItem(stack, left + 2, top + 2);
-                String name = record.itemId();
+                guiGraphics.renderItem(new ItemStack(item), left + 2, top + 2);
+                String name = itemId;
                 if (name.length() > 28) name = name.substring(0, 25) + "...";
-                guiGraphics.drawString(CustomCurrencyConfigScreen.this.font, name, left + 22, top + 6, 0xFFFFFF);
-                guiGraphics.drawString(CustomCurrencyConfigScreen.this.font, String.valueOf(record.value()), left + width - 50, top + 6, 0xAAAAAA);
+                guiGraphics.drawString(ItemPriceEditorScreen.this.font, name, left + 22, top + 6, 0xFFFFFF);
+                guiGraphics.drawString(ItemPriceEditorScreen.this.font, String.valueOf(price), left + width - 50, top + 6, 0xAAAAAA);
             }
 
             @Override
             public Component getNarration() {
-                return Component.literal(record.itemId() + " = " + record.value());
+                return Component.literal(itemId + " = " + price + " CD");
             }
 
             @Override
             public boolean mouseClicked(double mouseX, double mouseY, int button) {
                 if (button == 0) {
-                    CurrencyListWidget.this.setSelected(this);
+                    PriceListWidget.this.setSelected(this);
                     return true;
                 }
                 if (button == 1) {
-                    CustomCurrencyConfigScreen.this.removeEntry(record.itemId());
+                    ItemPriceEditorScreen.this.removeEntry(itemId);
                     return true;
                 }
                 return false;
             }
 
-            public CurrencyEntryRecord getRecord() {
-                return record;
+            public String getItemId() {
+                return itemId;
+            }
+
+            public int getPrice() {
+                return price;
             }
         }
     }

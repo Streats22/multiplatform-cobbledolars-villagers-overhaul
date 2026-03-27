@@ -26,7 +26,8 @@
     "modmenu": "*",
     "casinorocket": "*",
     "trade_cycling": "*",
-    "easy_villagers": "*"
+    "easy_villagers": "*",
+    "villagerconfig": "*"
   },
   "mixins": ["cobbledollars_villagers_overhaul_rca.mixins.json"]
 }

@@ -1,10 +1,8 @@
 package nl.streats1.cobbledollarsvillagersoverhaul.platform;
 
 import com.mojang.logging.LogUtils;
-
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.server.level.ServerPlayer;
-
 import org.slf4j.Logger;
 
 import java.util.Objects;

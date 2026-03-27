@@ -7,12 +7,11 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import nl.streats1.cobbledollarsvillagersoverhaul.CobbleDollarsVillagersOverhaulRca;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-
-import nl.streats1.cobbledollarsvillagersoverhaul.CobbleDollarsVillagersOverhaulRca;
 
 @SuppressWarnings("null")
 public final class CobbleDollarsShopPayloads {
@@ -33,10 +32,16 @@ public final class CobbleDollarsShopPayloads {
      * <p>
      * For RCT trainer association trades:
      * - {@code seriesId} is the series identifier (e.g. "bdsp", "radicalred") for server communication
-     * - {@code seriesName} is the translatable key for the title (e.g. "series.rctmod.bdsp.title")
-     * - {@code seriesTooltip} is the translatable key for the description (e.g. "series.rctmod.bdsp.description")
+     * - {@code seriesName} is the title: a translation key, or {@code literal:...} for plain text from datapack JSON
+     * - {@code seriesTooltip} is the description, same convention as {@code seriesName}
      * - {@code seriesDifficulty} is the difficulty rating (can be fractional for half stars, e.g. 4.5)
      * - {@code seriesCompleted} is the number of times the player has completed this series
+     * <p>
+     * Trades tab (item-for-item): {@code result} is drawn on the left = merchant {@code getCostA()} (first input).
+     * {@code costB} is after the arrow = merchant {@code getResult()} (output). {@code itemTradeSecondary} is
+     * merchant {@code getCostB()} when the trade uses two inputs; otherwise {@link ItemStack#EMPTY}.
+     * Buy/Sell entries use {@code result}/{@code costB} with normal buy/sell meaning.
+     * {@code categoryName} is used for default/config shop buy tabs (empty for villager trades).
      */
     public record ShopOfferEntry(ItemStack result,
                                  int emeraldCount,
@@ -46,7 +51,9 @@ public final class CobbleDollarsShopPayloads {
                                  String seriesName,
                                  String seriesTooltip,
                                  float seriesDifficulty,
-                                 int seriesCompleted) {
+                                 int seriesCompleted,
+                                 ItemStack itemTradeSecondary,
+                                 String categoryName) {
         public static final StreamCodec<RegistryFriendlyByteBuf, ShopOfferEntry> STREAM_CODEC =
                 new StreamCodec<>() {
                     @Override
@@ -59,6 +66,11 @@ public final class CobbleDollarsShopPayloads {
                             costB = new ItemStack(Items.STONE);
                         }
 
+                        ItemStack sec = entry.itemTradeSecondary();
+                        if (sec == null || sec.isEmpty() || sec.is(Items.AIR)) {
+                            sec = new ItemStack(Items.STONE);
+                        }
+
                         ITEM_STACK.encode(buf, result);
                         VAR_INT.encode(buf, entry.emeraldCount());
                         ITEM_STACK.encode(buf, costB);
@@ -68,6 +80,8 @@ public final class CobbleDollarsShopPayloads {
                         STRING_UTF8.encode(buf, entry.seriesTooltip() != null ? entry.seriesTooltip() : "");
                         buf.writeFloat(entry.seriesDifficulty());
                         VAR_INT.encode(buf, entry.seriesCompleted());
+                        ITEM_STACK.encode(buf, sec);
+                        STRING_UTF8.encode(buf, entry.categoryName() != null ? entry.categoryName() : "");
                     }
 
                     @Override
@@ -84,6 +98,12 @@ public final class CobbleDollarsShopPayloads {
                         String seriesTooltip = STRING_UTF8.decode(buf);
                         float seriesDifficulty = buf.readFloat();
                         int seriesCompleted = VAR_INT.decode(buf);
+                        ItemStack itemTradeSecondary = ITEM_STACK.decode(buf);
+                        if (itemTradeSecondary != null && itemTradeSecondary.is(Items.STONE)
+                                && itemTradeSecondary.getCount() == 1) {
+                            itemTradeSecondary = ItemStack.EMPTY;
+                        }
+                        String categoryName = STRING_UTF8.decode(buf);
                         return new ShopOfferEntry(
                                 result,
                                 emeraldCount,
@@ -93,12 +113,19 @@ public final class CobbleDollarsShopPayloads {
                                 seriesName != null ? seriesName : "",
                                 seriesTooltip != null ? seriesTooltip : "",
                                 seriesDifficulty,
-                                seriesCompleted);
+                                seriesCompleted,
+                                itemTradeSecondary != null ? itemTradeSecondary : ItemStack.EMPTY,
+                                categoryName != null ? categoryName : "");
                     }
                 };
 
         public boolean hasCostB() {
             return costB != null && !costB.isEmpty() && !costB.is(Items.AIR);
+        }
+
+        /** Second merchant input for Trades-tab barters; empty for Buy/Sell. */
+        public boolean hasItemTradeSecondary() {
+            return itemTradeSecondary != null && !itemTradeSecondary.isEmpty() && !itemTradeSecondary.is(Items.AIR);
         }
     }
 
@@ -156,6 +183,39 @@ public final class CobbleDollarsShopPayloads {
                                 OFFERS_LIST_CODEC.decode(buf),
                                 OFFERS_LIST_CODEC.decode(buf),
                                 OFFERS_LIST_CODEC.decode(buf),
+                                BOOL.decode(buf),
+                                BOOL.decode(buf))
+                );
+
+        @Override
+        public Type<? extends CustomPacketPayload> type() {
+            return TYPE;
+        }
+    }
+
+    /**
+     * Server → client: authoritative shop flags so multiplayer clients match the dedicated server
+     * (singleplayer already shares one config file; remote clients otherwise read local config only).
+     */
+    public record ServerShopConfigSync(
+            boolean useCobbleDollarsShopUi,
+            boolean villagersAcceptCobbleDollars,
+            boolean useDatapackTrades,
+            boolean useRctTradesOverhaul
+    ) implements CustomPacketPayload {
+        public static final CustomPacketPayload.Type<ServerShopConfigSync> TYPE =
+                new CustomPacketPayload.Type<>(Objects.requireNonNull(id("server_shop_config_sync")));
+        public static final StreamCodec<RegistryFriendlyByteBuf, ServerShopConfigSync> STREAM_CODEC =
+                StreamCodec.of(
+                        (buf, data) -> {
+                            BOOL.encode(buf, data.useCobbleDollarsShopUi());
+                            BOOL.encode(buf, data.villagersAcceptCobbleDollars());
+                            BOOL.encode(buf, data.useDatapackTrades());
+                            BOOL.encode(buf, data.useRctTradesOverhaul());
+                        },
+                        buf -> new ServerShopConfigSync(
+                                BOOL.decode(buf),
+                                BOOL.decode(buf),
                                 BOOL.decode(buf),
                                 BOOL.decode(buf))
                 );
@@ -251,6 +311,53 @@ public final class CobbleDollarsShopPayloads {
                                 Objects.requireNonNull(quantity)
                         )
                 ));
+
+        @Override
+        public Type<? extends CustomPacketPayload> type() {
+            return TYPE;
+        }
+    }
+
+    /**
+     * Client -> Server: Player dismissed the CobbleDollars shop (Esc or close). On integrated singleplayer / LAN,
+     * we avoid {@link net.minecraft.world.entity.npc.AbstractVillager#setTradingPlayer} during trades so the GUI
+     * stays open; this clears the merchant session when the UI actually closes.
+     */
+    public record ShopScreenClosed(int villagerId) implements CustomPacketPayload {
+        public static final CustomPacketPayload.Type<ShopScreenClosed> TYPE =
+                new CustomPacketPayload.Type<>(Objects.requireNonNull(id("shop_screen_closed")));
+        public static final StreamCodec<RegistryFriendlyByteBuf, ShopScreenClosed> STREAM_CODEC =
+                StreamCodec.composite(VAR_INT, ShopScreenClosed::villagerId, ShopScreenClosed::new);
+
+        @Override
+        public Type<? extends CustomPacketPayload> type() {
+            return TYPE;
+        }
+    }
+
+    /**
+     * Client -> Server: Assign config shop to villager (sent when shift+left-click in assign mode).
+     */
+    public record AssignVillager(int villagerId) implements CustomPacketPayload {
+        public static final CustomPacketPayload.Type<AssignVillager> TYPE =
+                new CustomPacketPayload.Type<>(Objects.requireNonNull(id("assign_villager")));
+        public static final StreamCodec<RegistryFriendlyByteBuf, AssignVillager> STREAM_CODEC =
+                StreamCodec.composite(VAR_INT, AssignVillager::villagerId, AssignVillager::new);
+
+        @Override
+        public Type<? extends CustomPacketPayload> type() {
+            return TYPE;
+        }
+    }
+
+    /**
+     * Server -> Client: Sync assign mode on/off.
+     */
+    public record AssignModeUpdate(boolean on) implements CustomPacketPayload {
+        public static final CustomPacketPayload.Type<AssignModeUpdate> TYPE =
+                new CustomPacketPayload.Type<>(Objects.requireNonNull(id("assign_mode_update")));
+        public static final StreamCodec<RegistryFriendlyByteBuf, AssignModeUpdate> STREAM_CODEC =
+                StreamCodec.composite(BOOL, AssignModeUpdate::on, AssignModeUpdate::new);
 
         @Override
         public Type<? extends CustomPacketPayload> type() {

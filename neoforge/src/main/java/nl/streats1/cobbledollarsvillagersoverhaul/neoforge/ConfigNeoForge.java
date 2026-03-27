@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import nl.streats1.cobbledollarsvillagersoverhaul.Config;
+import nl.streats1.cobbledollarsvillagersoverhaul.integration.ItemPriceConfig;
 
 public class ConfigNeoForge {
     private static final ModConfigSpec.Builder BUILDER = new ModConfigSpec.Builder();
@@ -31,6 +32,14 @@ public class ConfigNeoForge {
     public static final ModConfigSpec.BooleanValue USE_COBBLEDOLLARS_SHOP_UI = BUILDER
             .comment("Use CobbleDollars-style shop UI when trading with villagers.")
             .define("useCobbleDollarsShopUi", true);
+
+    public static final ModConfigSpec.BooleanValue USE_RCT_TRADES_OVERHAUL = BUILDER
+            .comment("RCT trainer association: integrate trainer trades with the CobbleDollars shop when applicable.")
+            .define("useRctTradesOverhaul", true);
+
+    public static final ModConfigSpec.BooleanValue USE_DATAPACK_TRADES = BUILDER
+            .comment("Price non-emerald datapack / custom item trades with CobbleDollars using item price tables.")
+            .define("useDatapackTrades", true);
 
     public static final ModConfigSpec.ConfigValue<String> CUSTOM_CURRENCY_ITEMS = BUILDER
             .comment("Items that work like emeralds. 1 emerald = 250 CD. Format: [{\"item\":\"cobblemon:relic_coin\",\"value\":250}]. Value = CobbleDollars per 1 item. Trades with these as cost→BUY, as result→SELL. Empty = use config/cobbledollars_villagers_overhaul_rca/custom_currency.json.")
@@ -61,6 +70,8 @@ public class ConfigNeoForge {
         Config.setVillagersAcceptCobbleDollars(VILLAGERS_ACCEPT_COBBLEDOLLARS.get());
         Config.setFreeMinimumEmeraldTrade(FREE_MINIMUM_EMERALD_TRADE.get());
         Config.setUseCobbleDollarsShopUi(USE_COBBLEDOLLARS_SHOP_UI.get());
+        Config.setUseRctTradesOverhaul(USE_RCT_TRADES_OVERHAUL.get());
+        Config.setUseDatapackTrades(USE_DATAPACK_TRADES.get());
         String excludedNs = EXCLUDED_VILLAGER_PROFESSION_NAMESPACES.get();
         List<String> excludedNamespaces = (excludedNs == null || excludedNs.isBlank())
                 ? List.of()
@@ -74,5 +85,6 @@ public class ConfigNeoForge {
         String customCurrency = CUSTOM_CURRENCY_ITEMS.get();
         nl.streats1.cobbledollarsvillagersoverhaul.integration.CustomCurrencyConfig.setConfigOverride(
                 customCurrency == null || customCurrency.isBlank() || "[]".equals(customCurrency.trim()) ? null : customCurrency);
+        ItemPriceConfig.loadAndApply();
     }
 }

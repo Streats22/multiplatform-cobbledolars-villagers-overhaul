@@ -3,12 +3,10 @@ package nl.streats1.cobbledollarsvillagersoverhaul.integration;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.mojang.logging.LogUtils;
-
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-
 import org.slf4j.Logger;
 
 import java.lang.reflect.Type;
@@ -21,7 +19,7 @@ import java.util.Map;
  */
 public class DatapackItemPricing {
     private static final Logger LOGGER = LogUtils.getLogger();
-    private static Map<String, Integer> customPrices = new HashMap<>();
+    private static final Map<String, Integer> customPrices = new HashMap<>();
     private static boolean pricesLoaded = false;
 
     /**
@@ -48,6 +46,31 @@ public class DatapackItemPricing {
         } catch (Exception e) {
             LOGGER.error("Failed to parse custom item prices: {}", e.getMessage());
         }
+    }
+
+    /**
+     * CobbleDollars total for this stack only when the item has an explicit entry in the custom price map.
+     * Unlike {@link #getPrice(ItemStack)}, does <strong>not</strong> fall back to emerald-rate × count, so
+     * unlisted items return 0. Used to tell true barter (Trades tab) from CD-priced buy offers.
+     */
+    public static int getOverridePrice(ItemStack itemStack) {
+        if (itemStack == null || itemStack.isEmpty()) {
+            return 0;
+        }
+        if (!pricesLoaded || customPrices.isEmpty()) {
+            return 0;
+        }
+        Item item = itemStack.getItem();
+        String itemId = getItemId(item);
+        if (customPrices.containsKey(itemId)) {
+            return customPrices.get(itemId) * itemStack.getCount();
+        }
+        ResourceLocation registryName = BuiltInRegistries.ITEM.getKey(item);
+        String fullId = registryName.toString();
+        if (customPrices.containsKey(fullId)) {
+            return customPrices.get(fullId) * itemStack.getCount();
+        }
+        return 0;
     }
 
     /**
