@@ -5,8 +5,7 @@
   "compatibilityLevel": "JAVA_21",
   "mixins": [
     "BankMixin",
-    "MerchantTradeOrbSuppressionMixin",
-    "MerchantMenuTraderAccessor"
+    "MerchantTradeOrbSuppressionMixin"
   ],
   "client": [
     "MinecraftMerchantSuppressMixin"
