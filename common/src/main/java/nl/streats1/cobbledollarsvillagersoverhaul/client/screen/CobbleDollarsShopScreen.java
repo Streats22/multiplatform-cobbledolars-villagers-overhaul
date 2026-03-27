@@ -68,6 +68,10 @@ public class CobbleDollarsShopScreen extends Screen {
     private static final int LEFT_PANEL_BTN_SIZE = 9;
     private static final int LEFT_PANEL_BUY_W = 31;
     private static final int LEFT_PANEL_BUY_H = 14;
+    /**
+     * Buy/Sell use full size; "Trade" is longer and uses a smaller label on the same texture.
+     */
+    private static final float TRADE_ACTION_BUTTON_TEXT_SCALE = 0.82f;
     private static final int LEFT_PANEL_QTY_BTN_UP_X = 64;
     private static final int LEFT_PANEL_QTY_BTN_GAP = 2;
     private static final int LEFT_PANEL_QTY_BTN_DOWN_X = LEFT_PANEL_QTY_BTN_UP_X + LEFT_PANEL_BTN_SIZE + LEFT_PANEL_QTY_BTN_GAP;
@@ -105,7 +109,7 @@ public class CobbleDollarsShopScreen extends Screen {
     /**
      * Trades tab only: nudge the "→" between emerald price and cost item (GUI px, before row text scale).
      */
-    private static final int LIST_TRADES_ARROW_OFFSET_X = -5;
+    private static final int LIST_TRADES_ARROW_OFFSET_X = -7;
     private static final int LIST_TRADES_ARROW_OFFSET_Y = 2;
     private static final int PRICE_TEXT_OFFSET_Y = 4;
 
@@ -193,7 +197,7 @@ public class CobbleDollarsShopScreen extends Screen {
     private int scrollOffset = 0;
     private boolean scrollbarDragging = false;
     private EditBox quantityBox;
-    private Button actionButton;
+    private TextureOnlyButton actionButton;
     private Button amountMinusButton;
     private Button amountPlusButton;
     private CycleTradesButton cycleTradesButton;
@@ -883,6 +887,7 @@ public class CobbleDollarsShopScreen extends Screen {
                 buttonKey = "gui.cobbledollars_villagers_overhaul_rca.buy";
             }
             actionButton.setMessage(Component.translatable(buttonKey));
+            actionButton.setTextScale(isTradesTab() ? TRADE_ACTION_BUTTON_TEXT_SCALE : 1f);
             actionButton.active = hasSelection && (isSellTab() ? canSell : canAfford);
             int btnX = left + LEFT_PANEL_BUY_X;
             int btnY = top + LEFT_PANEL_BUY_Y;
