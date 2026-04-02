@@ -26,3 +26,9 @@ dependencies {
 tasks.test {
     useJUnitPlatform()
 }
+
+tasks.jar {
+    // Some upstream deps/resources can contribute duplicate entries (e.g. icon.png).
+    // Exclude duplicates so packaging is deterministic.
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}

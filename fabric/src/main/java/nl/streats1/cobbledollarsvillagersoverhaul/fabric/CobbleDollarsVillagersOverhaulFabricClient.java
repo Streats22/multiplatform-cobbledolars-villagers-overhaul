@@ -96,5 +96,9 @@ public class CobbleDollarsVillagersOverhaulFabricClient implements ClientModInit
 
         ClientPlayNetworking.registerGlobalReceiver(CobbleDollarsShopPayloads.AssignModeUpdate.TYPE,
                 (payload, context) -> context.client().execute(() -> ClientAssignMode.setInMode(payload.on())));
+
+        ClientPlayNetworking.registerGlobalReceiver(CobbleDollarsShopPayloads.RctSeriesSelected.TYPE,
+                (payload, context) -> context.client().execute(() ->
+                        CobbleDollarsShopScreen.showRctSeriesJourneyOverlay(payload.seriesTitleStored())));
     }
 }

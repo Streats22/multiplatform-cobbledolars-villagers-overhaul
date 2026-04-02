@@ -1,6 +1,7 @@
 package nl.streats1.cobbledollarsvillagersoverhaul.network;
 
 import com.mojang.logging.LogUtils;
+
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
@@ -16,12 +17,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.trading.Merchant;
 import net.minecraft.world.item.trading.MerchantOffer;
-import nl.streats1.cobbledollarsvillagersoverhaul.AssignModeTracker;
-import nl.streats1.cobbledollarsvillagersoverhaul.Config;
-import nl.streats1.cobbledollarsvillagersoverhaul.ShopTradeOrbSuppression;
-import nl.streats1.cobbledollarsvillagersoverhaul.VirtualShopIds;
-import nl.streats1.cobbledollarsvillagersoverhaul.integration.*;
-import nl.streats1.cobbledollarsvillagersoverhaul.platform.PlatformNetwork;
+
 import org.slf4j.Logger;
 
 import java.lang.invoke.MethodHandle;
@@ -29,6 +25,13 @@ import java.lang.invoke.MethodHandles;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+
+import nl.streats1.cobbledollarsvillagersoverhaul.AssignModeTracker;
+import nl.streats1.cobbledollarsvillagersoverhaul.Config;
+import nl.streats1.cobbledollarsvillagersoverhaul.ShopTradeOrbSuppression;
+import nl.streats1.cobbledollarsvillagersoverhaul.VirtualShopIds;
+import nl.streats1.cobbledollarsvillagersoverhaul.integration.*;
+import nl.streats1.cobbledollarsvillagersoverhaul.platform.PlatformNetwork;
 
 public final class CobbleDollarsShopPayloadHandlers {
     private static final Logger LOGGER = LogUtils.getLogger();
@@ -1805,6 +1808,7 @@ public final class CobbleDollarsShopPayloadHandlers {
             if (targetSeries == null || targetSeries.isEmpty()) {
                 targetSeries = identifySeriesFromOffer(offer, serverPlayer, offerIndex);
             }
+            String targetSeriesTitleStored = null;
 
             if (targetSeries != null) {
                 try {
@@ -1823,6 +1827,7 @@ public final class CobbleDollarsShopPayloadHandlers {
                     if (trainerPlayerData != null) {
                         var setCurrentSeriesMethod = trainerPlayerDataClass.getMethod("setCurrentSeries", String.class);
                         setCurrentSeriesMethod.invoke(trainerPlayerData, targetSeries);
+                        targetSeriesTitleStored = defaultSeriesTitleKey(targetSeries);
                     }
                 } catch (Exception e) {
                 }
@@ -1847,6 +1852,9 @@ public final class CobbleDollarsShopPayloadHandlers {
             serverPlayer.inventoryMenu.broadcastChanges();
 
             completedTrade = true;
+            if (targetSeriesTitleStored != null) {
+                PlatformNetwork.sendToPlayer(serverPlayer, new CobbleDollarsShopPayloads.RctSeriesSelected(targetSeriesTitleStored));
+            }
             return;
         }
 

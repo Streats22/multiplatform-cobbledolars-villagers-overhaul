@@ -4,14 +4,15 @@ import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
+
+import java.util.Objects;
+
 import nl.streats1.cobbledollarsvillagersoverhaul.CobbleDollarsVillagersOverhaulRca;
 import nl.streats1.cobbledollarsvillagersoverhaul.Config;
 import nl.streats1.cobbledollarsvillagersoverhaul.client.screen.CobbleDollarsShopScreen;
 import nl.streats1.cobbledollarsvillagersoverhaul.network.CobbleDollarsShopPayloadHandlers;
 import nl.streats1.cobbledollarsvillagersoverhaul.network.CobbleDollarsShopPayloads;
 import nl.streats1.cobbledollarsvillagersoverhaul.platform.PlatformNetwork;
-
-import java.util.Objects;
 
 public final class NeoForgeNetworking {
     private NeoForgeNetworking() {
@@ -122,6 +123,13 @@ public final class NeoForgeNetworking {
                 Objects.requireNonNull(CobbleDollarsShopPayloads.AssignModeUpdate.STREAM_CODEC),
                 (data, context) -> context.enqueueWork(() ->
                         nl.streats1.cobbledollarsvillagersoverhaul.client.ClientAssignMode.setInMode(data.on()))
+        );
+
+        registrar.playToClient(
+                Objects.requireNonNull(CobbleDollarsShopPayloads.RctSeriesSelected.TYPE),
+                Objects.requireNonNull(CobbleDollarsShopPayloads.RctSeriesSelected.STREAM_CODEC),
+                (data, context) -> context.enqueueWork(() ->
+                        CobbleDollarsShopScreen.showRctSeriesJourneyOverlay(data.seriesTitleStored()))
         );
     }
 

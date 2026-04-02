@@ -7,11 +7,12 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import nl.streats1.cobbledollarsvillagersoverhaul.CobbleDollarsVillagersOverhaulRca;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+
+import nl.streats1.cobbledollarsvillagersoverhaul.CobbleDollarsVillagersOverhaulRca;
 
 @SuppressWarnings("null")
 public final class CobbleDollarsShopPayloads {
@@ -358,6 +359,25 @@ public final class CobbleDollarsShopPayloads {
                 new CustomPacketPayload.Type<>(Objects.requireNonNull(id("assign_mode_update")));
         public static final StreamCodec<RegistryFriendlyByteBuf, AssignModeUpdate> STREAM_CODEC =
                 StreamCodec.composite(BOOL, AssignModeUpdate::on, AssignModeUpdate::new);
+
+        @Override
+        public Type<? extends CustomPacketPayload> type() {
+            return TYPE;
+        }
+    }
+
+    /**
+     * Server -> Client: RCT series trade completed and the player's current series was set.
+     * Sent only after the server has applied the series selection so the client can show the
+     * "A new journey + <series>" overlay at the correct time.
+     *
+     * @param seriesTitleStored translation key or {@code literal:...} (same convention as ShopOfferEntry.seriesName)
+     */
+    public record RctSeriesSelected(String seriesTitleStored) implements CustomPacketPayload {
+        public static final CustomPacketPayload.Type<RctSeriesSelected> TYPE =
+                new CustomPacketPayload.Type<>(Objects.requireNonNull(id("rct_series_selected")));
+        public static final StreamCodec<RegistryFriendlyByteBuf, RctSeriesSelected> STREAM_CODEC =
+                StreamCodec.composite(STRING_UTF8, RctSeriesSelected::seriesTitleStored, RctSeriesSelected::new);
 
         @Override
         public Type<? extends CustomPacketPayload> type() {

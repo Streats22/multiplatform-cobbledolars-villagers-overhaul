@@ -26,6 +26,7 @@ public final class FabricNetworking {
         PayloadTypeRegistry.playS2C().register(CobbleDollarsShopPayloads.BalanceUpdate.TYPE, CobbleDollarsShopPayloads.BalanceUpdate.STREAM_CODEC);
         PayloadTypeRegistry.playS2C().register(CobbleDollarsShopPayloads.ServerShopConfigSync.TYPE, CobbleDollarsShopPayloads.ServerShopConfigSync.STREAM_CODEC);
         PayloadTypeRegistry.playS2C().register(CobbleDollarsShopPayloads.AssignModeUpdate.TYPE, CobbleDollarsShopPayloads.AssignModeUpdate.STREAM_CODEC);
+        PayloadTypeRegistry.playS2C().register(CobbleDollarsShopPayloads.RctSeriesSelected.TYPE, CobbleDollarsShopPayloads.RctSeriesSelected.STREAM_CODEC);
 
         ServerPlayNetworking.registerGlobalReceiver(CobbleDollarsShopPayloads.RequestShopData.TYPE, (payload, context) -> {
             if (!(context.player() instanceof ServerPlayer sp)) {
