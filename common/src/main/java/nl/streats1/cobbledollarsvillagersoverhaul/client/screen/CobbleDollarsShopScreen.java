@@ -15,6 +15,12 @@ import net.minecraft.world.entity.npc.Villager;
 import net.minecraft.world.entity.npc.WanderingTrader;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
 import nl.streats1.cobbledollarsvillagersoverhaul.CobbleDollarsVillagersOverhaulRca;
 import nl.streats1.cobbledollarsvillagersoverhaul.Config;
 import nl.streats1.cobbledollarsvillagersoverhaul.VirtualShopIds;
@@ -28,11 +34,6 @@ import nl.streats1.cobbledollarsvillagersoverhaul.integration.RctTrainerAssociat
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.TradeCyclingModCompat;
 import nl.streats1.cobbledollarsvillagersoverhaul.network.CobbleDollarsShopPayloads;
 import nl.streats1.cobbledollarsvillagersoverhaul.platform.PlatformNetwork;
-
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
 
 /**
  * CobbleDollars-style shop screen: layout aligned with CobbleDollars (balance, category tabs, offer list, quantity, Buy/Sell).
@@ -194,6 +195,9 @@ public class CobbleDollarsShopScreen extends Screen {
     private int selectedTab = 0;
     private int selectedIndex = -1;
     private String selectedSeries = "";
+    // RCT-like feedback when the player selects a new Radical Cobblemon series (trades-row selection).
+    private int seriesSelectionFeedbackTicks = 0;
+    private Component seriesSelectionFeedbackSeriesName = Component.empty();
     private int scrollOffset = 0;
     private boolean scrollbarDragging = false;
     private EditBox quantityBox;
@@ -948,6 +952,68 @@ public class CobbleDollarsShopScreen extends Screen {
             int textColor = bankButton.active ? 0xFFFFFFFF : 0xFFA0A0A0;
             guiGraphics.drawCenteredString(font, bankButton.getMessage(), bankX + BankButton.WIDTH / 2, bankY + (BankButton.HEIGHT - 8) / 2, textColor);
         }
+
+        renderSeriesSelectionFeedback(guiGraphics);
+    }
+
+    @Override
+    public void tick() {
+        super.tick();
+        if (seriesSelectionFeedbackTicks > 0) {
+            seriesSelectionFeedbackTicks--;
+        }
+    }
+
+    private void triggerSeriesSelectionFeedback(CobbleDollarsShopPayloads.ShopOfferEntry entry, String previousSeriesId) {
+        if (entry == null) return;
+        if (!isTradesTab()) return;
+
+        String newSeriesId = entry.seriesId();
+        if (newSeriesId == null || newSeriesId.isEmpty()) return;
+        if (newSeriesId.equals(previousSeriesId)) return;
+
+        // Convert datapack stored text (translation key or literal) to a render-ready component.
+        Component seriesName = seriesStoredTextToComponent(entry.seriesName())
+                .withStyle(ChatFormatting.LIGHT_PURPLE, ChatFormatting.ITALIC);
+
+        this.seriesSelectionFeedbackSeriesName = seriesName;
+        this.seriesSelectionFeedbackTicks = 60; // ~3 seconds
+    }
+
+    private void renderSeriesSelectionFeedback(GuiGraphics guiGraphics) {
+        if (seriesSelectionFeedbackTicks <= 0) return;
+        if (seriesSelectionFeedbackSeriesName == null) return;
+
+        int w = guiWidth();
+        int h = guiHeight();
+
+        float progress = Math.max(0f, Math.min(1f, seriesSelectionFeedbackTicks / 60f));
+        int alpha = (int) (255 * progress);
+        int rgbWhite = 0xFFFFFF;
+        int titleColor = (alpha << 24) | (rgbWhite & 0xFFFFFF);
+
+        // Title-style overlay (center-top)
+        Component overlayTitle = Component.translatable("gui.cobbledollars_villagers_overhaul_rca.series_selected_center_title");
+        Component overlaySubtitle = Component.literal("+ ").withStyle(ChatFormatting.WHITE)
+                .append(seriesSelectionFeedbackSeriesName);
+
+        float titleScale = 1.8f;
+        float subtitleScale = 1.25f;
+        int centerX = Math.round((w / 2f) / titleScale);
+        int baseY = Math.round((h * 0.23f) / titleScale);
+
+        guiGraphics.pose().pushPose();
+        guiGraphics.pose().scale(titleScale, titleScale, 1f);
+        guiGraphics.drawCenteredString(font, overlayTitle, centerX, baseY, titleColor);
+        guiGraphics.pose().popPose();
+
+        int centerX2 = Math.round((w / 2f) / subtitleScale);
+        int subtitleY = Math.round(((h * 0.23f) + 20f) / subtitleScale);
+
+        guiGraphics.pose().pushPose();
+        guiGraphics.pose().scale(subtitleScale, subtitleScale, 1f);
+        guiGraphics.drawCenteredString(font, overlaySubtitle, centerX2, subtitleY, titleColor);
+        guiGraphics.pose().popPose();
     }
 
     private void renderTooltips(GuiGraphics guiGraphics, int mouseX, int mouseY, int left, int top) {
@@ -1292,6 +1358,7 @@ public class CobbleDollarsShopScreen extends Screen {
             for (int t = 0; t < tabNames.size(); t++) {
                 int tY = tabY + t * (CATEGORY_ENTRY_H + tabGapY);
                 if (mouseY >= tY && mouseY < tY + CATEGORY_ENTRY_H) {
+                    String prevSeriesId = selectedSeries;
                     selectedTab = t;
                     var off = tabOffers.get(t);
                     selectedIndex = off.isEmpty() ? -1 : 0;
@@ -1299,6 +1366,7 @@ public class CobbleDollarsShopScreen extends Screen {
                     if (isTradesTab() && selectedIndex >= 0) {
                         CobbleDollarsShopPayloads.ShopOfferEntry selEntry = off.get(selectedIndex);
                         selectedSeries = selEntry.seriesId();
+                        triggerSeriesSelectionFeedback(selEntry, prevSeriesId);
                     }
                     return true;
                 }
@@ -1330,10 +1398,12 @@ public class CobbleDollarsShopScreen extends Screen {
             if (idx >= offers.size()) break;
             int y = listTop + i * listItemHeight;
             if (mouseX >= rowL && mouseX < rowR && mouseY >= y && mouseY < y + listItemHeight) {
+                String prevSeriesId = selectedSeries;
                 selectedIndex = idx;
                 if (isTradesTab()) {
                     CobbleDollarsShopPayloads.ShopOfferEntry selEntry = currentOffers().get(idx);
                     selectedSeries = selEntry.seriesId();
+                    triggerSeriesSelectionFeedback(selEntry, prevSeriesId);
                 }
                 return true;
             }
