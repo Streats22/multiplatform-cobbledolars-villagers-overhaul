@@ -915,6 +915,14 @@ public final class CobbleDollarsShopPayloadHandlers {
                         buyOffers.addAll(configBuy);
                         buyOffersFromConfig = true;
                     }
+                    // Buy tab = default_shop.json only. Villager profession / underlying MerchantOffers are untouched;
+                    // still surface vanilla sell + item-for-item trades so Sell/Trades match the entity's job trades.
+                    allOffers = villager.getOffers();
+                    List<CobbleDollarsShopPayloads.ShopOfferEntry> unusedVanillaBuy = new ArrayList<>();
+                    buildOfferLists(allOffers, unusedVanillaBuy, sellOffers);
+                    buildItemForItemTrades(allOffers, tradesOffers);
+                    // Intentionally omit buildDatapackOffers here: those rows add to the Buy tab and would
+                    // mix with default_shop.json; datapack sell paths are already covered by buildOfferLists.
                 } else {
                     LOGGER.debug("Entity is Villager, processing villager trades");
                     allOffers = villager.getOffers();

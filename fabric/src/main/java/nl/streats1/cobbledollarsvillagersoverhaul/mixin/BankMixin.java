@@ -4,8 +4,6 @@ import com.mojang.logging.LogUtils;
 
 import net.minecraft.world.item.ItemStack;
 
-import nl.streats1.cobbledollarsvillagersoverhaul.integration.CustomCurrencyConfig;
-
 import org.slf4j.Logger;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -16,6 +14,7 @@ import java.lang.reflect.Constructor;
 import java.math.BigInteger;
 
 import fr.harmex.cobbledollars.common.world.item.trading.shop.Bank;
+import nl.streats1.cobbledollarsvillagersoverhaul.integration.CustomCurrencyConfig;
 
 /**
  * Injects our custom currency items into CobbleDollars' bank so they can be deposited.
@@ -28,7 +27,10 @@ public class BankMixin {
     private static final Logger LOGGER = LogUtils.getLogger();
     private static Constructor<?> offerCtor;
 
-    @Inject(method = "contains(Lnet/minecraft/world/item/ItemStack;)Z", at = @At("RETURN"), cancellable = true)
+    /**
+     * Name-only: full descriptors fail AP validation when stub uses Loom namedElements (ItemStack → intermediary in bytecode).
+     */
+    @Inject(method = "contains", at = @At("RETURN"), cancellable = true, remap = false)
     private void onContains(ItemStack stack, CallbackInfoReturnable<Boolean> cir) {
         if (!cir.getReturnValueZ() && stack != null && !stack.isEmpty()) {
             if (CustomCurrencyConfig.isCurrencyItem(stack)) {
@@ -37,7 +39,7 @@ public class BankMixin {
         }
     }
 
-    @Inject(method = "get(Lnet/minecraft/world/item/ItemStack;)Lfr/harmex/cobbledollars/common/world/item/trading/shop/Offer;", at = @At("RETURN"), cancellable = true)
+    @Inject(method = "get", at = @At("RETURN"), cancellable = true, remap = false)
     private void onGet(ItemStack stack, CallbackInfoReturnable<Object> cir) {
         if (cir.getReturnValue() == null && stack != null && !stack.isEmpty()) {
             int value = CustomCurrencyConfig.getCurrencyValue(stack);

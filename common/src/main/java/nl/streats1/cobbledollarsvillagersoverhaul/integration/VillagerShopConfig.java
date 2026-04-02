@@ -1,7 +1,6 @@
 package nl.streats1.cobbledollarsvillagersoverhaul.integration;
 
 import com.google.gson.*;
-import nl.streats1.cobbledollarsvillagersoverhaul.CobbleDollarsVillagersOverhaulRca;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -11,9 +10,15 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
+import nl.streats1.cobbledollarsvillagersoverhaul.CobbleDollarsVillagersOverhaulRca;
+
 /**
- * Tracks which villager entities use the config shop instead of vanilla trades.
- * Persisted to villager_shops.json.
+ * Per-entity assignment: which villager UUIDs use {@code default_shop.json} for the <strong>Buy</strong> tab.
+ * Persisted to {@code villager_shops.json}. Does not change profession, level, or underlying {@code MerchantOffers};
+ * those are only swapped out of the Buy tab in the CobbleDollars UI when this set contains the villager.
+ * <p>
+ * Assign in-game: {@code /cvm assign} (or {@code /cvm unassign}), then <strong>Shift+use</strong> the villager
+ * (requires permission level 2+). NeoForge also fires assign from entity interact events when in assign mode.
  */
 public final class VillagerShopConfig {
 

@@ -2,6 +2,7 @@ package nl.streats1.cobbledollarsvillagersoverhaul.client.screen;
 
 import net.minecraft.Util;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
@@ -391,6 +392,10 @@ public class DefaultShopEditorScreen extends Screen {
         return mouseX >= rowL && mouseX < rowR && mouseY >= y - pad && mouseY < y + ROW_HEIGHT + pad;
     }
 
+    private static boolean isMouseOverEditBox(EditBox box, double mouseX, double mouseY) {
+        return box instanceof AbstractWidget w && w.isMouseOver(mouseX, mouseY);
+    }
+
     /**
      * Player inventory slot under mouse, or -1 (same layout as {@link #renderPlayerInventory}).
      */
@@ -580,11 +585,14 @@ public class DefaultShopEditorScreen extends Screen {
         int left = (width - WINDOW_WIDTH) / 2;
         int top = (height - WINDOW_HEIGHT) / 2;
 
-        // Focus inline EditBoxes before custom hitboxes.
-        if (categoryRenameEdit != null && categoryRenameEdit.isVisible() && categoryRenameEdit.mouseClicked(mouseX, mouseY, button)) {
+        // Only delegate to rename/price EditBoxes when the cursor is over them. Otherwise mouseClicked can
+        // consume the event (e.g. defocus) and clicks never reach the category "+" row below.
+        if (categoryRenameEdit != null && categoryRenameEdit.isVisible() && isMouseOverEditBox(categoryRenameEdit, mouseX, mouseY)
+                && categoryRenameEdit.mouseClicked(mouseX, mouseY, button)) {
             return true;
         }
-        if (inlinePriceEdit != null && inlinePriceEdit.isVisible() && inlinePriceEdit.mouseClicked(mouseX, mouseY, button)) {
+        if (inlinePriceEdit != null && inlinePriceEdit.isVisible() && isMouseOverEditBox(inlinePriceEdit, mouseX, mouseY)
+                && inlinePriceEdit.mouseClicked(mouseX, mouseY, button)) {
             return true;
         }
 
@@ -685,9 +693,11 @@ public class DefaultShopEditorScreen extends Screen {
                                 && mouseY >= badgeY - pad && mouseY < badgeY + TEX_COBBLEDOLLARS_LOGO_H + pad) {
                             inlineEditingItemId = rec.itemId();
                             if (inlinePriceEdit != null) {
+                                layoutInlinePriceEdit(badgeX, badgeY);
                                 inlinePriceEdit.setValue(String.valueOf(rec.price()));
                                 inlinePriceEdit.setVisible(true);
                                 inlinePriceEdit.setFocused(true);
+                                setFocused(inlinePriceEdit);
                             }
                         }
                         return true;
@@ -723,16 +733,6 @@ public class DefaultShopEditorScreen extends Screen {
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        if (inlinePriceEdit != null && inlinePriceEdit.isVisible() && inlinePriceEdit.isFocused()) {
-            if (keyCode == 257 || keyCode == 335) { // Enter / Numpad Enter
-                applyInlinePriceEdit();
-                return true;
-            }
-            if (keyCode == 256) { // Escape
-                cancelInlinePriceEdit();
-                return true;
-            }
-        }
         if (categoryRenameEdit != null && categoryRenameEdit.isVisible() && categoryRenameEdit.isFocused()) {
             if (keyCode == 257 || keyCode == 335) { // Enter / Numpad Enter
                 applyCategoryRename();
@@ -742,8 +742,37 @@ public class DefaultShopEditorScreen extends Screen {
                 stopCategoryRename();
                 return true;
             }
+            if (categoryRenameEdit.keyPressed(keyCode, scanCode, modifiers)) {
+                return true;
+            }
+        }
+        if (inlinePriceEdit != null && inlinePriceEdit.isVisible() && inlinePriceEdit.isFocused()) {
+            if (keyCode == 257 || keyCode == 335) { // Enter / Numpad Enter
+                applyInlinePriceEdit();
+                return true;
+            }
+            if (keyCode == 256) { // Escape
+                cancelInlinePriceEdit();
+                return true;
+            }
+            if (inlinePriceEdit.keyPressed(keyCode, scanCode, modifiers)) {
+                return true;
+            }
         }
         return super.keyPressed(keyCode, scanCode, modifiers);
+    }
+
+    @Override
+    public boolean charTyped(char ch, int modifiers) {
+        if (categoryRenameEdit != null && categoryRenameEdit.isVisible() && categoryRenameEdit.isFocused()
+                && categoryRenameEdit.charTyped(ch, modifiers)) {
+            return true;
+        }
+        if (inlinePriceEdit != null && inlinePriceEdit.isVisible() && inlinePriceEdit.isFocused()
+                && inlinePriceEdit.charTyped(ch, modifiers)) {
+            return true;
+        }
+        return super.charTyped(ch, modifiers);
     }
 
     @Override
@@ -828,6 +857,9 @@ public class DefaultShopEditorScreen extends Screen {
         if (inlinePriceEdit != null) {
             inlinePriceEdit.setVisible(false);
             inlinePriceEdit.setFocused(false);
+        }
+        if (getFocused() == inlinePriceEdit) {
+            setFocused(null);
         }
     }
 
@@ -1089,9 +1121,7 @@ public class DefaultShopEditorScreen extends Screen {
 
             // Inline price editor over the badge (matches click target)
             if (inlineEditingItemId != null && inlineEditingItemId.equalsIgnoreCase(rec.itemId()) && inlinePriceEdit != null) {
-                inlinePriceEdit.setX(badgeX + 2);
-                inlinePriceEdit.setY(badgeY + 1);
-                inlinePriceEdit.setWidth(TEX_COBBLEDOLLARS_LOGO_W - 6);
+                layoutInlinePriceEdit(badgeX, badgeY);
                 inlinePriceEdit.setVisible(true);
             }
         }
@@ -1123,14 +1153,44 @@ public class DefaultShopEditorScreen extends Screen {
         return new ItemStack(item);
     }
 
+    /**
+     * Same geometry as {@link #renderCategoryList} for the named row so clicks/typing work the frame rename starts.
+     */
+    private void layoutCategoryRenameEdit(String name, int left, int top) {
+        if (categoryRenameEdit == null) return;
+        List<String> cats = filteredCategoryNames();
+        int tabX = left + CATEGORY_X;
+        int tabY = top + CATEGORY_LIST_Y;
+        for (int t = 0; t < cats.size(); t++) {
+            if (!Objects.equals(cats.get(t), name)) continue;
+            int y = tabY + t * (CAT_ROW_HEIGHT + CATEGORY_TAB_GAP_Y);
+            int padLeft = 4;
+            int deleteW = 10;
+            int maxW = CATEGORY_W - padLeft - deleteW - 6;
+            categoryRenameEdit.setX(tabX + padLeft);
+            categoryRenameEdit.setY(y + (CAT_ROW_HEIGHT - 14) / 2);
+            categoryRenameEdit.setWidth(maxW);
+            return;
+        }
+    }
+
+    private void layoutInlinePriceEdit(int badgeX, int badgeY) {
+        if (inlinePriceEdit == null) return;
+        inlinePriceEdit.setX(badgeX + 2);
+        inlinePriceEdit.setY(badgeY + 1);
+        inlinePriceEdit.setWidth(TEX_COBBLEDOLLARS_LOGO_W - 6);
+    }
+
     private void startCategoryRename(String name, int left, int top) {
         if (categoryRenameEdit == null) return;
         renamingCategory = name;
         categoryRenameEdit.setValue(name);
         categoryRenameEdit.setCursorPosition(name.length());
         categoryRenameEdit.setHighlightPos(name.length());
-        categoryRenameEdit.setFocused(true);
+        layoutCategoryRenameEdit(name, left, top);
         categoryRenameEdit.setVisible(true);
+        categoryRenameEdit.setFocused(true);
+        setFocused(categoryRenameEdit);
     }
 
     private void stopCategoryRename() {
@@ -1138,6 +1198,9 @@ public class DefaultShopEditorScreen extends Screen {
         if (categoryRenameEdit != null) {
             categoryRenameEdit.setVisible(false);
             categoryRenameEdit.setFocused(false);
+        }
+        if (getFocused() == categoryRenameEdit) {
+            setFocused(null);
         }
     }
 
