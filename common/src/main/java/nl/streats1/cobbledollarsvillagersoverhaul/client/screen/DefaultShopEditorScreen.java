@@ -15,6 +15,7 @@ import net.minecraft.world.item.Items;
 
 import java.util.*;
 
+import nl.streats1.cobbledollarsvillagersoverhaul.client.GuiPriceFormat;
 import nl.streats1.cobbledollarsvillagersoverhaul.client.screen.widget.BankButton;
 import nl.streats1.cobbledollarsvillagersoverhaul.client.screen.widget.InvisibleButton;
 import nl.streats1.cobbledollarsvillagersoverhaul.client.screen.widget.TextureOnlyButton;
@@ -418,17 +419,6 @@ public class DefaultShopEditorScreen extends Screen {
             }
         }
         return -1;
-    }
-
-    /**
-     * Same short scale as {@link CobbleDollarsShopScreen} balance line.
-     */
-    private static String formatBalanceForDisplay(long price) {
-        if (price < 0) return "?";
-        if (price == 0) return "0";
-        if (price >= 1_000_000) return (price / 1_000_000) + "M";
-        if (price >= 1_000) return (price / 1_000) + "K";
-        return String.valueOf(price);
     }
 
     private void adjustQuantity(int delta) {
@@ -1104,7 +1094,7 @@ public class DefaultShopEditorScreen extends Screen {
                 gg.pose().popPose();
             }
 
-            String priceStr = String.valueOf(rec.price());
+            String priceStr = GuiPriceFormat.formatAbbreviated(rec.price());
             int priceX = iconX + LIST_ITEM_ICON_SIZE + OFFER_ROW_GAP_AFTER_ICON;
             int priceY = textY + PRICE_TEXT_OFFSET_Y;
 
@@ -1112,12 +1102,15 @@ public class DefaultShopEditorScreen extends Screen {
             int badgeY = priceY + LIST_PRICE_BADGE_OFFSET_Y - (TEX_COBBLEDOLLARS_LOGO_H - font.lineHeight) / 2;
             blitFull(gg, TEX_COBBLEDOLLARS_LOGO, badgeX, badgeY, TEX_COBBLEDOLLARS_LOGO_W, TEX_COBBLEDOLLARS_LOGO_H);
 
-            gg.pose().pushPose();
-            gg.pose().scale(LIST_TEXT_SCALE, LIST_TEXT_SCALE, 1.0f);
-            int priceDrawX = Math.round(priceX / LIST_TEXT_SCALE);
-            int priceDrawY = Math.round(priceY / LIST_TEXT_SCALE);
-            gg.drawString(font, priceStr, priceDrawX, priceDrawY, 0xFFFFFFFF, false);
-            gg.pose().popPose();
+            boolean editingThisPrice = inlineEditingItemId != null && inlineEditingItemId.equalsIgnoreCase(rec.itemId());
+            if (!editingThisPrice) {
+                gg.pose().pushPose();
+                gg.pose().scale(LIST_TEXT_SCALE, LIST_TEXT_SCALE, 1.0f);
+                int priceDrawX = Math.round(priceX / LIST_TEXT_SCALE);
+                int priceDrawY = Math.round(priceY / LIST_TEXT_SCALE);
+                gg.drawString(font, priceStr, priceDrawX, priceDrawY, 0xFFFFFFFF, false);
+                gg.pose().popPose();
+            }
 
             // Inline price editor over the badge (matches click target)
             if (inlineEditingItemId != null && inlineEditingItemId.equalsIgnoreCase(rec.itemId()) && inlinePriceEdit != null) {
@@ -1174,11 +1167,18 @@ public class DefaultShopEditorScreen extends Screen {
         }
     }
 
+    /**
+     * Places the inline price field inside the CobbleDollars pill, aligned with {@link #renderOfferList}:
+     * static text uses {@code priceX} (see {@link #LIST_PRICE_BADGE_OFFSET_X}: {@code badgeX + 3 == priceX}).
+     */
     private void layoutInlinePriceEdit(int badgeX, int badgeY) {
         if (inlinePriceEdit == null) return;
-        inlinePriceEdit.setX(badgeX + 2);
-        inlinePriceEdit.setY(badgeY + 1);
-        inlinePriceEdit.setWidth(TEX_COBBLEDOLLARS_LOGO_W - 6);
+        int padY = 1;
+        int textLeft = badgeX - LIST_PRICE_BADGE_OFFSET_X;
+        inlinePriceEdit.setX(textLeft);
+        inlinePriceEdit.setY(badgeY + padY);
+        inlinePriceEdit.setWidth(TEX_COBBLEDOLLARS_LOGO_W + LIST_PRICE_BADGE_OFFSET_X - 1);
+        inlinePriceEdit.setHeight(TEX_COBBLEDOLLARS_LOGO_H - 2 * padY);
     }
 
     private void startCategoryRename(String name, int left, int top) {
@@ -1250,7 +1250,7 @@ public class DefaultShopEditorScreen extends Screen {
         blitFull(guiGraphics, TEX_COBBLEDOLLARS_LOGO, balanceBgX, balanceBgY, TEX_COBBLEDOLLARS_LOGO_W, TEX_COBBLEDOLLARS_LOGO_H);
         guiGraphics.drawString(
                 font,
-                formatBalanceForDisplay(balance),
+                GuiPriceFormat.formatAbbreviated(balance),
                 balanceBgX + BALANCE_TEXT_X_OFFSET,
                 balanceBgY + (TEX_COBBLEDOLLARS_LOGO_H - font.lineHeight) / 2 + BALANCE_TEXT_Y_OFFSET,
                 0xFFFFFFFF,
@@ -1279,7 +1279,7 @@ public class DefaultShopEditorScreen extends Screen {
             guiGraphics.pose().popPose();
 
             // Price badge
-            guiGraphics.drawString(font, String.valueOf(selectedOffer.price()), left + LEFT_PANEL_PRICE_X, top + LEFT_PANEL_PRICE_Y, 0xFFFFFFFF, false);
+            guiGraphics.drawString(font, GuiPriceFormat.formatAbbreviated(selectedOffer.price()), left + LEFT_PANEL_PRICE_X, top + LEFT_PANEL_PRICE_Y, 0xFFFFFFFF, false);
         }
     }
 

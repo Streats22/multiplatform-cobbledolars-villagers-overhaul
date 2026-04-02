@@ -108,5 +108,9 @@ public class CobbleDollarsVillagersOverhaulFabricClient implements ClientModInit
                     var client = context.client();
                     client.setScreen(new DefaultShopEditorScreen(client.screen));
                 }));
+
+        ClientPlayNetworking.registerGlobalReceiver(CobbleDollarsShopPayloads.OpenEntityShopEditor.TYPE,
+                (payload, context) -> context.client().execute(() ->
+                        CobbleDollarsShopScreen.openEntityEditorFromPayload(payload)));
     }
 }

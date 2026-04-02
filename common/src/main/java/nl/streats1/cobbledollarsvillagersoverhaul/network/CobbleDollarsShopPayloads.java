@@ -11,6 +11,7 @@ import net.minecraft.world.item.Items;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.UUID;
 
 import nl.streats1.cobbledollarsvillagersoverhaul.CobbleDollarsVillagersOverhaulRca;
 
@@ -378,6 +379,93 @@ public final class CobbleDollarsShopPayloads {
                 new CustomPacketPayload.Type<>(Objects.requireNonNull(id("rct_series_selected")));
         public static final StreamCodec<RegistryFriendlyByteBuf, RctSeriesSelected> STREAM_CODEC =
                 StreamCodec.composite(STRING_UTF8, RctSeriesSelected::seriesTitleStored, RctSeriesSelected::new);
+
+        @Override
+        public Type<? extends CustomPacketPayload> type() {
+            return TYPE;
+        }
+    }
+
+    /**
+     * Server → client: open entity shop editor (same offer data as {@link ShopData}, plus stable entity UUID for save).
+     */
+    public record OpenEntityShopEditor(
+            int villagerId,
+            String entityUuid,
+            long balance,
+            List<ShopOfferEntry> buyOffers,
+            List<ShopOfferEntry> sellOffers,
+            List<ShopOfferEntry> tradesOffers,
+            boolean buyOffersFromConfig,
+            boolean canCycleTrades
+    ) implements CustomPacketPayload {
+        public static final CustomPacketPayload.Type<OpenEntityShopEditor> TYPE =
+                new CustomPacketPayload.Type<>(Objects.requireNonNull(id("open_entity_shop_editor")));
+        public static final StreamCodec<RegistryFriendlyByteBuf, OpenEntityShopEditor> STREAM_CODEC =
+                StreamCodec.of(
+                        (buf, data) -> {
+                            VAR_INT.encode(buf, data.villagerId());
+                            STRING_UTF8.encode(buf, data.entityUuid() != null ? data.entityUuid() : "");
+                            VAR_LONG.encode(buf, data.balance());
+                            OFFERS_LIST_CODEC.encode(buf, data.buyOffers());
+                            OFFERS_LIST_CODEC.encode(buf, data.sellOffers());
+                            OFFERS_LIST_CODEC.encode(buf, data.tradesOffers());
+                            BOOL.encode(buf, data.buyOffersFromConfig());
+                            BOOL.encode(buf, data.canCycleTrades());
+                        },
+                        buf -> {
+                            int vid = VAR_INT.decode(buf);
+                            String uuidStr = STRING_UTF8.decode(buf);
+                            long bal = VAR_LONG.decode(buf);
+                            List<ShopOfferEntry> buy = OFFERS_LIST_CODEC.decode(buf);
+                            List<ShopOfferEntry> sell = OFFERS_LIST_CODEC.decode(buf);
+                            List<ShopOfferEntry> trades = OFFERS_LIST_CODEC.decode(buf);
+                            boolean fromCfg = BOOL.decode(buf);
+                            boolean canCycle = BOOL.decode(buf);
+                            return new OpenEntityShopEditor(vid, uuidStr, bal, buy, sell, trades, fromCfg, canCycle);
+                        });
+
+        @Override
+        public Type<? extends CustomPacketPayload> type() {
+            return TYPE;
+        }
+
+        public UUID entityUuidParsed() {
+            try {
+                return UUID.fromString(entityUuid);
+            } catch (Exception e) {
+                return null;
+            }
+        }
+    }
+
+    /**
+     * Client → server: persist entity shop edits (per-villager buy file + merchant offers).
+     */
+    public record SaveEntityShop(
+            int villagerId,
+            String entityUuid,
+            List<ShopOfferEntry> buyOffers,
+            List<ShopOfferEntry> sellOffers,
+            List<ShopOfferEntry> tradesOffers
+    ) implements CustomPacketPayload {
+        public static final CustomPacketPayload.Type<SaveEntityShop> TYPE =
+                new CustomPacketPayload.Type<>(Objects.requireNonNull(id("save_entity_shop")));
+        public static final StreamCodec<RegistryFriendlyByteBuf, SaveEntityShop> STREAM_CODEC =
+                StreamCodec.of(
+                        (buf, data) -> {
+                            VAR_INT.encode(buf, data.villagerId());
+                            STRING_UTF8.encode(buf, data.entityUuid() != null ? data.entityUuid() : "");
+                            OFFERS_LIST_CODEC.encode(buf, data.buyOffers());
+                            OFFERS_LIST_CODEC.encode(buf, data.sellOffers());
+                            OFFERS_LIST_CODEC.encode(buf, data.tradesOffers());
+                        },
+                        buf -> new SaveEntityShop(
+                                VAR_INT.decode(buf),
+                                STRING_UTF8.decode(buf),
+                                OFFERS_LIST_CODEC.decode(buf),
+                                OFFERS_LIST_CODEC.decode(buf),
+                                OFFERS_LIST_CODEC.decode(buf)));
 
         @Override
         public Type<? extends CustomPacketPayload> type() {

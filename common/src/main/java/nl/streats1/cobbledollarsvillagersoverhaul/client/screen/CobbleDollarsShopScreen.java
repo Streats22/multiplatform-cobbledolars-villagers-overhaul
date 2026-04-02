@@ -24,6 +24,7 @@ import java.util.Map;
 import nl.streats1.cobbledollarsvillagersoverhaul.CobbleDollarsVillagersOverhaulRca;
 import nl.streats1.cobbledollarsvillagersoverhaul.Config;
 import nl.streats1.cobbledollarsvillagersoverhaul.VirtualShopIds;
+import nl.streats1.cobbledollarsvillagersoverhaul.client.GuiPriceFormat;
 import nl.streats1.cobbledollarsvillagersoverhaul.client.screen.widget.BankButton;
 import nl.streats1.cobbledollarsvillagersoverhaul.client.screen.widget.CycleTradesButton;
 import nl.streats1.cobbledollarsvillagersoverhaul.client.screen.widget.InvisibleButton;
@@ -174,6 +175,11 @@ public class CobbleDollarsShopScreen extends Screen {
     private final boolean buyOffersFromConfig;
     private final boolean canCycleTrades;
     /**
+     * When true, the screen is an admin entity shop editor (no live trades; Save writes server).
+     */
+    private final boolean entityEditorMode;
+    private final String entityEditorUuid;
+    /**
      * Tab names (e.g. "Buy", "Sell", "Trades" or custom category names when buyOffersFromConfig).
      * Rebuilt when shop data refreshes so Buy appears after e.g. currency list changes.
      */
@@ -218,7 +224,20 @@ public class CobbleDollarsShopScreen extends Screen {
                                    List<CobbleDollarsShopPayloads.ShopOfferEntry> tradesOffers,
                                    boolean buyOffersFromConfig,
                                    boolean canCycleTrades) {
-        super(Component.translatable("gui.cobbledollars_villagers_overhaul_rca.shop"));
+        this(villagerId, balance, buyOffers, sellOffers, tradesOffers, buyOffersFromConfig, canCycleTrades, false, null);
+    }
+
+    public CobbleDollarsShopScreen(int villagerId, long balance,
+                                   List<CobbleDollarsShopPayloads.ShopOfferEntry> buyOffers,
+                                   List<CobbleDollarsShopPayloads.ShopOfferEntry> sellOffers,
+                                   List<CobbleDollarsShopPayloads.ShopOfferEntry> tradesOffers,
+                                   boolean buyOffersFromConfig,
+                                   boolean canCycleTrades,
+                                   boolean entityEditorMode,
+                                   String entityEditorUuid) {
+        super(entityEditorMode
+                ? Component.translatable("gui.cobbledollars_villagers_overhaul_rca.edit_entity_shop_title")
+                : Component.translatable("gui.cobbledollars_villagers_overhaul_rca.shop"));
         this.villagerId = villagerId;
         this.balance = balance;
         this.buyOffers = buyOffers != null ? new ArrayList<>(buyOffers) : new ArrayList<>();
@@ -226,6 +245,8 @@ public class CobbleDollarsShopScreen extends Screen {
         this.tradesOffers = tradesOffers != null ? new ArrayList<>(tradesOffers) : new ArrayList<>();
         this.buyOffersFromConfig = buyOffersFromConfig;
         this.canCycleTrades = canCycleTrades;
+        this.entityEditorMode = entityEditorMode;
+        this.entityEditorUuid = entityEditorUuid;
 
         rebuildTabs();
         selectFirstNonEmptyTab();
@@ -462,6 +483,44 @@ public class CobbleDollarsShopScreen extends Screen {
     }
 
     /**
+     * Opens the entity shop editor (from {@link CobbleDollarsShopPayloads.OpenEntityShopEditor}).
+     */
+    public static void openEntityEditorFromPayload(CobbleDollarsShopPayloads.OpenEntityShopEditor data) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.level == null) {
+            CobbleDollarsVillagersOverhaulRca.LOGGER.warn("[shop] openEntityEditorFromPayload: level null");
+            return;
+        }
+        String uuid = data.entityUuid() != null ? data.entityUuid() : "";
+        mc.setScreen(new CobbleDollarsShopScreen(
+                data.villagerId(),
+                data.balance(),
+                data.buyOffers(),
+                data.sellOffers(),
+                data.tradesOffers(),
+                data.buyOffersFromConfig(),
+                data.canCycleTrades(),
+                true,
+                uuid));
+    }
+
+    private void saveEntityEditor() {
+        if (!entityEditorMode || entityEditorUuid == null || entityEditorUuid.isEmpty()) {
+            onClose();
+            return;
+        }
+        if (PlatformNetwork.canSendToServer()) {
+            PlatformNetwork.sendToServer(new CobbleDollarsShopPayloads.SaveEntityShop(
+                    villagerId,
+                    entityEditorUuid,
+                    new ArrayList<>(buyOffers),
+                    new ArrayList<>(sellOffers),
+                    new ArrayList<>(tradesOffers)));
+        }
+        onClose();
+    }
+
+    /**
      * Updates an existing shop screen with new offer data (e.g. after cycling trades or a full {@code ShopData} resync).
      * <p>
      * Villager-style layout (single Buy tab + Sell + Trades) stores each tab’s rows in {@link #buyOffers} / sell / trades
@@ -578,11 +637,28 @@ public class CobbleDollarsShopScreen extends Screen {
             bankButton = new BankButton(left + BANK_BUTTON_X, top + BANK_BUTTON_Y, b -> onBank());
             addRenderableWidget(bankButton);
         }
-        if (buyOffersFromConfig) {
+        if (buyOffersFromConfig && !entityEditorMode) {
             int editW = 36;
             int editX = closeX - editW - 4;
             addRenderableWidget(new TextureOnlyButton(editX, closeY, editW, CLOSE_BUTTON_SIZE,
                     Component.translatable("gui.cobbledollars_villagers_overhaul_rca.edit"), b -> openShopEditor()));
+        }
+        if (entityEditorMode) {
+            actionButton.visible = false;
+            actionButton.active = false;
+            amountMinusButton.visible = false;
+            amountPlusButton.visible = false;
+            quantityBox.setVisible(false);
+            if (cycleTradesButton != null) {
+                cycleTradesButton.visible = false;
+            }
+            if (bankButton != null) {
+                bankButton.visible = false;
+            }
+            addRenderableWidget(Button.builder(Component.translatable("gui.done"), b -> saveEntityEditor())
+                    .pos(left + 8, top + 4)
+                    .size(50, 14)
+                    .build());
         }
     }
 
@@ -614,6 +690,9 @@ public class CobbleDollarsShopScreen extends Screen {
     }
 
     private void onAction(Button button) {
+        if (entityEditorMode) {
+            return;
+        }
         var offers = currentOffers();
         if (selectedIndex < 0 || selectedIndex >= offers.size()) return;
         int qty = parseQuantity();
@@ -688,20 +767,22 @@ public class CobbleDollarsShopScreen extends Screen {
         blitFull(guiGraphics, TEX_SHOP_BASE, left, top, TEX_SHOP_BASE_W, TEX_SHOP_BASE_H);
 
         int stripX = left + 8;
-        guiGraphics.drawString(font, Component.translatable("gui.cobbledollars_villagers_overhaul_rca.shop"), stripX, top + 6, 0xFFE0E0E0, false);
+        guiGraphics.drawString(font, entityEditorMode
+                ? Component.translatable("gui.cobbledollars_villagers_overhaul_rca.edit_entity_shop_title")
+                : Component.translatable("gui.cobbledollars_villagers_overhaul_rca.shop"), stripX, top + 6, 0xFFE0E0E0, false);
         int balanceBgX = left + BALANCE_BG_X;
         int balanceBgY = top + BALANCE_BG_Y;
         blitFull(guiGraphics, TEX_COBBLEDOLLARS_LOGO, balanceBgX, balanceBgY, TEX_COBBLEDOLLARS_LOGO_W, TEX_COBBLEDOLLARS_LOGO_H);
         guiGraphics.drawString(
                 font,
-                formatPrice(balance),
+                GuiPriceFormat.formatAbbreviated(balance),
                 balanceBgX + BALANCE_TEXT_X_OFFSET,
                 balanceBgY + (TEX_COBBLEDOLLARS_LOGO_H - font.lineHeight) / 2 + BALANCE_TEXT_Y_OFFSET,
                 0xFFFFFFFF,
                 false
         );
         if (balanceDeltaTicks > 0 && balanceDelta != 0) {
-            String deltaStr = (balanceDelta > 0 ? "+" : "-") + formatPrice(Math.abs(balanceDelta));
+            String deltaStr = (balanceDelta > 0 ? "+" : "-") + GuiPriceFormat.formatAbbreviated(Math.abs(balanceDelta));
             int deltaColor = balanceDelta > 0 ? 0xFF00DD00 : 0xFFDD4040;
             guiGraphics.drawString(
                     font,
@@ -805,7 +886,7 @@ public class CobbleDollarsShopScreen extends Screen {
                 guiGraphics.pose().popPose();
             }
             long price = priceForDisplay(entry);
-            String priceStr = formatPrice(price);
+            String priceStr = GuiPriceFormat.formatAbbreviated(price);
             int priceX = iconX + LIST_ITEM_ICON_SIZE + OFFER_ROW_GAP_AFTER_ICON;
             int priceY = textY + PRICE_TEXT_OFFSET_Y;
             
@@ -1030,7 +1111,7 @@ public class CobbleDollarsShopScreen extends Screen {
                 guiGraphics.pose().popPose();
             }
             long price = priceForDisplay(entry);
-            String priceStr = formatPrice(price);
+            String priceStr = GuiPriceFormat.formatAbbreviated(price);
             int priceColor = isSellTab() ? 0xFF00DD00 : 0xFFFFFFFF;
             guiGraphics.drawString(font, priceStr, left + LEFT_PANEL_PRICE_X, top + LEFT_PANEL_PRICE_Y, priceColor, false);
         }
@@ -1171,7 +1252,7 @@ public class CobbleDollarsShopScreen extends Screen {
                     ItemStack costB = costBStackFrom(entry);
                     if (!costB.isEmpty()) {
                         int priceX = iconX + LIST_ITEM_ICON_SIZE + OFFER_ROW_GAP_AFTER_ICON;
-                        int priceW = Math.round(font.width(formatPrice(priceForDisplay(entry))) * LIST_TEXT_SCALE);
+                        int priceW = Math.round(font.width(GuiPriceFormat.formatAbbreviated(priceForDisplay(entry))) * LIST_TEXT_SCALE);
                         int costBX = priceX + priceW + (selectedTab < buyTabCount ? 2 : 4);  // Match render loop spacing
                         int costBY = isTradesTab() ? iconY : y + (listItemHeight - LIST_ITEM_ICON_SIZE) / 2 + LIST_ICON_OFFSET_Y + 3;
                         float costBScale = isTradesTab() ? LIST_ICON_SCALE : LIST_COSTB_SCALE;
@@ -1444,13 +1525,6 @@ public class CobbleDollarsShopScreen extends Screen {
         if (Config.FREE_MINIMUM_EMERALD_TRADE && entry.emeraldCount() == 1 && !isSellTab()) return 0;
         if (isSellTab()) return (long) entry.emeraldCount() * getRate();
         return (long) entry.emeraldCount() * getRate();
-    }
-
-    private static String formatPrice(long price) {
-        if (price <= 0) return "?";
-        if (price >= 1_000_000) return (price / 1_000_000) + "M";
-        if (price >= 1_000) return (price / 1_000) + "K";
-        return String.valueOf(price);
     }
 
     @Override

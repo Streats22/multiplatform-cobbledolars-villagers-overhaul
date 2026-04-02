@@ -4,18 +4,20 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import nl.streats1.cobbledollarsvillagersoverhaul.Config;
-import nl.streats1.cobbledollarsvillagersoverhaul.network.CobbleDollarsShopPayloads;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.OptionalInt;
+
+import nl.streats1.cobbledollarsvillagersoverhaul.Config;
+import nl.streats1.cobbledollarsvillagersoverhaul.network.CobbleDollarsShopPayloads;
 
 public final class CobbleDollarsConfigHelper {
 
@@ -81,59 +83,70 @@ public final class CobbleDollarsConfigHelper {
         Path configDir = getConfigDirectory();
         Path shopFile = configDir.resolve(COBBLEDOLLARS_CONFIG_SUBDIR).resolve(DEFAULT_SHOP_FILE);
         if (!Files.isRegularFile(shopFile)) return List.of();
+        return parseDefaultShopBuyOffersFromPath(shopFile);
+    }
+
+    /**
+     * Parses CobbleDollars {@code defaultShop} / {@code merchantShop} JSON (same shape as {@code default_shop.json}).
+     */
+    public static List<CobbleDollarsShopPayloads.ShopOfferEntry> parseDefaultShopBuyOffersFromPath(Path shopFile) {
         try {
             String content = Files.readString(shopFile);
             JsonObject root = JsonParser.parseString(content).getAsJsonObject();
-            List<CobbleDollarsShopPayloads.ShopOfferEntry> out = new ArrayList<>();
-            ItemStack empty = ItemStack.EMPTY;
+            return parseDefaultShopBuyOffersFromRoot(root);
+        } catch (Exception e) {
+            return List.of();
+        }
+    }
 
-            if (root.has(DEFAULT_SHOP_KEY)) {
-                JsonElement arrEl = root.get(DEFAULT_SHOP_KEY);
-                if (arrEl.isJsonArray()) {
-                    JsonArray categories = arrEl.getAsJsonArray();
-                    for (JsonElement catEl : categories) {
-                        if (!catEl.isJsonObject()) continue;
-                        JsonObject catObj = catEl.getAsJsonObject();
-                        for (String catName : catObj.keySet()) {
-                            JsonElement offersEl = catObj.get(catName);
-                            if (!offersEl.isJsonArray()) continue;
-                            for (JsonElement offerEl : offersEl.getAsJsonArray()) {
-                                if (!offerEl.isJsonObject()) continue;
-                                JsonObject o = offerEl.getAsJsonObject();
-                                String itemId = o.has("item") ? o.get("item").getAsString() : null;
-                                if (itemId == null || itemId.isEmpty()) continue;
-                                int price = parsePrice(o.get("price"));
-                                if (price <= 0) continue;
-                                ResourceLocation id = ResourceLocation.tryParse(itemId);
-                                if (id == null) continue;
-                                var item = BuiltInRegistries.ITEM.get(id);
-                                if (item == Items.AIR) continue;
-                                out.add(new CobbleDollarsShopPayloads.ShopOfferEntry(new ItemStack(item, 1), price, empty, true, "", "", "", 0, 0, ItemStack.EMPTY, catName != null ? catName : ""));
-                            }
+    private static List<CobbleDollarsShopPayloads.ShopOfferEntry> parseDefaultShopBuyOffersFromRoot(JsonObject root) {
+        List<CobbleDollarsShopPayloads.ShopOfferEntry> out = new ArrayList<>();
+        ItemStack empty = ItemStack.EMPTY;
+
+        if (root.has(DEFAULT_SHOP_KEY)) {
+            JsonElement arrEl = root.get(DEFAULT_SHOP_KEY);
+            if (arrEl.isJsonArray()) {
+                JsonArray categories = arrEl.getAsJsonArray();
+                for (JsonElement catEl : categories) {
+                    if (!catEl.isJsonObject()) continue;
+                    JsonObject catObj = catEl.getAsJsonObject();
+                    for (String catName : catObj.keySet()) {
+                        JsonElement offersEl = catObj.get(catName);
+                        if (!offersEl.isJsonArray()) continue;
+                        for (JsonElement offerEl : offersEl.getAsJsonArray()) {
+                            if (!offerEl.isJsonObject()) continue;
+                            JsonObject o = offerEl.getAsJsonObject();
+                            String itemId = o.has("item") ? o.get("item").getAsString() : null;
+                            if (itemId == null || itemId.isEmpty()) continue;
+                            int price = parsePrice(o.get("price"));
+                            if (price <= 0) continue;
+                            ResourceLocation id = ResourceLocation.tryParse(itemId);
+                            if (id == null) continue;
+                            var item = BuiltInRegistries.ITEM.get(id);
+                            if (item == Items.AIR) continue;
+                            out.add(new CobbleDollarsShopPayloads.ShopOfferEntry(new ItemStack(item, 1), price, empty, true, "", "", "", 0, 0, ItemStack.EMPTY, catName != null ? catName : ""));
                         }
                     }
                 }
             }
-            if (out.isEmpty() && root.has(MERCHANT_SHOP_KEY)) {
-                JsonObject merchantShop = root.getAsJsonObject(MERCHANT_SHOP_KEY);
-                for (String category : merchantShop.keySet()) {
-                    JsonElement catEl = merchantShop.get(category);
-                    if (!catEl.isJsonObject()) continue;
-                    for (String itemId : catEl.getAsJsonObject().keySet()) {
-                        int price = parsePrice(catEl.getAsJsonObject().get(itemId));
-                        if (price <= 0) continue;
-                        ResourceLocation id = ResourceLocation.tryParse(itemId);
-                        if (id == null) continue;
-                        var item = BuiltInRegistries.ITEM.get(id);
-                        if (item == Items.AIR) continue;
-                        out.add(new CobbleDollarsShopPayloads.ShopOfferEntry(new ItemStack(item, 1), price, empty, true, "", "", "", 0, 0, ItemStack.EMPTY, category));
-                    }
+        }
+        if (out.isEmpty() && root.has(MERCHANT_SHOP_KEY)) {
+            JsonObject merchantShop = root.getAsJsonObject(MERCHANT_SHOP_KEY);
+            for (String category : merchantShop.keySet()) {
+                JsonElement catEl = merchantShop.get(category);
+                if (!catEl.isJsonObject()) continue;
+                for (String itemId : catEl.getAsJsonObject().keySet()) {
+                    int price = parsePrice(catEl.getAsJsonObject().get(itemId));
+                    if (price <= 0) continue;
+                    ResourceLocation id = ResourceLocation.tryParse(itemId);
+                    if (id == null) continue;
+                    var item = BuiltInRegistries.ITEM.get(id);
+                    if (item == Items.AIR) continue;
+                    out.add(new CobbleDollarsShopPayloads.ShopOfferEntry(new ItemStack(item, 1), price, empty, true, "", "", "", 0, 0, ItemStack.EMPTY, category));
                 }
             }
-            return out;
-        } catch (Exception e) {
-            return List.of();
         }
+        return out;
     }
 
     private static int parsePrice(JsonElement el) {

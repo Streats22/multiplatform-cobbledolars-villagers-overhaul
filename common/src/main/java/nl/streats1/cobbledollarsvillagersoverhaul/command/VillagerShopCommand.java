@@ -2,19 +2,20 @@ package nl.streats1.cobbledollarsvillagersoverhaul.command;
 
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.context.CommandContext;
+
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.npc.Villager;
-import net.minecraft.world.entity.npc.VillagerProfession;
 import net.minecraft.world.entity.npc.WanderingTrader;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
-import nl.streats1.cobbledollarsvillagersoverhaul.integration.RctTrainerAssociationCompat;
-import nl.streats1.cobbledollarsvillagersoverhaul.network.CobbleDollarsShopPayloadHandlers;
 
 import java.util.Comparator;
 import java.util.List;
+
+import nl.streats1.cobbledollarsvillagersoverhaul.integration.RctTrainerAssociationCompat;
+import nl.streats1.cobbledollarsvillagersoverhaul.network.CobbleDollarsShopPayloadHandlers;
 
 /**
  * Command similar to CobbleDollars' /cobblemerchant edit.
@@ -57,8 +58,9 @@ public final class VillagerShopCommand {
 
     /**
      * Find the villager, wandering trader, or RCT Trainer Association the player is looking at.
+     * Includes unemployed villagers (no workstation yet); excludes only obvious non-merchants via {@link #isValidMerchant}.
      */
-    private static Entity findLookedAtMerchant(net.minecraft.world.entity.player.Player player) {
+    public static Entity findLookedAtMerchant(net.minecraft.world.entity.player.Player player) {
         Vec3 eyePos = player.getEyePosition(1.0f);
         Vec3 lookVec = player.getViewVector(1.0f);
         Vec3 end = eyePos.add(lookVec.scale(REACH_DISTANCE));
@@ -73,9 +75,9 @@ public final class VillagerShopCommand {
     }
 
     private static boolean isValidMerchant(Entity entity) {
-        if (entity instanceof Villager villager) {
-            var prof = villager.getVillagerData().getProfession();
-            return prof != VillagerProfession.NONE && prof != VillagerProfession.NITWIT;
+        if (entity instanceof Villager) {
+            // Include unemployed (NONE) and nitwits so admins can target any villager; profession gating is elsewhere.
+            return true;
         }
         return entity instanceof WanderingTrader || RctTrainerAssociationCompat.isTrainerAssociation(entity);
     }

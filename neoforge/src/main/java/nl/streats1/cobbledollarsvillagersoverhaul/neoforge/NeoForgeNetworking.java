@@ -119,6 +119,16 @@ public final class NeoForgeNetworking {
                 })
         );
 
+        registrar.playToServer(
+                Objects.requireNonNull(CobbleDollarsShopPayloads.SaveEntityShop.TYPE),
+                Objects.requireNonNull(CobbleDollarsShopPayloads.SaveEntityShop.STREAM_CODEC),
+                (data, context) -> context.enqueueWork(() -> {
+                    if (context.player() instanceof ServerPlayer sp) {
+                        CobbleDollarsShopPayloadHandlers.handleSaveEntityShop(sp, data);
+                    }
+                })
+        );
+
         registrar.playToClient(
                 Objects.requireNonNull(CobbleDollarsShopPayloads.AssignModeUpdate.TYPE),
                 Objects.requireNonNull(CobbleDollarsShopPayloads.AssignModeUpdate.STREAM_CODEC),
@@ -141,6 +151,12 @@ public final class NeoForgeNetworking {
                     var mc = net.minecraft.client.Minecraft.getInstance();
                     mc.setScreen(new DefaultShopEditorScreen(mc.screen));
                 })
+        );
+
+        registrar.playToClient(
+                Objects.requireNonNull(CobbleDollarsShopPayloads.OpenEntityShopEditor.TYPE),
+                Objects.requireNonNull(CobbleDollarsShopPayloads.OpenEntityShopEditor.STREAM_CODEC),
+                (data, context) -> context.enqueueWork(() -> CobbleDollarsShopScreen.openEntityEditorFromPayload(data))
         );
     }
 

@@ -25,6 +25,7 @@ import java.lang.invoke.MethodHandles;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.UUID;
 
 import nl.streats1.cobbledollarsvillagersoverhaul.AssignModeTracker;
 import nl.streats1.cobbledollarsvillagersoverhaul.Config;
@@ -823,6 +824,149 @@ public final class CobbleDollarsShopPayloadHandlers {
         }
     }
 
+    private record ShopSnapshot(
+            int villagerId,
+            UUID entityUuid,
+            long balance,
+            List<CobbleDollarsShopPayloads.ShopOfferEntry> buyOffers,
+            List<CobbleDollarsShopPayloads.ShopOfferEntry> sellOffers,
+            List<CobbleDollarsShopPayloads.ShopOfferEntry> tradesOffers,
+            boolean buyOffersFromConfig,
+            boolean canCycleTrades) {
+        CobbleDollarsShopPayloads.ShopData toShopData() {
+            return new CobbleDollarsShopPayloads.ShopData(villagerId, balance, buyOffers, sellOffers, tradesOffers, buyOffersFromConfig, canCycleTrades);
+        }
+
+        CobbleDollarsShopPayloads.OpenEntityShopEditor toOpenEditor() {
+            return new CobbleDollarsShopPayloads.OpenEntityShopEditor(
+                    villagerId, entityUuid.toString(), balance, buyOffers, sellOffers, tradesOffers, buyOffersFromConfig, canCycleTrades);
+        }
+    }
+
+    /**
+     * Builds buy/sell/trades lists for a merchant entity (same logic as shop UI).
+     */
+    private static ShopSnapshot buildShopSnapshot(ServerPlayer serverPlayer, Entity entity, int villagerId, long balance) {
+        List<CobbleDollarsShopPayloads.ShopOfferEntry> buyOffers = new ArrayList<>();
+        List<CobbleDollarsShopPayloads.ShopOfferEntry> sellOffers = new ArrayList<>();
+        List<CobbleDollarsShopPayloads.ShopOfferEntry> tradesOffers = new ArrayList<>();
+        boolean buyOffersFromConfig = false;
+
+        if (entity instanceof Villager villager) {
+            villager.setTradingPlayer(serverPlayer);
+            updateVillagerSpecialPrices(villager, serverPlayer);
+            try {
+                VillagerConfigCompat.prepareVillagerForShop(serverPlayer.serverLevel(), villager);
+                if (VillagerShopConfig.usesConfigShop(villager.getUUID())) {
+                    List<CobbleDollarsShopPayloads.ShopOfferEntry> configBuy = VillagerShopBuyStorage.getBuyOffersOrDefault(villager.getUUID());
+                    if (!configBuy.isEmpty()) {
+                        buyOffers.addAll(configBuy);
+                        buyOffersFromConfig = true;
+                    }
+                    List<MerchantOffer> allOffers = villager.getOffers();
+                    List<CobbleDollarsShopPayloads.ShopOfferEntry> unusedVanillaBuy = new ArrayList<>();
+                    buildOfferLists(allOffers, unusedVanillaBuy, sellOffers);
+                    buildItemForItemTrades(allOffers, tradesOffers);
+                } else {
+                    List<MerchantOffer> allOffers = villager.getOffers();
+                    buildOfferLists(allOffers, buyOffers, sellOffers);
+                    if (Config.USE_DATAPACK_TRADES) {
+                        buildDatapackOffers(allOffers, buyOffers, sellOffers);
+                    }
+                    buildItemForItemTrades(allOffers, tradesOffers);
+                }
+            } finally {
+                villager.setTradingPlayer(null);
+            }
+        } else if (Config.USE_RCT_TRADES_OVERHAUL && RctTrainerAssociationCompat.isTrainerAssociation(entity)) {
+            try {
+                for (var method : entity.getClass().getDeclaredMethods()) {
+                    if (method.getName().equals("updateTrades") || method.getName().startsWith("method_")) {
+                        try {
+                            method.setAccessible(true);
+                            var itemOffersField = entity.getClass().getDeclaredField("itemOffers");
+                            itemOffersField.setAccessible(true);
+                            var before = itemOffersField.get(entity);
+                            method.invoke(entity);
+                            var after = itemOffersField.get(entity);
+                            if (before == null && after != null || (before != null && after != null &&
+                                    ((net.minecraft.world.item.trading.MerchantOffers) before).size() <
+                                            ((net.minecraft.world.item.trading.MerchantOffers) after).size())) {
+                                break;
+                            }
+                        } catch (Exception e) {
+                        }
+                    }
+                }
+            } catch (Exception e) {
+            }
+            try {
+                var updateOffersForMethod = entity.getClass().getMethod("updateOffersFor", net.minecraft.world.entity.player.Player.class);
+                updateOffersForMethod.setAccessible(true);
+                updateOffersForMethod.invoke(entity, serverPlayer);
+            } catch (Exception e) {
+            }
+            List<MerchantOffer> rctaOffers = new ArrayList<>();
+            try {
+                var merchantOffers = ((net.minecraft.world.item.trading.Merchant) entity).getOffers();
+                if (merchantOffers instanceof List) {
+                    for (var offer : merchantOffers) {
+                        if (offer != null && !rctaOffers.contains(offer)) {
+                            rctaOffers.add(offer);
+                        }
+                    }
+                }
+            } catch (Exception e) {
+            }
+            if (!rctaOffers.isEmpty()) {
+                buildRctaOfferLists(rctaOffers, buyOffers, sellOffers, tradesOffers, serverPlayer);
+            } else {
+                var fallbackOffers = ((net.minecraft.world.item.trading.Merchant) entity).getOffers();
+                buildOfferLists(fallbackOffers, buyOffers, sellOffers);
+            }
+        } else if (entity instanceof WanderingTrader trader) {
+            MerchantTradeGenerationHelper.ensureMerchantOffersReady(serverPlayer.serverLevel(), trader);
+            List<MerchantOffer> allOffers = trader.getOffers();
+            if (VillagerShopConfig.usesConfigShop(trader.getUUID())) {
+                List<CobbleDollarsShopPayloads.ShopOfferEntry> configBuy = VillagerShopBuyStorage.getBuyOffersOrDefault(trader.getUUID());
+                if (!configBuy.isEmpty()) {
+                    buyOffers.addAll(configBuy);
+                    buyOffersFromConfig = true;
+                }
+                List<CobbleDollarsShopPayloads.ShopOfferEntry> unusedVanillaBuy = new ArrayList<>();
+                buildOfferLists(allOffers, unusedVanillaBuy, sellOffers);
+                buildItemForItemTrades(allOffers, tradesOffers);
+            } else {
+                buildOfferLists(allOffers, buyOffers, sellOffers);
+                if (Config.USE_DATAPACK_TRADES) {
+                    buildDatapackOffers(allOffers, buyOffers, sellOffers);
+                }
+                buildItemForItemTrades(allOffers, tradesOffers);
+            }
+        } else {
+            return null;
+        }
+
+        if (buyOffers.isEmpty() && sellOffers.isEmpty() && tradesOffers.isEmpty() && !RctTrainerAssociationCompat.isTrainerAssociation(entity)) {
+            List<CobbleDollarsShopPayloads.ShopOfferEntry> configBuy = CobbleDollarsConfigHelper.getDefaultShopBuyOffers();
+            if (!configBuy.isEmpty()) {
+                buyOffers.addAll(configBuy);
+                buyOffersFromConfig = true;
+            }
+        }
+        boolean canCycleTrades = false;
+        if (entity instanceof Villager villager && !buyOffersFromConfig
+                && TradeCyclingModCompat.isTradeCyclingModLoaded()) {
+            canCycleTrades = TradeCyclingCompat.canCycleTrades(villager);
+        }
+
+        List<CobbleDollarsShopPayloads.ShopOfferEntry> safeBuyOffers = buyOffers != null ? buyOffers : List.of();
+        List<CobbleDollarsShopPayloads.ShopOfferEntry> safeSellOffers = sellOffers != null ? sellOffers : List.of();
+        List<CobbleDollarsShopPayloads.ShopOfferEntry> safeTradesOffers = tradesOffers != null ? tradesOffers : List.of();
+
+        return new ShopSnapshot(villagerId, entity.getUUID(), balance, safeBuyOffers, safeSellOffers, safeTradesOffers, buyOffersFromConfig, canCycleTrades);
+    }
+
     private static void handleRequestShopData(ServerPlayer serverPlayer, int villagerId, int entityLookupRetry) {
         LOGGER.debug("[shop] handleRequestShopData: player={} villagerEntityId={} retry={}", serverPlayer.getName().getString(), villagerId, entityLookupRetry);
 
@@ -844,11 +988,6 @@ public final class CobbleDollarsShopPayloadHandlers {
 
         long balance = CobbleDollarsIntegration.getBalance(serverPlayer);
         if (balance < 0) balance = 0;
-
-        List<CobbleDollarsShopPayloads.ShopOfferEntry> buyOffers = new ArrayList<>();
-        List<CobbleDollarsShopPayloads.ShopOfferEntry> sellOffers = new ArrayList<>();
-        List<CobbleDollarsShopPayloads.ShopOfferEntry> tradesOffers = new ArrayList<>();
-        boolean buyOffersFromConfig = false;
 
         ServerLevel level = serverPlayer.serverLevel();
         Entity entity = VirtualShopIds.isVirtual(villagerId) ? null : level.getEntity(villagerId);
@@ -902,143 +1041,127 @@ public final class CobbleDollarsShopPayloadHandlers {
             }
         }
 
-        List<MerchantOffer> allOffers = null;
-
-        if (entity instanceof Villager villager) {
-            villager.setTradingPlayer(serverPlayer);
-            updateVillagerSpecialPrices(villager, serverPlayer);
-            try {
-                VillagerConfigCompat.prepareVillagerForShop(serverPlayer.serverLevel(), villager);
-                if (VillagerShopConfig.usesConfigShop(villager.getUUID())) {
-                    List<CobbleDollarsShopPayloads.ShopOfferEntry> configBuy = CobbleDollarsConfigHelper.getDefaultShopBuyOffers();
-                    if (!configBuy.isEmpty()) {
-                        buyOffers.addAll(configBuy);
-                        buyOffersFromConfig = true;
-                    }
-                    // Buy tab = default_shop.json only. Villager profession / underlying MerchantOffers are untouched;
-                    // still surface vanilla sell + item-for-item trades so Sell/Trades match the entity's job trades.
-                    allOffers = villager.getOffers();
-                    List<CobbleDollarsShopPayloads.ShopOfferEntry> unusedVanillaBuy = new ArrayList<>();
-                    buildOfferLists(allOffers, unusedVanillaBuy, sellOffers);
-                    buildItemForItemTrades(allOffers, tradesOffers);
-                    // Intentionally omit buildDatapackOffers here: those rows add to the Buy tab and would
-                    // mix with default_shop.json; datapack sell paths are already covered by buildOfferLists.
-                } else {
-                    LOGGER.debug("Entity is Villager, processing villager trades");
-                    allOffers = villager.getOffers();
-                    buildOfferLists(allOffers, buyOffers, sellOffers);
-                    if (Config.USE_DATAPACK_TRADES) {
-                        buildDatapackOffers(allOffers, buyOffers, sellOffers);
-                    }
-                    buildItemForItemTrades(allOffers, tradesOffers);
-                }
-            } finally {
-                villager.setTradingPlayer(null);
-            }
-        } else if (Config.USE_RCT_TRADES_OVERHAUL && RctTrainerAssociationCompat.isTrainerAssociation(entity)) {
-            try {
-                for (var method : entity.getClass().getDeclaredMethods()) {
-                    if (method.getName().equals("updateTrades") || method.getName().startsWith("method_")) {
-                        try {
-                            method.setAccessible(true);
-
-                            var itemOffersField = entity.getClass().getDeclaredField("itemOffers");
-                            itemOffersField.setAccessible(true);
-                            var before = itemOffersField.get(entity);
-
-                            method.invoke(entity);
-
-                            var after = itemOffersField.get(entity);
-
-                            if (before == null && after != null || (before != null && after != null &&
-                                    ((net.minecraft.world.item.trading.MerchantOffers) before).size() <
-                                            ((net.minecraft.world.item.trading.MerchantOffers) after).size())) {
-                                break;
-                            }
-                        } catch (Exception e) {
-                        }
-                    }
-                }
-            } catch (Exception e) {
-            }
-
-            try {
-                var updateOffersForMethod = entity.getClass().getMethod("updateOffersFor", net.minecraft.world.entity.player.Player.class);
-                updateOffersForMethod.setAccessible(true);
-                updateOffersForMethod.invoke(entity, serverPlayer);
-            } catch (Exception e) {
-            }
-
-            List<MerchantOffer> rctaOffers = new ArrayList<>();
-
-            try {
-                var merchantOffers = ((net.minecraft.world.item.trading.Merchant) entity).getOffers();
-                if (merchantOffers instanceof List) {
-                    for (var offer : merchantOffers) {
-                        if (offer != null && !rctaOffers.contains(offer)) {
-                            rctaOffers.add(offer);
-                        }
-                    }
-                }
-            } catch (Exception e) {
-            }
-
-            if (!rctaOffers.isEmpty()) {
-                buildRctaOfferLists(rctaOffers, buyOffers, sellOffers, tradesOffers, serverPlayer);
-            } else {
-                var fallbackOffers = ((net.minecraft.world.item.trading.Merchant) entity).getOffers();
-                buildOfferLists(fallbackOffers, buyOffers, sellOffers);
-            }
-        } else if (entity instanceof WanderingTrader trader) {
-            MerchantTradeGenerationHelper.ensureMerchantOffersReady(serverPlayer.serverLevel(), trader);
-            allOffers = trader.getOffers();
-            buildOfferLists(allOffers, buyOffers, sellOffers);
-            if (Config.USE_DATAPACK_TRADES) {
-                buildDatapackOffers(allOffers, buyOffers, sellOffers);
-            }
-            buildItemForItemTrades(allOffers, tradesOffers);
-        } else {
+        ShopSnapshot snapshot = buildShopSnapshot(serverPlayer, entity, villagerId, balance);
+        if (snapshot == null) {
             LOGGER.warn("[shop] handleRequestShopData: unsupported entity type {} id {} — no ShopData sent",
                     entity.getType().getDescriptionId(), villagerId);
             return;
         }
-
-        if (buyOffers.isEmpty() && sellOffers.isEmpty() && tradesOffers.isEmpty() && !RctTrainerAssociationCompat.isTrainerAssociation(entity)) {
-            List<CobbleDollarsShopPayloads.ShopOfferEntry> configBuy = CobbleDollarsConfigHelper.getDefaultShopBuyOffers();
-            if (!configBuy.isEmpty()) {
-                buyOffers.addAll(configBuy);
-                buyOffersFromConfig = true;
-            }
-        }
-        boolean canCycleTrades = false;
-        if (entity instanceof Villager villager && !buyOffersFromConfig
-                && TradeCyclingModCompat.isTradeCyclingModLoaded()) {
-            canCycleTrades = TradeCyclingCompat.canCycleTrades(villager);
-        }
-
-        // Final defensive checks before sending
-        List<CobbleDollarsShopPayloads.ShopOfferEntry> safeBuyOffers = buyOffers != null ? buyOffers : List.of();
-        List<CobbleDollarsShopPayloads.ShopOfferEntry> safeSellOffers = sellOffers != null ? sellOffers : List.of();
-        List<CobbleDollarsShopPayloads.ShopOfferEntry> safeTradesOffers = tradesOffers != null ? tradesOffers : List.of();
 
         try {
             LOGGER.debug(
                     "[shop] handleRequestShopData: sending ShopData player={} villagerId={} buy={} sell={} trades={} fromConfig={} canCycle={}",
                     serverPlayer.getName().getString(),
                     villagerId,
-                    safeBuyOffers.size(),
-                    safeSellOffers.size(),
-                    safeTradesOffers.size(),
-                    buyOffersFromConfig,
-                    canCycleTrades);
-            PlatformNetwork.sendToPlayer(serverPlayer,
-                    new CobbleDollarsShopPayloads.ShopData(villagerId, balance, safeBuyOffers, safeSellOffers, safeTradesOffers, buyOffersFromConfig, canCycleTrades));
+                    snapshot.buyOffers().size(),
+                    snapshot.sellOffers().size(),
+                    snapshot.tradesOffers().size(),
+                    snapshot.buyOffersFromConfig(),
+                    snapshot.canCycleTrades());
+            PlatformNetwork.sendToPlayer(serverPlayer, snapshot.toShopData());
         } catch (Exception e) {
             LOGGER.error("Failed to send shop data packet for villager {}: {}", villagerId, e.getMessage());
             PlatformNetwork.sendToPlayer(serverPlayer,
                     new CobbleDollarsShopPayloads.ShopData(villagerId, 0L, List.of(), List.of(), List.of(), false, false));
         }
 
+    }
+
+    /**
+     * Opens the entity shop editor (same snapshot as {@link #handleRequestShopData}).
+     */
+    public static void handleOpenEntityShopEditor(ServerPlayer serverPlayer, int entityId) {
+        if (!serverPlayer.hasPermissions(2)) {
+            return;
+        }
+        if (!Config.USE_COBBLEDOLLARS_SHOP_UI || !Config.VILLAGERS_ACCEPT_COBBLEDOLLARS || !CobbleDollarsIntegration.isAvailable()) {
+            serverPlayer.sendSystemMessage(net.minecraft.network.chat.Component.translatable(
+                    "command.cobbledollars_villagers_overhaul_rca.edit_entity_shop.unavailable"));
+            return;
+        }
+        Entity entity = serverPlayer.serverLevel().getEntity(entityId);
+        if (entity == null) {
+            serverPlayer.sendSystemMessage(net.minecraft.network.chat.Component.translatable(
+                    "command.cobbledollars_villagers_overhaul_rca.edit_entity_shop.no_entity"));
+            return;
+        }
+        if (entity instanceof Player) {
+            serverPlayer.sendSystemMessage(net.minecraft.network.chat.Component.translatable(
+                    "command.cobbledollars_villagers_overhaul_rca.edit_entity_shop.player_target"));
+            return;
+        }
+        if (entity instanceof Villager v) {
+            ResourceLocation profId = BuiltInRegistries.VILLAGER_PROFESSION.getKey(v.getVillagerData().getProfession());
+            if (Config.isVillagerProfessionExcluded(profId)) {
+                serverPlayer.sendSystemMessage(net.minecraft.network.chat.Component.translatable(
+                        "command.cobbledollars_villagers_overhaul_rca.edit_entity_shop.excluded_profession"));
+                return;
+            }
+        }
+        long balance = CobbleDollarsIntegration.getBalance(serverPlayer);
+        if (balance < 0) balance = 0;
+        ShopSnapshot snapshot = buildShopSnapshot(serverPlayer, entity, entityId, balance);
+        if (snapshot == null) {
+            serverPlayer.sendSystemMessage(net.minecraft.network.chat.Component.translatable(
+                    "command.cobbledollars_villagers_overhaul_rca.edit_entity_shop.unsupported"));
+            return;
+        }
+        try {
+            PlatformNetwork.sendToPlayer(serverPlayer, snapshot.toOpenEditor());
+            serverPlayer.sendSystemMessage(net.minecraft.network.chat.Component.translatable(
+                    "command.cobbledollars_villagers_overhaul_rca.edit_entity_shop.opened",
+                    entity.getName().getString()));
+        } catch (Exception e) {
+            LOGGER.error("Failed to send OpenEntityShopEditor: {}", e.getMessage());
+        }
+    }
+
+    public static void handleSaveEntityShop(ServerPlayer serverPlayer, CobbleDollarsShopPayloads.SaveEntityShop data) {
+        if (!serverPlayer.hasPermissions(2)) {
+            return;
+        }
+        if (!CobbleDollarsIntegration.isAvailable()) {
+            return;
+        }
+        UUID expectedUuid;
+        try {
+            expectedUuid = UUID.fromString(data.entityUuid());
+        } catch (Exception e) {
+            return;
+        }
+        Entity entity = serverPlayer.serverLevel().getEntity(data.villagerId());
+        if (entity == null || !entity.getUUID().equals(expectedUuid)) {
+            return;
+        }
+        if (entity instanceof Player) {
+            return;
+        }
+        Entity tracked = entity;
+        VillagerShopBuyStorage.saveBuyOffers(expectedUuid, data.buyOffers() != null ? data.buyOffers() : List.of());
+        VillagerShopConfig.add(expectedUuid);
+
+        if (tracked instanceof Villager villager) {
+            var offers = villager.getOffers();
+            offers.clear();
+            for (MerchantOffer mo : EntityShopMerchantApply.offersFromShopLists(
+                    List.of(),
+                    data.sellOffers() != null ? data.sellOffers() : List.of(),
+                    data.tradesOffers() != null ? data.tradesOffers() : List.of())) {
+                offers.add(mo);
+            }
+        } else if (tracked instanceof WanderingTrader trader) {
+            var offers = trader.getOffers();
+            offers.clear();
+            for (MerchantOffer mo : EntityShopMerchantApply.offersFromShopLists(
+                    List.of(),
+                    data.sellOffers() != null ? data.sellOffers() : List.of(),
+                    data.tradesOffers() != null ? data.tradesOffers() : List.of())) {
+                offers.add(mo);
+            }
+            trader.setTradingPlayer(null);
+        } else {
+            LOGGER.info("[shop] SaveEntityShop: entity {} is not villager/trader — buy file saved only", expectedUuid);
+        }
     }
 
     public static void handleCycleTrades(ServerPlayer serverPlayer, int villagerId) {
@@ -1122,8 +1245,19 @@ public final class CobbleDollarsShopPayloadHandlers {
         LOGGER.info("Bank sell: player sold {} x{} for {} CD", costA.getItem(), totalNeeded, toAdd);
     }
 
+    private static List<CobbleDollarsShopPayloads.ShopOfferEntry> resolveConfigBuyOffers(ServerPlayer serverPlayer, int villagerId) {
+        Entity e = serverPlayer.serverLevel().getEntity(villagerId);
+        if (e instanceof Villager v && VillagerShopConfig.usesConfigShop(v.getUUID())) {
+            return VillagerShopBuyStorage.getBuyOffersOrDefault(v.getUUID());
+        }
+        if (e instanceof WanderingTrader t && VillagerShopConfig.usesConfigShop(t.getUUID())) {
+            return VillagerShopBuyStorage.getBuyOffersOrDefault(t.getUUID());
+        }
+        return CobbleDollarsConfigHelper.getDefaultShopBuyOffers();
+    }
+
     private static void handleBuyFromConfig(ServerPlayer serverPlayer, int villagerId, int offerIndex, int quantity) {
-        List<CobbleDollarsShopPayloads.ShopOfferEntry> configOffers = CobbleDollarsConfigHelper.getDefaultShopBuyOffers();
+        List<CobbleDollarsShopPayloads.ShopOfferEntry> configOffers = resolveConfigBuyOffers(serverPlayer, villagerId);
 
         if (offerIndex < 0 || offerIndex >= configOffers.size()) {
             return;

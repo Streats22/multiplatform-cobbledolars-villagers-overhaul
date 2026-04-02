@@ -21,6 +21,7 @@ public final class FabricNetworking {
         PayloadTypeRegistry.playC2S().register(CobbleDollarsShopPayloads.SellForCobbleDollars.TYPE, CobbleDollarsShopPayloads.SellForCobbleDollars.STREAM_CODEC);
         PayloadTypeRegistry.playC2S().register(CobbleDollarsShopPayloads.AssignVillager.TYPE, CobbleDollarsShopPayloads.AssignVillager.STREAM_CODEC);
         PayloadTypeRegistry.playC2S().register(CobbleDollarsShopPayloads.ShopScreenClosed.TYPE, CobbleDollarsShopPayloads.ShopScreenClosed.STREAM_CODEC);
+        PayloadTypeRegistry.playC2S().register(CobbleDollarsShopPayloads.SaveEntityShop.TYPE, CobbleDollarsShopPayloads.SaveEntityShop.STREAM_CODEC);
 
         PayloadTypeRegistry.playS2C().register(CobbleDollarsShopPayloads.ShopData.TYPE, CobbleDollarsShopPayloads.ShopData.STREAM_CODEC);
         PayloadTypeRegistry.playS2C().register(CobbleDollarsShopPayloads.BalanceUpdate.TYPE, CobbleDollarsShopPayloads.BalanceUpdate.STREAM_CODEC);
@@ -28,6 +29,7 @@ public final class FabricNetworking {
         PayloadTypeRegistry.playS2C().register(CobbleDollarsShopPayloads.AssignModeUpdate.TYPE, CobbleDollarsShopPayloads.AssignModeUpdate.STREAM_CODEC);
         PayloadTypeRegistry.playS2C().register(CobbleDollarsShopPayloads.RctSeriesSelected.TYPE, CobbleDollarsShopPayloads.RctSeriesSelected.STREAM_CODEC);
         PayloadTypeRegistry.playS2C().register(CobbleDollarsShopPayloads.OpenEditor.TYPE, CobbleDollarsShopPayloads.OpenEditor.STREAM_CODEC);
+        PayloadTypeRegistry.playS2C().register(CobbleDollarsShopPayloads.OpenEntityShopEditor.TYPE, CobbleDollarsShopPayloads.OpenEntityShopEditor.STREAM_CODEC);
 
         ServerPlayNetworking.registerGlobalReceiver(CobbleDollarsShopPayloads.RequestShopData.TYPE, (payload, context) -> {
             if (!(context.player() instanceof ServerPlayer sp)) {
@@ -68,6 +70,12 @@ public final class FabricNetworking {
         ServerPlayNetworking.registerGlobalReceiver(CobbleDollarsShopPayloads.ShopScreenClosed.TYPE, (payload, context) -> {
             if (context.player() instanceof ServerPlayer sp) {
                 context.server().execute(() -> CobbleDollarsShopPayloadHandlers.handleShopScreenClosed(sp, payload.villagerId()));
+            }
+        });
+
+        ServerPlayNetworking.registerGlobalReceiver(CobbleDollarsShopPayloads.SaveEntityShop.TYPE, (payload, context) -> {
+            if (context.player() instanceof ServerPlayer sp) {
+                context.server().execute(() -> CobbleDollarsShopPayloadHandlers.handleSaveEntityShop(sp, payload));
             }
         });
     }

@@ -13,9 +13,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import nl.streats1.cobbledollarsvillagersoverhaul.CobbleDollarsVillagersOverhaulRca;
 
 /**
- * Per-entity assignment: which villager UUIDs use {@code default_shop.json} for the <strong>Buy</strong> tab.
- * Persisted to {@code villager_shops.json}. Does not change profession, level, or underlying {@code MerchantOffers};
- * those are only swapped out of the Buy tab in the CobbleDollars UI when this set contains the villager.
+ * Per-entity assignment: which entity UUIDs use the config <strong>Buy</strong> tab (global {@code default_shop.json}
+ * or per-UUID {@code villager_shop_data/&lt;uuid&gt;.json} when that file exists).
+ * Persisted to {@code villager_shops.json}. Does not change profession, level, or underlying {@code MerchantOffers}
+ * by itself; the Buy tab in the CobbleDollars UI reads from config when this set contains the entity.
  * <p>
  * Assign in-game: {@code /cvm assign} (or {@code /cvm unassign}), then <strong>Shift+use</strong> the villager
  * (requires permission level 2+). NeoForge also fires assign from entity interact events when in assign mode.
@@ -35,6 +36,13 @@ public final class VillagerShopConfig {
     private static Path getConfigFile() {
         Path root = configDirOverride != null ? configDirOverride : Path.of("config");
         return root.resolve(CobbleDollarsVillagersOverhaulRca.MOD_ID).resolve(CONFIG_FILE);
+    }
+
+    /**
+     * Config root directory (e.g. {@code config/}), for sibling {@code villager_shop_data/} files.
+     */
+    public static Path getConfigRootForPath() {
+        return configDirOverride != null ? configDirOverride : Path.of("config");
     }
 
     public static void load() {
