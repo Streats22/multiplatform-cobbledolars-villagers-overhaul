@@ -597,7 +597,7 @@ public class CobbleDollarsShopScreen extends Screen {
             minecraft.setScreen(null);
             PlatformNetwork.sendToServer(new CobbleDollarsShopPayloads.RequestShopData(villagerId));
         };
-        minecraft.setScreen(new DefaultShopEditorScreen(this, null, onSave));
+        minecraft.setScreen(new DefaultShopEditorScreen(this, null, onSave, balance, true));
     }
 
     /** Called when cycle key (C) is pressed - same keybind as Trade Cycling / Easy Villagers. */

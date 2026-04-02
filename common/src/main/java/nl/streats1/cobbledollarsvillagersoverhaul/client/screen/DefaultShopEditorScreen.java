@@ -34,7 +34,6 @@ public class DefaultShopEditorScreen extends Screen {
     private static final ResourceLocation TEX_SHOP_BASE = rl(GUI_TEXTURES_NAMESPACE, "textures/gui/shop/shop_base.png");
     private static final ResourceLocation TEX_CATEGORY_BG = rl(GUI_TEXTURES_NAMESPACE, "textures/gui/shop/category_background.png");
     private static final ResourceLocation TEX_CATEGORY_OUTLINE = rl(GUI_TEXTURES_NAMESPACE, "textures/gui/shop/category_outline.png");
-    private static final ResourceLocation TEX_CATEGORY_BG_SHORT = rl(GUI_TEXTURES_NAMESPACE, "textures/gui/shop/category_background_short.png");
     private static final ResourceLocation TEX_OFFER_BG = rl(GUI_TEXTURES_NAMESPACE, "textures/gui/shop/offer_background.png");
     private static final ResourceLocation TEX_OFFER_OUTLINE = rl(GUI_TEXTURES_NAMESPACE, "textures/gui/shop/offer_outline.png");
     private static final ResourceLocation TEX_COBBLEDOLLARS_LOGO = rl(GUI_TEXTURES_NAMESPACE, "textures/gui/cobbledollars_background.png");
@@ -50,8 +49,6 @@ public class DefaultShopEditorScreen extends Screen {
     private static final int TEX_CATEGORY_BG_H = 11;
     private static final int TEX_CATEGORY_OUTLINE_W = 76;
     private static final int TEX_CATEGORY_OUTLINE_H = 19;
-    private static final int TEX_CATEGORY_BG_SHORT_W = 76;
-    private static final int TEX_CATEGORY_BG_SHORT_H = 19;
     private static final int TEX_OFFER_BG_W = 73;
     private static final int TEX_OFFER_BG_H = 16;
     private static final int TEX_OFFER_OUTLINE_W = 76;
@@ -64,8 +61,13 @@ public class DefaultShopEditorScreen extends Screen {
     private static final int TEX_BANK_BUTTON_H = 48;
     private static final int TEX_AMOUNT_ARROW_W = 5;
     private static final int TEX_AMOUNT_ARROW_H = 10;
-    private static final int TEX_STOCK_W = 26;
-    private static final int TEX_STOCK_H = 54;
+    /**
+     * stock.png is 54x27: two 27x27 frames side by side (inactive | active).
+     */
+    private static final int TEX_STOCK_W = 27;
+    private static final int TEX_STOCK_H = 27;
+    private static final int TEX_STOCK_TEX_W = 54;
+    private static final int TEX_STOCK_TEX_H = 27;
 
     // Layout aligned with CobbleDollars shop GUI (right side panes)
     private static final int CATEGORY_X = 98;
@@ -120,6 +122,11 @@ public class DefaultShopEditorScreen extends Screen {
 
     private final Screen parent;
     private final Runnable onSaveCallback;
+    /**
+     * When opened from {@link CobbleDollarsShopScreen}, matches shop balance (client cannot read CD from the server integration).
+     */
+    private final boolean useParentBalance;
+    private final long parentBalance;
     private Map<String, List<ShopEntryRecord>> categories = new LinkedHashMap<>();
     private String selectedCategory;
     private EditBox categorySearchEdit;
@@ -141,6 +148,10 @@ public class DefaultShopEditorScreen extends Screen {
     private Button amountPlusButton;
     private BankButton bankButton;
     private boolean scrollbarDragging = false;
+    /**
+     * Inventory slot index (0–35) where the last mouse-down started, for drag-to-add without vanilla carried.
+     */
+    private int invDragStartSlot = -1;
     // Match CobbleDollarsShopScreen metrics
     private static final int ROW_HEIGHT = 18;     // LIST_ROW_HEIGHT
     private static final int CAT_ROW_HEIGHT = 13; // CATEGORY_ENTRY_H
@@ -187,11 +198,11 @@ public class DefaultShopEditorScreen extends Screen {
     private static final int INVENTORY_HOTBAR_TOP = 154;
 
     public DefaultShopEditorScreen(Screen parent) {
-        this(parent, null, null);
+        this(parent, null, null, 0L, false);
     }
 
     public DefaultShopEditorScreen(Screen parent, Map<String, List<ShopEntryRecord>> initialCategories) {
-        this(parent, initialCategories, null);
+        this(parent, initialCategories, null, 0L, false);
     }
 
     /**
@@ -199,9 +210,19 @@ public class DefaultShopEditorScreen extends Screen {
      *                       Used when opened from the shop UI to refresh and re-open the shop.
      */
     public DefaultShopEditorScreen(Screen parent, Map<String, List<ShopEntryRecord>> initialCategories, Runnable onSaveCallback) {
+        this(parent, initialCategories, onSaveCallback, 0L, false);
+    }
+
+    /**
+     * @param shopBalance    CobbleDollars balance to show in the footer (same value as the shop screen; required on client).
+     * @param useShopBalance when true, {@code shopBalance} is shown; when false, footer shows 0.
+     */
+    public DefaultShopEditorScreen(Screen parent, Map<String, List<ShopEntryRecord>> initialCategories, Runnable onSaveCallback, long shopBalance, boolean useShopBalance) {
         super(Component.translatable("gui.cobbledollars_villagers_overhaul_rca.edit_shop_title"));
         this.parent = parent;
         this.onSaveCallback = onSaveCallback;
+        this.parentBalance = Math.max(0L, shopBalance);
+        this.useParentBalance = useShopBalance;
         if (initialCategories != null) {
             this.categories = new LinkedHashMap<>();
             for (Map.Entry<String, List<ShopEntryRecord>> e : initialCategories.entrySet()) {
@@ -341,6 +362,68 @@ public class DefaultShopEditorScreen extends Screen {
             return;
         }
         addEntry(BuiltInRegistries.ITEM.getKey(held.getItem()).toString(), DEFAULT_PRICE);
+    }
+
+    /**
+     * Add offer from inventory cursor stack (pick up / drag from player inv, release on "+" row).
+     */
+    private void tryAddEntryFromCarried(ItemStack stack) {
+        if (selectedCategory == null || stack == null || stack.isEmpty()) return;
+        if (stack.getItem() == Items.AIR) return;
+        addEntry(BuiltInRegistries.ITEM.getKey(stack.getItem()).toString(), DEFAULT_PRICE);
+    }
+
+    private boolean isMouseOverOfferAddRow(double mouseX, double mouseY) {
+        int left = (width - WINDOW_WIDTH) / 2;
+        int top = (height - WINDOW_HEIGHT) / 2;
+        int offerListTop = top + LIST_TOP_OFFSET;
+        int rowL = left + LIST_LEFT_OFFSET - 10;
+        int rowR = rowL + LIST_WIDTH;
+        List<ShopEntryRecord> offers = filteredOffers();
+        if (offers.isEmpty()) return false;
+        int addIdx = offers.size() - 1;
+        if (offers.get(addIdx) != null) return false;
+        int iVisible = addIdx - offerScrollOffset;
+        if (iVisible < 0 || iVisible >= LIST_VISIBLE_ROWS) return false;
+        int y = offerListTop + iVisible * ROW_HEIGHT;
+        // Slightly taller hitbox for drag-drop
+        int pad = 2;
+        return mouseX >= rowL && mouseX < rowR && mouseY >= y - pad && mouseY < y + ROW_HEIGHT + pad;
+    }
+
+    /**
+     * Player inventory slot under mouse, or -1 (same layout as {@link #renderPlayerInventory}).
+     */
+    private int slotAtPlayerInventory(double mouseX, double mouseY) {
+        int left = (width - WINDOW_WIDTH) / 2;
+        int top = (height - WINDOW_HEIGHT) / 2;
+        int invLeft = left + INVENTORY_LEFT_OFFSET;
+        int mainTop = top + INVENTORY_MAIN_TOP;
+        int hotbarTop = top + INVENTORY_HOTBAR_TOP;
+        if (mouseX < invLeft || mouseX >= invLeft + 18 * INVENTORY_COLS) return -1;
+        int col = (int) ((mouseX - invLeft) / 18);
+        if (col < 0 || col >= INVENTORY_COLS) return -1;
+        if (mouseY >= hotbarTop && mouseY < hotbarTop + 18) {
+            return col;
+        }
+        if (mouseY >= mainTop && mouseY < mainTop + 3 * 18) {
+            int row = (int) ((mouseY - mainTop) / 18);
+            if (row >= 0 && row < 3) {
+                return 9 + row * INVENTORY_COLS + col;
+            }
+        }
+        return -1;
+    }
+
+    /**
+     * Same short scale as {@link CobbleDollarsShopScreen} balance line.
+     */
+    private static String formatBalanceForDisplay(long price) {
+        if (price < 0) return "?";
+        if (price == 0) return "0";
+        if (price >= 1_000_000) return (price / 1_000_000) + "M";
+        if (price >= 1_000) return (price / 1_000) + "K";
+        return String.valueOf(price);
     }
 
     private void adjustQuantity(int delta) {
@@ -497,21 +580,15 @@ public class DefaultShopEditorScreen extends Screen {
         int left = (width - WINDOW_WIDTH) / 2;
         int top = (height - WINDOW_HEIGHT) / 2;
 
-        // Focus EditBoxes before custom hitboxes (tabs/offer rows would otherwise consume clicks).
+        // Focus inline EditBoxes before custom hitboxes.
         if (categoryRenameEdit != null && categoryRenameEdit.isVisible() && categoryRenameEdit.mouseClicked(mouseX, mouseY, button)) {
             return true;
         }
         if (inlinePriceEdit != null && inlinePriceEdit.isVisible() && inlinePriceEdit.mouseClicked(mouseX, mouseY, button)) {
             return true;
         }
-        if (categorySearchEdit != null && categorySearchEdit.mouseClicked(mouseX, mouseY, button)) {
-            return true;
-        }
-        if (offerSearchEdit != null && offerSearchEdit.mouseClicked(mouseX, mouseY, button)) {
-            return true;
-        }
 
-        // Categories list click handling
+        // Category tab strip (including "+") before search EditBoxes so filter-row widgets do not steal tab clicks.
         int tabX = left + CATEGORY_X;
         int tabY = top + CATEGORY_LIST_Y;
         if (button == 0) {
@@ -560,6 +637,16 @@ public class DefaultShopEditorScreen extends Screen {
             }
         }
 
+        // Search boxes only on the filter row (y < category tab strip), not over category tabs.
+        if (mouseY < top + CATEGORY_LIST_Y) {
+            if (categorySearchEdit != null && categorySearchEdit.mouseClicked(mouseX, mouseY, button)) {
+                return true;
+            }
+            if (offerSearchEdit != null && offerSearchEdit.mouseClicked(mouseX, mouseY, button)) {
+                return true;
+            }
+        }
+
         // Offers list click handling
         int offerListTop = top + LIST_TOP_OFFSET;
         int offerListBottom = offerListTop + LIST_VISIBLE_ROWS * ROW_HEIGHT;
@@ -593,7 +680,9 @@ public class DefaultShopEditorScreen extends Screen {
                         int priceY = textY + PRICE_TEXT_OFFSET_Y;
                         int badgeX = priceX + LIST_PRICE_BADGE_OFFSET_X;
                         int badgeY = priceY + LIST_PRICE_BADGE_OFFSET_Y - (TEX_COBBLEDOLLARS_LOGO_H - font.lineHeight) / 2;
-                        if (mouseX >= badgeX && mouseX < badgeX + TEX_COBBLEDOLLARS_LOGO_W && mouseY >= badgeY && mouseY < badgeY + TEX_COBBLEDOLLARS_LOGO_H) {
+                        int pad = 2;
+                        if (mouseX >= badgeX - pad && mouseX < badgeX + TEX_COBBLEDOLLARS_LOGO_W + pad
+                                && mouseY >= badgeY - pad && mouseY < badgeY + TEX_COBBLEDOLLARS_LOGO_H + pad) {
                             inlineEditingItemId = rec.itemId();
                             if (inlinePriceEdit != null) {
                                 inlinePriceEdit.setValue(String.valueOf(rec.price()));
@@ -619,6 +708,13 @@ public class DefaultShopEditorScreen extends Screen {
                     scrollbarDragging = true;
                     return true;
                 }
+            }
+        }
+
+        if (button == 0 && minecraft != null && minecraft.player != null) {
+            int slot = slotAtPlayerInventory(mouseX, mouseY);
+            if (slot >= 0 && !minecraft.player.getInventory().getItem(slot).isEmpty()) {
+                invDragStartSlot = slot;
             }
         }
 
@@ -691,6 +787,26 @@ public class DefaultShopEditorScreen extends Screen {
             scrollbarDragging = false;
             return true;
         }
+        if (button == 0 && minecraft != null && minecraft.player != null && isMouseOverOfferAddRow(mouseX, mouseY)) {
+            var menu = minecraft.player.containerMenu;
+            ItemStack carried = menu.getCarried();
+            if (!carried.isEmpty()) {
+                tryAddEntryFromCarried(carried);
+                menu.setCarried(ItemStack.EMPTY);
+                invDragStartSlot = -1;
+                return true;
+            }
+            // Plain Screen often never fills carried; use drag start slot from inventory instead.
+            if (invDragStartSlot >= 0) {
+                ItemStack stack = minecraft.player.getInventory().getItem(invDragStartSlot);
+                if (!stack.isEmpty()) {
+                    tryAddEntryFromCarried(stack);
+                    invDragStartSlot = -1;
+                    return true;
+                }
+            }
+        }
+        invDragStartSlot = -1;
         return super.mouseReleased(mouseX, mouseY, button);
     }
 
@@ -726,14 +842,6 @@ public class DefaultShopEditorScreen extends Screen {
         // Same top strip label as CobbleDollarsShopScreen (filter row shares y = top + 6)
         guiGraphics.drawString(font, Component.translatable("gui.cobbledollars_villagers_overhaul_rca.shop"), left + 8, top + 6, 0xFFE0E0E0, false);
 
-        // Header bars behind filter EditBoxes (aligned with CobbleDollarsShopScreen search row)
-        int searchY = top + SEARCH_ROW_Y;
-        blitStretched(guiGraphics, TEX_CATEGORY_BG_SHORT, left + CATEGORY_X - 2, searchY - 4,
-                TEX_CATEGORY_BG_SHORT_W, TEX_CATEGORY_BG_SHORT_H, TEX_CATEGORY_BG_SHORT_W, TEX_CATEGORY_BG_SHORT_H);
-        int offerHeaderX = left + LIST_LEFT_OFFSET - 10 - 2;
-        blitStretched(guiGraphics, TEX_CATEGORY_BG_SHORT, offerHeaderX, searchY - 4,
-                TEX_CATEGORY_BG_SHORT_W, TEX_CATEGORY_BG_SHORT_H, TEX_CATEGORY_BG_SHORT_W, TEX_CATEGORY_BG_SHORT_H);
-
         renderLeftPreview(guiGraphics, left, top, mouseX, mouseY);
         renderPlayerInventory(guiGraphics, left, top);
         renderCategoryList(guiGraphics, left, top);
@@ -744,6 +852,7 @@ public class DefaultShopEditorScreen extends Screen {
         // Draw button textures last to match CobbleDollarsShopScreen layering
         renderLeftPanelButtons(guiGraphics);
         renderBankButton(guiGraphics);
+        renderDragAndDropFeedback(guiGraphics, mouseX, mouseY);
     }
 
     private void renderLeftPanelButtons(GuiGraphics guiGraphics) {
@@ -781,6 +890,41 @@ public class DefaultShopEditorScreen extends Screen {
         blitRegion(guiGraphics, TEX_BANK_BUTTON, bankX, bankY, 0, bankSrcY, BankButton.WIDTH, BankButton.HEIGHT, TEX_BANK_BUTTON_W, TEX_BANK_BUTTON_H);
         int textColor = bankButton.active ? 0xFFFFFFFF : 0xFFA0A0A0;
         guiGraphics.drawCenteredString(font, bankButton.getMessage(), bankX + BankButton.WIDTH / 2, bankY + (BankButton.HEIGHT - 8) / 2, textColor);
+    }
+
+    /**
+     * Carried stack or inventory-drag ghost at cursor; highlight offer "+" row when hovering while dragging.
+     */
+    private void renderDragAndDropFeedback(GuiGraphics guiGraphics, int mouseX, int mouseY) {
+        if (minecraft == null || minecraft.player == null) return;
+        var menu = minecraft.player.containerMenu;
+        ItemStack carried = menu != null ? menu.getCarried() : ItemStack.EMPTY;
+        ItemStack overlay = ItemStack.EMPTY;
+        if (!carried.isEmpty()) {
+            overlay = carried;
+        } else if (invDragStartSlot >= 0) {
+            overlay = minecraft.player.getInventory().getItem(invDragStartSlot);
+        }
+        if (!overlay.isEmpty()) {
+            int gx = mouseX - 8;
+            int gy = mouseY - 8;
+            guiGraphics.renderItem(overlay, gx, gy);
+            guiGraphics.renderItemDecorations(font, overlay, gx, gy);
+        }
+        if (overlay.isEmpty() || !isMouseOverOfferAddRow(mouseX, mouseY)) return;
+        int left = (width - WINDOW_WIDTH) / 2;
+        int top = (height - WINDOW_HEIGHT) / 2;
+        int offerListTop = top + LIST_TOP_OFFSET;
+        int rowL = left + LIST_LEFT_OFFSET - 10;
+        int rowR = rowL + LIST_WIDTH;
+        List<ShopEntryRecord> offers = filteredOffers();
+        if (offers.isEmpty()) return;
+        if (offers.get(offers.size() - 1) != null) return;
+        int addIdx = offers.size() - 1;
+        int iVisible = addIdx - offerScrollOffset;
+        if (iVisible < 0 || iVisible >= LIST_VISIBLE_ROWS) return;
+        int y = offerListTop + iVisible * ROW_HEIGHT;
+        guiGraphics.fill(rowL, y, rowR, y + ROW_HEIGHT, 0x40FFFFFF);
     }
 
     private int listTop(int top) {
@@ -1026,16 +1170,24 @@ public class DefaultShopEditorScreen extends Screen {
     }
 
     private void renderLeftPreview(GuiGraphics guiGraphics, int left, int top, int mouseX, int mouseY) {
-        // Stock badge (visual only)
-        blitFull(guiGraphics, TEX_STOCK, left + 19, top + 14, TEX_STOCK_W, TEX_STOCK_H);
+        // Stock badge: two horizontal states in stock.png (inactive | active when an offer is selected)
+        int stockX = left + 18;
+        int stockY = top + 12;
+        int stockSrcU = selectedOffer != null ? TEX_STOCK_W : 0;
+        blitRegion(guiGraphics, TEX_STOCK, stockX, stockY, stockSrcU, 0, TEX_STOCK_W, TEX_STOCK_H, TEX_STOCK_TEX_W, TEX_STOCK_TEX_H);
+        String stockStr = "-1";
+        int stockTextX = stockX + (TEX_STOCK_W - font.width(stockStr)) / 2;
+        int stockTextY = stockY + (TEX_STOCK_H - font.lineHeight) / 2;
+        int stockColor = selectedOffer != null ? 0xFF00DD00 : 0xFF888888;
+        guiGraphics.drawString(font, stockStr, stockTextX, stockTextY, stockColor, false);
 
-        // Balance bar (visual only; this editor doesn't have live balance)
+        long balance = useParentBalance ? parentBalance : 0L;
         int balanceBgX = left + BALANCE_BG_X;
         int balanceBgY = top + BALANCE_BG_Y;
         blitFull(guiGraphics, TEX_COBBLEDOLLARS_LOGO, balanceBgX, balanceBgY, TEX_COBBLEDOLLARS_LOGO_W, TEX_COBBLEDOLLARS_LOGO_H);
         guiGraphics.drawString(
                 font,
-                "0",
+                formatBalanceForDisplay(balance),
                 balanceBgX + BALANCE_TEXT_X_OFFSET,
                 balanceBgY + (TEX_COBBLEDOLLARS_LOGO_H - font.lineHeight) / 2 + BALANCE_TEXT_Y_OFFSET,
                 0xFFFFFFFF,
