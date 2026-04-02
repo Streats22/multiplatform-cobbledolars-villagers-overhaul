@@ -10,6 +10,7 @@ import nl.streats1.cobbledollarsvillagersoverhaul.Config;
 import nl.streats1.cobbledollarsvillagersoverhaul.client.ClientAssignMode;
 import nl.streats1.cobbledollarsvillagersoverhaul.client.CycleTradesKeybind;
 import nl.streats1.cobbledollarsvillagersoverhaul.client.screen.CobbleDollarsShopScreen;
+import nl.streats1.cobbledollarsvillagersoverhaul.client.screen.DefaultShopEditorScreen;
 import nl.streats1.cobbledollarsvillagersoverhaul.network.CobbleDollarsShopPayloads;
 import nl.streats1.cobbledollarsvillagersoverhaul.platform.PlatformNetwork;
 
@@ -100,5 +101,12 @@ public class CobbleDollarsVillagersOverhaulFabricClient implements ClientModInit
         ClientPlayNetworking.registerGlobalReceiver(CobbleDollarsShopPayloads.RctSeriesSelected.TYPE,
                 (payload, context) -> context.client().execute(() ->
                         CobbleDollarsShopScreen.showRctSeriesJourneyOverlay(payload.seriesTitleStored())));
+
+        ClientPlayNetworking.registerGlobalReceiver(CobbleDollarsShopPayloads.OpenEditor.TYPE,
+                (payload, context) -> context.client().execute(() -> {
+                    if (!"default_shop".equals(payload.editorId())) return;
+                    var client = context.client();
+                    client.setScreen(new DefaultShopEditorScreen(client.screen));
+                }));
     }
 }

@@ -558,7 +558,7 @@ public class CobbleDollarsShopScreen extends Screen {
 
         // Search input above the offers list (filters Buy/Sell/Trades rows).
         int searchX = left + LIST_LEFT_OFFSET - 10;
-        int searchY = top + LIST_TOP_OFFSET - 14;
+        int searchY = top + LIST_TOP_OFFSET - 10;
         int searchW = LIST_WIDTH;
         searchBox = new EditBox(minecraft.font, searchX, searchY, searchW, 12, Component.literal("Search"));
         searchBox.setHint(Component.translatable("gui.cobbledollars_villagers_overhaul_rca.search_offers"));

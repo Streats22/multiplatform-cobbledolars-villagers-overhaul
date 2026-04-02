@@ -384,4 +384,19 @@ public final class CobbleDollarsShopPayloads {
             return TYPE;
         }
     }
+
+    /**
+     * Server -> Client: open a config editor screen (e.g. default shop editor).
+     */
+    public record OpenEditor(String editorId) implements CustomPacketPayload {
+        public static final CustomPacketPayload.Type<OpenEditor> TYPE =
+                new CustomPacketPayload.Type<>(Objects.requireNonNull(id("open_editor")));
+        public static final StreamCodec<RegistryFriendlyByteBuf, OpenEditor> STREAM_CODEC =
+                StreamCodec.composite(STRING_UTF8, OpenEditor::editorId, OpenEditor::new);
+
+        @Override
+        public Type<? extends CustomPacketPayload> type() {
+            return TYPE;
+        }
+    }
 }

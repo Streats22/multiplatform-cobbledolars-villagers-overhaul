@@ -10,6 +10,7 @@ import java.util.Objects;
 import nl.streats1.cobbledollarsvillagersoverhaul.CobbleDollarsVillagersOverhaulRca;
 import nl.streats1.cobbledollarsvillagersoverhaul.Config;
 import nl.streats1.cobbledollarsvillagersoverhaul.client.screen.CobbleDollarsShopScreen;
+import nl.streats1.cobbledollarsvillagersoverhaul.client.screen.DefaultShopEditorScreen;
 import nl.streats1.cobbledollarsvillagersoverhaul.network.CobbleDollarsShopPayloadHandlers;
 import nl.streats1.cobbledollarsvillagersoverhaul.network.CobbleDollarsShopPayloads;
 import nl.streats1.cobbledollarsvillagersoverhaul.platform.PlatformNetwork;
@@ -130,6 +131,16 @@ public final class NeoForgeNetworking {
                 Objects.requireNonNull(CobbleDollarsShopPayloads.RctSeriesSelected.STREAM_CODEC),
                 (data, context) -> context.enqueueWork(() ->
                         CobbleDollarsShopScreen.showRctSeriesJourneyOverlay(data.seriesTitleStored()))
+        );
+
+        registrar.playToClient(
+                Objects.requireNonNull(CobbleDollarsShopPayloads.OpenEditor.TYPE),
+                Objects.requireNonNull(CobbleDollarsShopPayloads.OpenEditor.STREAM_CODEC),
+                (data, context) -> context.enqueueWork(() -> {
+                    if (!"default_shop".equals(data.editorId())) return;
+                    var mc = net.minecraft.client.Minecraft.getInstance();
+                    mc.setScreen(new DefaultShopEditorScreen(mc.screen));
+                })
         );
     }
 

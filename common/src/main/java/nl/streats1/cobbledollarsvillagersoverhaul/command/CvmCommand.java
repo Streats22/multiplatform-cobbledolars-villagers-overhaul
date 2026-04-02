@@ -30,6 +30,9 @@ public final class CvmCommand {
                                         .executes(CvmCommand::executeOpenShop))
                                 .then(Commands.literal("bank")
                                         .executes(CvmCommand::executeOpenBank)))
+                        .then(Commands.literal("edit")
+                                .then(Commands.literal("shop")
+                                        .executes(CvmCommand::executeEditShop)))
                         .then(Commands.literal("assign")
                                 .executes(CvmCommand::executeAssign))
                         .then(Commands.literal("unassign")
@@ -56,6 +59,17 @@ public final class CvmCommand {
 
         CobbleDollarsShopPayloadHandlers.handleRequestShopData(serverPlayer, VirtualShopIds.VIRTUAL_ID_BANK);
         source.sendSuccess(() -> Component.translatable("command.cobbledollars_villagers_overhaul_rca.cvm.open_bank"), false);
+        return 1;
+    }
+
+    private static int executeEditShop(CommandContext<CommandSourceStack> ctx) {
+        var source = ctx.getSource();
+        var player = source.getPlayer();
+        if (player == null) return 0;
+        if (!(player instanceof ServerPlayer serverPlayer)) return 0;
+
+        PlatformNetwork.sendToPlayer(serverPlayer, new CobbleDollarsShopPayloads.OpenEditor("default_shop"));
+        source.sendSuccess(() -> Component.translatable("command.cobbledollars_villagers_overhaul_rca.cvm.open_shop"), false);
         return 1;
     }
 

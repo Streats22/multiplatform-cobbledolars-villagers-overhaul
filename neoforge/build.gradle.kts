@@ -78,6 +78,7 @@ tasks {
     jar {
         archiveBaseName.set("${rootProject.property("archives_base_name")}-${project.name}")
         archiveClassifier.set("dev-slim")
+        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     }
 
     shadowJar {
@@ -85,6 +86,7 @@ tasks {
         archiveClassifier.set("dev-shadow")
         archiveBaseName.set("${rootProject.property("archives_base_name")}-${project.name}")
         configurations = listOf(shadowBundle)
+        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     }
 
     remapJar {
@@ -92,5 +94,6 @@ tasks {
         inputFile.set(shadowJar.flatMap { it.archiveFile })
         archiveBaseName.set("${rootProject.property("archives_base_name")}-${project.name}")
         archiveVersion.set("${rootProject.version}")
+        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     }
 }
