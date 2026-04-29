@@ -4,19 +4,24 @@ import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
+import net.minecraft.core.Registry;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.item.Item;
+
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+
 import nl.streats1.cobbledollarsvillagersoverhaul.CobbleDollarsVillagersOverhaulRca;
 import nl.streats1.cobbledollarsvillagersoverhaul.command.CvmCommand;
 import nl.streats1.cobbledollarsvillagersoverhaul.command.VillagerShopCommand;
 import nl.streats1.cobbledollarsvillagersoverhaul.network.CobbleDollarsShopPayloadHandlers;
 import nl.streats1.cobbledollarsvillagersoverhaul.network.CobbleDollarsShopPayloads;
 import nl.streats1.cobbledollarsvillagersoverhaul.platform.PlatformNetwork;
-
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
 public class CobbleDollarsVillagersOverhaulFabric implements ModInitializer {
     private static final long REQUEST_DEBOUNCE_MS = 250L;
@@ -29,6 +34,12 @@ public class CobbleDollarsVillagersOverhaulFabric implements ModInitializer {
 
     @Override
     public void onInitialize() {
+        Registry.register(
+                BuiltInRegistries.ITEM,
+                ResourceLocation.fromNamespaceAndPath(CobbleDollarsVillagersOverhaulRca.MOD_ID, "cobbledollar_sign"),
+                new Item(new Item.Properties())
+        );
+
         mod = new CobbleDollarsVillagersOverhaulRca();
         registerEvents();
 

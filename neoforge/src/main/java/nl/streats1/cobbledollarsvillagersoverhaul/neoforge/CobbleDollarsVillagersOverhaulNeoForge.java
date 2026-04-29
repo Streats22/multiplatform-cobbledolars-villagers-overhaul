@@ -2,8 +2,11 @@ package nl.streats1.cobbledollarsvillagersoverhaul.neoforge;
 
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.npc.Villager;
+import net.minecraft.world.item.Item;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.IEventBus;
@@ -15,23 +18,21 @@ import net.neoforged.fml.event.config.ModConfigEvent;
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.neoforged.fml.loading.FMLEnvironment;
 import net.neoforged.fml.loading.FMLPaths;
-
-import nl.streats1.cobbledollarsvillagersoverhaul.integration.CobbleDollarsConfigHelper;
-import nl.streats1.cobbledollarsvillagersoverhaul.integration.ItemPriceConfig;
 import net.neoforged.neoforge.common.NeoForge;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.entity.npc.Villager;
-
-import nl.streats1.cobbledollarsvillagersoverhaul.AssignModeTracker;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
+import net.neoforged.neoforge.registries.DeferredItem;
+import net.neoforged.neoforge.registries.DeferredRegister;
 
+import nl.streats1.cobbledollarsvillagersoverhaul.AssignModeTracker;
 import nl.streats1.cobbledollarsvillagersoverhaul.CobbleDollarsVillagersOverhaulRca;
 import nl.streats1.cobbledollarsvillagersoverhaul.Config;
 import nl.streats1.cobbledollarsvillagersoverhaul.command.CvmCommand;
 import nl.streats1.cobbledollarsvillagersoverhaul.command.VillagerShopCommand;
+import nl.streats1.cobbledollarsvillagersoverhaul.integration.CobbleDollarsConfigHelper;
+import nl.streats1.cobbledollarsvillagersoverhaul.integration.ItemPriceConfig;
 import nl.streats1.cobbledollarsvillagersoverhaul.network.CobbleDollarsShopPayloadHandlers;
 import nl.streats1.cobbledollarsvillagersoverhaul.network.CobbleDollarsShopPayloads;
 
@@ -39,9 +40,14 @@ import nl.streats1.cobbledollarsvillagersoverhaul.network.CobbleDollarsShopPaylo
 public class CobbleDollarsVillagersOverhaulNeoForge {
     public static final String MOD_ID = "cobbledollars_villagers_overhaul_rca";
 
+    private static final DeferredRegister.Items ITEMS = DeferredRegister.createItems(MOD_ID);
+    @SuppressWarnings("unused")
+    private static final DeferredItem<Item> COBBLEDOLLAR_SIGN = ITEMS.registerItem("cobbledollar_sign", Item::new);
+
     private final CobbleDollarsVillagersOverhaulRca common;
 
     public CobbleDollarsVillagersOverhaulNeoForge(IEventBus modEventBus, ModContainer modContainer) {
+        ITEMS.register(modEventBus);
         common = new CobbleDollarsVillagersOverhaulRca();
 
         modEventBus.addListener(this::commonSetup);

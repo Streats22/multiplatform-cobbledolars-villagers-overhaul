@@ -1,6 +1,7 @@
 package nl.streats1.cobbledollarsvillagersoverhaul.network;
 
 import com.mojang.logging.LogUtils;
+
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
@@ -16,12 +17,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.trading.Merchant;
 import net.minecraft.world.item.trading.MerchantOffer;
-import nl.streats1.cobbledollarsvillagersoverhaul.AssignModeTracker;
-import nl.streats1.cobbledollarsvillagersoverhaul.Config;
-import nl.streats1.cobbledollarsvillagersoverhaul.ShopTradeOrbSuppression;
-import nl.streats1.cobbledollarsvillagersoverhaul.VirtualShopIds;
-import nl.streats1.cobbledollarsvillagersoverhaul.integration.*;
-import nl.streats1.cobbledollarsvillagersoverhaul.platform.PlatformNetwork;
+
 import org.slf4j.Logger;
 
 import java.lang.invoke.MethodHandle;
@@ -29,6 +25,13 @@ import java.lang.invoke.MethodHandles;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+
+import nl.streats1.cobbledollarsvillagersoverhaul.AssignModeTracker;
+import nl.streats1.cobbledollarsvillagersoverhaul.Config;
+import nl.streats1.cobbledollarsvillagersoverhaul.ShopTradeOrbSuppression;
+import nl.streats1.cobbledollarsvillagersoverhaul.VirtualShopIds;
+import nl.streats1.cobbledollarsvillagersoverhaul.integration.*;
+import nl.streats1.cobbledollarsvillagersoverhaul.platform.PlatformNetwork;
 
 public final class CobbleDollarsShopPayloadHandlers {
     private static final Logger LOGGER = LogUtils.getLogger();
@@ -1828,6 +1831,8 @@ public final class CobbleDollarsShopPayloadHandlers {
                 }
             }
 
+            SERIES_CACHE.remove(serverPlayer.getUUID());
+
             ItemStack resultCopy = offer.getResult().copy();
             resultCopy.setCount(resultCopy.getCount() * quantity);
             if (!serverPlayer.getInventory().add(resultCopy)) {
@@ -2054,6 +2059,15 @@ public final class CobbleDollarsShopPayloadHandlers {
             return;
         }
 
+            int remaining = totalNeeded;
+            for (int slot = 0; slot < inv.getContainerSize() && remaining > 0; slot++) {
+                ItemStack stack = inv.getItem(slot);
+                if (stack.isEmpty() || !ItemStack.isSameItemSameComponents(stack, costA)) continue;
+                int take = Math.min(remaining, stack.getCount());
+                stack.shrink(take);
+                remaining -= take;
+            }
+
         if (result.is(Items.EMERALD)) {
             int emeraldCount = result.getCount() * quantity;
             int rate = CobbleDollarsConfigHelper.getEffectiveEmeraldRate();
@@ -2082,15 +2096,6 @@ public final class CobbleDollarsShopPayloadHandlers {
             if (!serverPlayer.getInventory().add(resultCopy)) {
                 serverPlayer.drop(resultCopy, false);
             }
-        }
-
-        int remaining = totalNeeded;
-        for (int slot = 0; slot < inv.getContainerSize() && remaining > 0; slot++) {
-            ItemStack stack = inv.getItem(slot);
-            if (stack.isEmpty() || !ItemStack.isSameItemSameComponents(stack, costA)) continue;
-            int take = Math.min(remaining, stack.getCount());
-            stack.shrink(take);
-            remaining -= take;
         }
 
         if (entity instanceof Merchant merchant) {

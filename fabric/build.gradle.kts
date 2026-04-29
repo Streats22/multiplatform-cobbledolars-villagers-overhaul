@@ -86,6 +86,7 @@ tasks {
     }
 
     jar {
+        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
         archiveBaseName.set("${rootProject.property("archives_base_name")}-${project.name}")
         archiveClassifier.set("dev-slim")
     }
