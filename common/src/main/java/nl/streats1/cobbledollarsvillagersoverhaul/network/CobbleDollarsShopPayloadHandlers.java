@@ -93,6 +93,85 @@ public final class CobbleDollarsShopPayloadHandlers {
      * Total player XP is {@code min(getXp(), this) * quantity}.
      */
     private static final int MAX_SINGLE_OFFER_XP = 500;
+    private static final int MAX_TRADE_QUANTITY = 64;
+    private static final float MAX_SHOP_INTERACTION_DISTANCE = 6.0F;
+
+    private static boolean isValidTradeQuantity(int quantity) {
+        return quantity >= 1 && quantity <= MAX_TRADE_QUANTITY;
+    }
+
+    private static boolean isWithinShopInteractionDistance(ServerPlayer serverPlayer, Entity entity) {
+        return entity != null && entity.distanceTo(serverPlayer) <= MAX_SHOP_INTERACTION_DISTANCE;
+    }
+
+    private static boolean canUseEntityBackedShop(ServerPlayer serverPlayer, Entity entity) {
+        return (entity instanceof Villager
+                || entity instanceof WanderingTrader
+                || RctTrainerAssociationCompat.isTrainerAssociation(entity))
+                && isWithinShopInteractionDistance(serverPlayer, entity);
+    }
+
+    private static boolean isEligibleConfigShop(ServerPlayer serverPlayer, int villagerId) {
+        if (VirtualShopIds.isVirtualShop(villagerId)) {
+            return serverPlayer.hasPermissions(2);
+        }
+        if (VirtualShopIds.isVirtual(villagerId)) {
+            return false;
+        }
+
+        Entity entity = serverPlayer.serverLevel().getEntity(villagerId);
+        if (!canUseEntityBackedShop(serverPlayer, entity)) {
+            return false;
+        }
+        if (entity instanceof Villager villager) {
+            ResourceLocation profId = BuiltInRegistries.VILLAGER_PROFESSION.getKey(villager.getVillagerData().getProfession());
+            if (Config.isVillagerProfessionExcluded(profId)) {
+                return false;
+            }
+            if (VillagerShopConfig.usesConfigShop(villager.getUUID())) {
+                return true;
+            }
+        }
+        return (entity instanceof Villager || entity instanceof WanderingTrader)
+                && !RctTrainerAssociationCompat.isTrainerAssociation(entity)
+                && !CobbleDollarsConfigHelper.getDefaultShopBuyOffers().isEmpty()
+                && hasNoGeneratedShopOffers(serverPlayer, entity);
+    }
+
+    private static boolean hasNoGeneratedShopOffers(ServerPlayer serverPlayer, Entity entity) {
+        List<CobbleDollarsShopPayloads.ShopOfferEntry> buyOffers = new ArrayList<>();
+        List<CobbleDollarsShopPayloads.ShopOfferEntry> sellOffers = new ArrayList<>();
+        List<CobbleDollarsShopPayloads.ShopOfferEntry> tradesOffers = new ArrayList<>();
+        List<MerchantOffer> allOffers;
+
+        if (entity instanceof Villager villager) {
+            villager.setTradingPlayer(serverPlayer);
+            updateVillagerSpecialPrices(villager, serverPlayer);
+            try {
+                VillagerConfigCompat.prepareVillagerForShop(serverPlayer.serverLevel(), villager);
+                allOffers = villager.getOffers();
+                buildOfferLists(allOffers, buyOffers, sellOffers);
+                if (Config.USE_DATAPACK_TRADES) {
+                    buildDatapackOffers(allOffers, buyOffers, sellOffers);
+                }
+                buildItemForItemTrades(allOffers, tradesOffers);
+            } finally {
+                villager.setTradingPlayer(null);
+            }
+        } else if (entity instanceof WanderingTrader trader) {
+            MerchantTradeGenerationHelper.ensureMerchantOffersReady(serverPlayer.serverLevel(), trader);
+            allOffers = trader.getOffers();
+            buildOfferLists(allOffers, buyOffers, sellOffers);
+            if (Config.USE_DATAPACK_TRADES) {
+                buildDatapackOffers(allOffers, buyOffers, sellOffers);
+            }
+            buildItemForItemTrades(allOffers, tradesOffers);
+        } else {
+            return false;
+        }
+
+        return buyOffers.isEmpty() && sellOffers.isEmpty() && tradesOffers.isEmpty();
+    }
 
     /**
      * Awards {@code offer.getXp() * quantity} directly (when {@link MerchantOffer#shouldRewardExp()}).
@@ -856,6 +935,10 @@ public final class CobbleDollarsShopPayloadHandlers {
 
         if (entity == null) {
             if (VirtualShopIds.isVirtualShop(villagerId)) {
+                if (!serverPlayer.hasPermissions(2)) {
+                    LOGGER.warn("[shop] player {} attempted to open virtual shop without permission", serverPlayer.getName().getString());
+                    return;
+                }
                 List<CobbleDollarsShopPayloads.ShopOfferEntry> configBuy = CobbleDollarsConfigHelper.getDefaultShopBuyOffers();
                 try {
                     PlatformNetwork.sendToPlayer(serverPlayer,
@@ -869,6 +952,10 @@ public final class CobbleDollarsShopPayloadHandlers {
                 return;
             }
             if (VirtualShopIds.isVirtualBank(villagerId)) {
+                if (!serverPlayer.hasPermissions(2)) {
+                    LOGGER.warn("[shop] player {} attempted to open virtual bank without permission", serverPlayer.getName().getString());
+                    return;
+                }
                 List<CobbleDollarsShopPayloads.ShopOfferEntry> bankSell = CobbleDollarsConfigHelper.getBankSellOffers();
                 try {
                     PlatformNetwork.sendToPlayer(serverPlayer,
@@ -885,6 +972,12 @@ public final class CobbleDollarsShopPayloadHandlers {
                     villagerId,
                     serverPlayer.getName().getString(),
                     serverPlayer.level().dimension().location());
+            return;
+        }
+
+        if (!isWithinShopInteractionDistance(serverPlayer, entity)) {
+            LOGGER.warn("[shop] player {} attempted to open shop for distant entity {} (distance={})",
+                    serverPlayer.getName().getString(), villagerId, entity.distanceTo(serverPlayer));
             return;
         }
 
@@ -1035,6 +1128,8 @@ public final class CobbleDollarsShopPayloadHandlers {
         ServerLevel level = serverPlayer.serverLevel();
         Entity entity = level.getEntity(villagerId);
         if (!(entity instanceof Villager villager)) return;
+        if (!isWithinShopInteractionDistance(serverPlayer, villager)) return;
+        if (VillagerShopConfig.usesConfigShop(villager.getUUID())) return;
         if (!TradeCyclingCompat.canCycleTrades(villager)) return;
         TradeCyclingCompat.cycleTrades(villager, serverPlayer, () -> handleRequestShopData(serverPlayer, villagerId));
     }
@@ -1069,6 +1164,9 @@ public final class CobbleDollarsShopPayloadHandlers {
     }
 
     private static void handleSellFromBank(ServerPlayer serverPlayer, int offerIndex, int quantity) {
+        if (!serverPlayer.hasPermissions(2) || !isValidTradeQuantity(quantity)) {
+            return;
+        }
         List<CobbleDollarsShopPayloads.ShopOfferEntry> bankOffers = CobbleDollarsConfigHelper.getBankSellOffers();
         if (offerIndex < 0 || offerIndex >= bankOffers.size()) {
             LOGGER.warn("Bank offer index {} out of range (0-{})", offerIndex, bankOffers.size() - 1);
@@ -1112,6 +1210,10 @@ public final class CobbleDollarsShopPayloadHandlers {
     }
 
     private static void handleBuyFromConfig(ServerPlayer serverPlayer, int villagerId, int offerIndex, int quantity) {
+        if (!isValidTradeQuantity(quantity) || !isEligibleConfigShop(serverPlayer, villagerId)) {
+            return;
+        }
+
         List<CobbleDollarsShopPayloads.ShopOfferEntry> configOffers = CobbleDollarsConfigHelper.getDefaultShopBuyOffers();
 
         if (offerIndex < 0 || offerIndex >= configOffers.size()) {
@@ -1698,7 +1800,7 @@ public final class CobbleDollarsShopPayloadHandlers {
         if (!CobbleDollarsIntegration.isAvailable()) {
             return;
         }
-        if (quantity < 1) {
+        if (!isValidTradeQuantity(quantity)) {
             return;
         }
 
@@ -1710,6 +1812,8 @@ public final class CobbleDollarsShopPayloadHandlers {
         ServerLevel level = serverPlayer.serverLevel();
         Entity entity = level.getEntity(villagerId);
         if (!(entity instanceof Villager) && !(entity instanceof WanderingTrader) && !RctTrainerAssociationCompat.isTrainerAssociation(entity)) return;
+        if (!canUseEntityBackedShop(serverPlayer, entity)) return;
+        if (entity instanceof Villager villager && VillagerShopConfig.usesConfigShop(villager.getUUID())) return;
 
         // Set trading player so vanilla reputation (curing, hero of village) applies to offer costs/amounts
         AbstractVillager tradingMerchant = null;
@@ -1964,7 +2068,7 @@ public final class CobbleDollarsShopPayloadHandlers {
         if (!CobbleDollarsIntegration.isAvailable()) {
             return;
         }
-        if (quantity < 1) {
+        if (!isValidTradeQuantity(quantity)) {
             return;
         }
 
@@ -1978,6 +2082,12 @@ public final class CobbleDollarsShopPayloadHandlers {
         Entity entity = level.getEntity(villagerId);
 
         if (!(entity instanceof Villager) && !(entity instanceof WanderingTrader) && !RctTrainerAssociationCompat.isTrainerAssociation(entity)) {
+            return;
+        }
+        if (!canUseEntityBackedShop(serverPlayer, entity)) {
+            return;
+        }
+        if (entity instanceof Villager villager && VillagerShopConfig.usesConfigShop(villager.getUUID())) {
             return;
         }
 
