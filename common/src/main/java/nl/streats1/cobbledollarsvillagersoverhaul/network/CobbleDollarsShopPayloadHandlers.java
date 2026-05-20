@@ -35,6 +35,7 @@ public final class CobbleDollarsShopPayloadHandlers {
 
     private static final java.util.Map<java.util.UUID, SeriesCacheEntry> SERIES_CACHE = new java.util.concurrent.ConcurrentHashMap<>();
     private static final long CACHE_TIMEOUT_MS = 30_000;
+    private static final int MAX_TRADE_QUANTITY = 64;
 
     private static class SeriesCacheEntry {
         final List<SeriesDisplay> series;
@@ -129,6 +130,18 @@ public final class CobbleDollarsShopPayloadHandlers {
         } finally {
             ShopTradeOrbSuppression.exit();
         }
+    }
+
+    private static boolean isValidTradeQuantity(int quantity) {
+        return quantity >= 1 && quantity <= MAX_TRADE_QUANTITY;
+    }
+
+    private static boolean canBuyFromConfigShop(ServerPlayer serverPlayer, int villagerId) {
+        if (VirtualShopIds.isVirtualShop(villagerId)) {
+            return true;
+        }
+        Entity entity = serverPlayer.serverLevel().getEntity(villagerId);
+        return entity instanceof Villager villager && VillagerShopConfig.usesConfigShop(villager.getUUID());
     }
 
     /**
@@ -1698,11 +1711,16 @@ public final class CobbleDollarsShopPayloadHandlers {
         if (!CobbleDollarsIntegration.isAvailable()) {
             return;
         }
-        if (quantity < 1) {
+        if (!isValidTradeQuantity(quantity)) {
             return;
         }
 
         if (fromConfigShop) {
+            if (!canBuyFromConfigShop(serverPlayer, villagerId)) {
+                LOGGER.warn("Rejected unauthorized config-shop buy from {} for villager id {}",
+                        serverPlayer.getName().getString(), villagerId);
+                return;
+            }
             handleBuyFromConfig(serverPlayer, villagerId, offerIndex, quantity);
             return;
         }
@@ -1964,7 +1982,7 @@ public final class CobbleDollarsShopPayloadHandlers {
         if (!CobbleDollarsIntegration.isAvailable()) {
             return;
         }
-        if (quantity < 1) {
+        if (!isValidTradeQuantity(quantity)) {
             return;
         }
 
