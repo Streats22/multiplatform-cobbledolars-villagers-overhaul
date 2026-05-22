@@ -33,6 +33,9 @@ import java.util.Objects;
 public final class CobbleDollarsShopPayloadHandlers {
     private static final Logger LOGGER = LogUtils.getLogger();
 
+    private static final int MAX_TRADE_QUANTITY = 64;
+    private static final float MAX_MERCHANT_INTERACTION_DISTANCE = 6.0F;
+
     private static final java.util.Map<java.util.UUID, SeriesCacheEntry> SERIES_CACHE = new java.util.concurrent.ConcurrentHashMap<>();
     private static final long CACHE_TIMEOUT_MS = 30_000;
 
@@ -129,6 +132,61 @@ public final class CobbleDollarsShopPayloadHandlers {
         } finally {
             ShopTradeOrbSuppression.exit();
         }
+    }
+
+    private static boolean isValidTradeQuantity(int quantity) {
+        return quantity >= 1 && quantity <= MAX_TRADE_QUANTITY;
+    }
+
+    private static boolean hasVirtualShopPermission(ServerPlayer serverPlayer, int villagerId) {
+        if (!VirtualShopIds.isVirtual(villagerId)) {
+            return true;
+        }
+        boolean allowed = serverPlayer.hasPermissions(2);
+        if (!allowed) {
+            LOGGER.warn("Player {} attempted to use op-only virtual shop id {} via packet",
+                    serverPlayer.getName().getString(), villagerId);
+        }
+        return allowed;
+    }
+
+    private static boolean canReachMerchant(ServerPlayer serverPlayer, Entity entity) {
+        if (entity == null || entity.level() != serverPlayer.level()) {
+            return false;
+        }
+        if (entity.distanceTo(serverPlayer) > MAX_MERCHANT_INTERACTION_DISTANCE) {
+            LOGGER.warn("Player {} attempted remote shop interaction with entity {} from distance {}",
+                    serverPlayer.getName().getString(), entity.getId(), entity.distanceTo(serverPlayer));
+            return false;
+        }
+        return true;
+    }
+
+    private static boolean isServerApprovedConfigShop(ServerPlayer serverPlayer, int villagerId) {
+        if (VirtualShopIds.isVirtualShop(villagerId)) {
+            return hasVirtualShopPermission(serverPlayer, villagerId);
+        }
+        if (VirtualShopIds.isVirtual(villagerId)) {
+            return false;
+        }
+
+        Entity entity = serverPlayer.serverLevel().getEntity(villagerId);
+        if (!(entity instanceof Villager villager)) {
+            return false;
+        }
+        return canReachMerchant(serverPlayer, entity) && VillagerShopConfig.usesConfigShop(villager.getUUID());
+    }
+
+    private static boolean isSeriesAvailableToPlayer(ServerPlayer serverPlayer, String seriesId) {
+        if (seriesId == null || seriesId.isEmpty()) {
+            return false;
+        }
+        for (SeriesDisplay series : getPlayerAvailableSeries(serverPlayer)) {
+            if (series.id().equalsIgnoreCase(seriesId)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -815,7 +873,7 @@ public final class CobbleDollarsShopPayloadHandlers {
      */
     private static void openVanillaMerchantMenu(ServerPlayer serverPlayer, int villagerId) {
         Entity entity = serverPlayer.serverLevel().getEntity(villagerId);
-        if (entity instanceof MenuProvider menuProvider) {
+        if (entity instanceof MenuProvider menuProvider && canReachMerchant(serverPlayer, entity)) {
             serverPlayer.openMenu(menuProvider);
         }
     }
@@ -849,6 +907,9 @@ public final class CobbleDollarsShopPayloadHandlers {
 
         ServerLevel level = serverPlayer.serverLevel();
         Entity entity = VirtualShopIds.isVirtual(villagerId) ? null : level.getEntity(villagerId);
+        if (entity != null && !canReachMerchant(serverPlayer, entity)) {
+            return;
+        }
 
         LOGGER.debug("Retrieved entity: {} (class: {})",
                 entity != null ? entity.getName().getString() : "null",
@@ -856,6 +917,9 @@ public final class CobbleDollarsShopPayloadHandlers {
 
         if (entity == null) {
             if (VirtualShopIds.isVirtualShop(villagerId)) {
+                if (!hasVirtualShopPermission(serverPlayer, villagerId)) {
+                    return;
+                }
                 List<CobbleDollarsShopPayloads.ShopOfferEntry> configBuy = CobbleDollarsConfigHelper.getDefaultShopBuyOffers();
                 try {
                     PlatformNetwork.sendToPlayer(serverPlayer,
@@ -869,6 +933,9 @@ public final class CobbleDollarsShopPayloadHandlers {
                 return;
             }
             if (VirtualShopIds.isVirtualBank(villagerId)) {
+                if (!hasVirtualShopPermission(serverPlayer, villagerId)) {
+                    return;
+                }
                 List<CobbleDollarsShopPayloads.ShopOfferEntry> bankSell = CobbleDollarsConfigHelper.getBankSellOffers();
                 try {
                     PlatformNetwork.sendToPlayer(serverPlayer,
@@ -1035,6 +1102,7 @@ public final class CobbleDollarsShopPayloadHandlers {
         ServerLevel level = serverPlayer.serverLevel();
         Entity entity = level.getEntity(villagerId);
         if (!(entity instanceof Villager villager)) return;
+        if (!canReachMerchant(serverPlayer, entity)) return;
         if (!TradeCyclingCompat.canCycleTrades(villager)) return;
         TradeCyclingCompat.cycleTrades(villager, serverPlayer, () -> handleRequestShopData(serverPlayer, villagerId));
     }
@@ -1069,6 +1137,9 @@ public final class CobbleDollarsShopPayloadHandlers {
     }
 
     private static void handleSellFromBank(ServerPlayer serverPlayer, int offerIndex, int quantity) {
+        if (!hasVirtualShopPermission(serverPlayer, VirtualShopIds.VIRTUAL_ID_BANK) || !isValidTradeQuantity(quantity)) {
+            return;
+        }
         List<CobbleDollarsShopPayloads.ShopOfferEntry> bankOffers = CobbleDollarsConfigHelper.getBankSellOffers();
         if (offerIndex < 0 || offerIndex >= bankOffers.size()) {
             LOGGER.warn("Bank offer index {} out of range (0-{})", offerIndex, bankOffers.size() - 1);
@@ -1112,6 +1183,9 @@ public final class CobbleDollarsShopPayloadHandlers {
     }
 
     private static void handleBuyFromConfig(ServerPlayer serverPlayer, int villagerId, int offerIndex, int quantity) {
+        if (!isValidTradeQuantity(quantity) || !hasVirtualShopPermission(serverPlayer, villagerId)) {
+            return;
+        }
         List<CobbleDollarsShopPayloads.ShopOfferEntry> configOffers = CobbleDollarsConfigHelper.getDefaultShopBuyOffers();
 
         if (offerIndex < 0 || offerIndex >= configOffers.size()) {
@@ -1329,6 +1403,20 @@ public final class CobbleDollarsShopPayloadHandlers {
             }
         }
         return buyOffers;
+    }
+
+    private static List<MerchantOffer> getRctaSellOffers(List<MerchantOffer> allOffers) {
+        List<MerchantOffer> sellOffers = new ArrayList<>();
+        for (MerchantOffer o : allOffers) {
+            if (o == null) continue;
+            ItemStack costA = o.getCostA();
+            ItemStack result = o.getResult();
+            if (costA == null || result == null || costA.isEmpty() || result.isEmpty()) continue;
+            if (result.is(Items.EMERALD)) {
+                sellOffers.add(o);
+            }
+        }
+        return sellOffers;
     }
 
     /**
@@ -1698,18 +1786,25 @@ public final class CobbleDollarsShopPayloadHandlers {
         if (!CobbleDollarsIntegration.isAvailable()) {
             return;
         }
-        if (quantity < 1) {
+        if (!isValidTradeQuantity(quantity)) {
             return;
         }
 
-        if (fromConfigShop) {
+        boolean serverConfigShop = isServerApprovedConfigShop(serverPlayer, villagerId);
+        if (serverConfigShop) {
             handleBuyFromConfig(serverPlayer, villagerId, offerIndex, quantity);
+            return;
+        }
+        if (fromConfigShop) {
+            LOGGER.warn("Player {} attempted unapproved config-shop purchase for entity id {}",
+                    serverPlayer.getName().getString(), villagerId);
             return;
         }
 
         ServerLevel level = serverPlayer.serverLevel();
         Entity entity = level.getEntity(villagerId);
         if (!(entity instanceof Villager) && !(entity instanceof WanderingTrader) && !RctTrainerAssociationCompat.isTrainerAssociation(entity)) return;
+        if (!canReachMerchant(serverPlayer, entity)) return;
 
         // Set trading player so vanilla reputation (curing, hero of village) applies to offer costs/amounts
         AbstractVillager tradingMerchant = null;
@@ -1778,6 +1873,15 @@ public final class CobbleDollarsShopPayloadHandlers {
 
         ItemStack costA = offer.getCostA();
         if (tab == 2 && RctTrainerAssociationCompat.isTrainerAssociation(entity) && !costA.isEmpty() && isTrainerCard(costA.getItem())) {
+            String targetSeries = selectedSeries;
+            if (targetSeries == null || targetSeries.isEmpty()) {
+                targetSeries = identifySeriesFromOffer(offer, serverPlayer, offerIndex);
+            } else if (!isSeriesAvailableToPlayer(serverPlayer, targetSeries)) {
+                LOGGER.warn("Player {} attempted unavailable RCT series selection {}",
+                        serverPlayer.getName().getString(), targetSeries);
+                return;
+            }
+
             int totalNeeded = costA.getCount() * quantity;
             int have = 0;
             var inv = serverPlayer.getInventory();
@@ -1799,11 +1903,6 @@ public final class CobbleDollarsShopPayloadHandlers {
                     stack.shrink(take);
                     remaining -= take;
                 }
-            }
-
-            String targetSeries = selectedSeries;
-            if (targetSeries == null || targetSeries.isEmpty()) {
-                targetSeries = identifySeriesFromOffer(offer, serverPlayer, offerIndex);
             }
 
             if (targetSeries != null) {
@@ -1852,11 +1951,13 @@ public final class CobbleDollarsShopPayloadHandlers {
 
         int rate = CobbleDollarsConfigHelper.getEffectiveEmeraldRate();
         long totalCost;
+        boolean freeMinimumEmeraldTrade = false;
 
         if (costA.is(Items.EMERALD)) {
             int emeraldCost = costA.getCount() * quantity;
             if (Config.FREE_MINIMUM_EMERALD_TRADE && emeraldCost == quantity && costA.getCount() == 1) {
                 totalCost = 0;
+                freeMinimumEmeraldTrade = true;
             } else {
                 totalCost = (long) emeraldCost * rate;
             }
@@ -1918,7 +2019,7 @@ public final class CobbleDollarsShopPayloadHandlers {
             }
         }
 
-        if (totalCost == 0 && !costA.isEmpty()) {
+        if (totalCost == 0 && !costA.isEmpty() && !freeMinimumEmeraldTrade) {
             int totalNeeded = costA.getCount() * quantity;
             int remaining = totalNeeded;
             var inv = serverPlayer.getInventory();
@@ -1964,12 +2065,15 @@ public final class CobbleDollarsShopPayloadHandlers {
         if (!CobbleDollarsIntegration.isAvailable()) {
             return;
         }
-        if (quantity < 1) {
+        if (!isValidTradeQuantity(quantity)) {
             return;
         }
 
         // Virtual bank: sell to config bank offers
         if (VirtualShopIds.isVirtualBank(villagerId)) {
+            if (!hasVirtualShopPermission(serverPlayer, villagerId)) {
+                return;
+            }
             handleSellFromBank(serverPlayer, offerIndex, quantity);
             return;
         }
@@ -1980,6 +2084,7 @@ public final class CobbleDollarsShopPayloadHandlers {
         if (!(entity instanceof Villager) && !(entity instanceof WanderingTrader) && !RctTrainerAssociationCompat.isTrainerAssociation(entity)) {
             return;
         }
+        if (!canReachMerchant(serverPlayer, entity)) return;
 
         // Set trading player so vanilla reputation (curing, hero of village) applies to sell offer costs/amounts
         AbstractVillager tradingMerchant = null;
@@ -2013,10 +2118,11 @@ public final class CobbleDollarsShopPayloadHandlers {
         try {
         MerchantOffer offer;
         if (RctTrainerAssociationCompat.isTrainerAssociation(entity)) {
-            if (offerIndex < 0 || offerIndex >= allOffers.size()) {
+            List<MerchantOffer> sellOffers = getRctaSellOffers(allOffers);
+            if (offerIndex < 0 || offerIndex >= sellOffers.size()) {
                 return;
             }
-            offer = allOffers.get(offerIndex);
+            offer = sellOffers.get(offerIndex);
         } else {
             List<MerchantOffer> sellOffers = allOffers.stream()
                     .filter(o -> {
