@@ -15,6 +15,8 @@ public final class VillagerConfigCompat {
 
     private static Boolean modLoaded;
     private static Method getTradeTable;
+    private static final java.util.Set<java.util.UUID> CLEARED_CUSTOM_TABLE_VILLAGERS =
+            java.util.concurrent.ConcurrentHashMap.newKeySet();
 
     private VillagerConfigCompat() {
     }
@@ -55,7 +57,8 @@ public final class VillagerConfigCompat {
             resolveGetTradeTable();
             if (getTradeTable != null) {
                 try {
-                    if (getTradeTable.invoke(null, villager) != null) {
+                    if (getTradeTable.invoke(null, villager) != null
+                            && CLEARED_CUSTOM_TABLE_VILLAGERS.add(villager.getUUID())) {
                         MerchantOffers offers = villager.getOffers();
                         if (offers != null) {
                             offers.clear();
