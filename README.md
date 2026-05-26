@@ -68,15 +68,15 @@ Config files are created automatically when you first run the game.
 
 ### Config Options
 
-| Option                         | Type    | Default | Description                                                                    |
-|--------------------------------|---------|---------|--------------------------------------------------------------------------------|
-| `useCobbleDollarsShopUi`       | Boolean | true    | Enable the custom shop UI                                                      |
-| `villagersAcceptCobbleDollars` | Boolean | true    | Pay villager trades with CobbleDollars                                         |
-| `freeMinimumEmeraldTrade`      | Boolean | false   | When true, 1-emerald trades (after curing) are free - no CobbleDollars charged |
-| `cobbledollarsEmeraldRate`     | Int     | 750     | CobbleDollars per emerald (literal: 250 = 250 CD)                              |
-| `syncCobbleDollarsBankRate`    | Boolean | true    | Sync emerald rate with CobbleDollars bank                                      |
-| `useRctTradesOverhaul`         | Boolean | true    | Enable RCT series trades overhaul                                              |
-| `useDatapackTrades`            | Boolean | true    | Use datapack default shop offers                                               |
+| Option                         | Type    | Default | Description                                                                                                                    |
+|--------------------------------|---------|---------|--------------------------------------------------------------------------------------------------------------------------------|
+| `useCobbleDollarsShopUi`       | Boolean | true    | Enable the custom shop UI                                                                                                      |
+| `villagersAcceptCobbleDollars` | Boolean | true    | Pay villager trades with CobbleDollars                                                                                         |
+| `freeMinimumEmeraldTrade`      | Boolean | false   | When true, 1-emerald trades (after curing) are free - no CobbleDollars charged                                                 |
+| `cobbledollarsEmeraldRate`     | Int     | 750     | CobbleDollars per emerald (literal). **This** sets villager trade CD prices after save.                                        |
+| `syncCobbleDollarsBankRate`    | Boolean | true    | Legacy; kept for saves. Villager rate uses `cobbledollarsEmeraldRate` only. Match it to bank emerald price if you want parity. |
+| `useRctTradesOverhaul`         | Boolean | true    | Enable RCT series trades overhaul                                                                                              |
+| `useDatapackTrades`            | Boolean | true    | Use datapack default shop offers                                                                                               |
 
 ### Custom Currency Items (Relic Coins, Poketokens, etc.)
 
@@ -85,9 +85,9 @@ Config files are created automatically when you first run the game.
 - **Cobblemon**: Relic Coin (250 CD), Relic Coin Pouch (2250 CD), Relic Coin Sack (20250 CD)
 - **All The Mons / Poketokens**: Token (250 CD per token)
 
-**Emerald rate**: the config value is CobbleDollars per emerald (literal). Example: `250` → 250 CD per emerald, `200` →
-200 CD. With `syncCobbleDollarsBankRate: true`, the rate comes from CobbleDollars `config/cobbledollars/bank.json` (
-emerald `price` field) instead.
+**Emerald rate**: **`cobbledollarsEmeraldRate`** / Mod Menu setting is CobbleDollars per emerald (literal) and drives
+villager emerald costs. Example: `250` → 250 CD per emerald. Set it manually to match the emerald **`price`** in
+CobbleDollars `config/cobbledollars/bank.json` if you want bank sell parity.
 
 - **Trades where you GET the currency** → **Sell tab** (you receive CobbleDollars)
 - **Trades where you SPEND the currency** → **Buy tab** (you pay CobbleDollars)

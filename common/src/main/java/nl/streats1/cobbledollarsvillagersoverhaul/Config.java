@@ -34,6 +34,7 @@ public class Config {
     
     public static void setCobbledollarsEmeraldRate(int value) {
         COBBLEDOLLARS_EMERALD_RATE = Math.max(1, value);
+        nl.streats1.cobbledollarsvillagersoverhaul.integration.CobbleDollarsConfigHelper.invalidateBankEmeraldPriceCache();
     }
     
     public static void setSyncCobbleDollarsBankRate(boolean value) {

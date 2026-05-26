@@ -13,7 +13,7 @@ import java.util.List;
 public final class ModConfigDefaults {
 
     /**
-     * Default CobbleDollars per emerald when {@code syncCobbleDollarsBankRate} is false.
+     * Default CobbleDollars per emerald in {@code cobbledollarsEmeraldRate} / {@code Config#COBBLEDOLLARS_EMERALD_RATE}.
      */
     public static final int DEFAULT_EMERALD_RATE_CD = 750;
 
@@ -42,8 +42,8 @@ public final class ModConfigDefaults {
                   "excludedVillagerProfessionIds": [
                     "casinorocket:casino_worker"
                   ],
-                  "_comment_emeraldRate": "CobbleDollars per emerald (literal). Example: 250 = 250 CD, 200 = 200 CD.",
-                  "_comment_syncBank": "When true, emerald rate comes from config/cobbledollars/bank.json instead of cobbledollarsEmeraldRate.",
+                  "_comment_emeraldRate": "CobbleDollars per emerald (literal). Used for villager trades. Example: 250 = 250 CD.",
+                  "_comment_syncBank": "Legacy field; villager rate always uses cobbledollarsEmeraldRate. Match that to bank.json emerald price if desired.",
                   "_comment_freeMinimum": "freeMinimumEmeraldTrade: 1-emerald trades (e.g. after curing) cost 0 CD when true.",
                   "_comment_excluded": "Excluded villagers keep their mod's native UI (not the CobbleDollars shop on right-click).",
                   "_comment_customCurrency": "Relic coins etc.: edit custom_currency.json in this folder."
@@ -78,8 +78,8 @@ public final class ModConfigDefaults {
                   "useDatapackTrades": %s,
                   "excludedVillagerProfessionNamespaces": %s,
                   "excludedVillagerProfessionIds": %s,
-                  "_comment_emeraldRate": "CobbleDollars per emerald (literal). Example: 250 = 250 CD, 200 = 200 CD.",
-                  "_comment_syncBank": "When true, emerald rate comes from config/cobbledollars/bank.json instead of cobbledollarsEmeraldRate.",
+                  "_comment_emeraldRate": "CobbleDollars per emerald (literal). Used for villager trades. Example: 250 = 250 CD.",
+                  "_comment_syncBank": "Legacy field; villager rate always uses cobbledollarsEmeraldRate. Match that to bank.json emerald price if desired.",
                   "_comment_freeMinimum": "freeMinimumEmeraldTrade: 1-emerald trades (e.g. after curing) cost 0 CD when true.",
                   "_comment_excluded": "Excluded villagers keep their mod's native UI (not the CobbleDollars shop on right-click).",
                   "_comment_customCurrency": "Relic coins etc.: edit custom_currency.json in this folder."

@@ -12,13 +12,13 @@ public class ConfigNeoForge {
     private static final ModConfigSpec.Builder BUILDER = new ModConfigSpec.Builder();
 
     public static final ModConfigSpec.IntValue COBBLEDOLLARS_EMERALD_RATE = BUILDER
-            .comment("CobbleDollars per emerald (literal value, e.g. 250 = 250 CD per emerald). Ignored if syncCobbleDollarsBankRate is true.")
+            .comment("CobbleDollars per emerald (literal): used for villager emerald costs. Editing this updates trade CD prices.")
             .defineInRange("cobbledollarsEmeraldRate",
                     nl.streats1.cobbledollarsvillagersoverhaul.integration.ModConfigDefaults.DEFAULT_EMERALD_RATE_CD,
                     1, Integer.MAX_VALUE);
 
     public static final ModConfigSpec.BooleanValue SYNC_COBBLEDOLLARS_BANK_RATE = BUILDER
-            .comment("If true, use the emerald price from CobbleDollars' config/cobbledollars/bank.json so villager rate matches their bank (1 emerald = X). Falls back to cobbledollarsEmeraldRate if file not found.")
+            .comment("Legacy toggle (kept for config compatibility). Villager emerald rate always uses cobbledollarsEmeraldRate; set it to match bank.json emerald price if your pack ties them.")
             .define("syncCobbleDollarsBankRate", true);
 
     public static final ModConfigSpec.BooleanValue VILLAGERS_ACCEPT_COBBLEDOLLARS = BUILDER
@@ -42,7 +42,7 @@ public class ConfigNeoForge {
             .define("useDatapackTrades", true);
 
     public static final ModConfigSpec.ConfigValue<String> CUSTOM_CURRENCY_ITEMS = BUILDER
-            .comment("Custom currency items (JSON array). value = literal CobbleDollars per 1 item. Emeralds use cobbledollarsEmeraldRate / bank sync — do not list minecraft:emerald here. Empty [] = use custom_currency.json.")
+            .comment("Custom currency items (JSON array). value = literal CobbleDollars per 1 item. Emeralds use cobbledollarsEmeraldRate — do not list minecraft:emerald here. Empty [] = use custom_currency.json.")
             .define("customCurrencyItems",
                     nl.streats1.cobbledollarsvillagersoverhaul.integration.ModConfigDefaults.neoForgeCustomCurrencyItemsDefault());
 

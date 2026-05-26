@@ -14,8 +14,8 @@ Config files live under `config/cobbledollars_villagers_overhaul_rca/` (Fabric) 
 
 | Key                                    | Default                          | Description                                                                                                            |
 |----------------------------------------|----------------------------------|------------------------------------------------------------------------------------------------------------------------|
-| `cobbledollarsEmeraldRate`             | `750`                            | **Literal** CobbleDollars per emerald (`250` = 250 CD). Used when `syncCobbleDollarsBankRate` is false.                |
-| `syncCobbleDollarsBankRate`            | `true`                           | If true, emerald rate comes from CobbleDollars `config/cobbledollars/bank.json` instead of `cobbledollarsEmeraldRate`. |
+| `cobbledollarsEmeraldRate`             | `750`                            | **Literal** CobbleDollars per emerald; **always** used for villager emerald→CD pricing (menu + this JSON reload).      |
+| `syncCobbleDollarsBankRate`            | `true`                           | Legacy field; preserved in files. Align `cobbledollarsEmeraldRate` with `bank.json` emerald price manually if desired. |
 | `villagersAcceptCobbleDollars`         | `true`                           | Villager emerald costs can be paid from CobbleDollars balance.                                                         |
 | `freeMinimumEmeraldTrade`              | `false`                          | If true, trades that cost 1 emerald (e.g. after curing) charge 0 CD.                                                   |
 | `useCobbleDollarsShopUi`               | `true`                           | Use the CobbleDollars shop UI instead of vanilla trading.                                                              |
@@ -37,7 +37,7 @@ Config files live under `config/cobbledollars_villagers_overhaul_rca/` (Fabric) 
 ## Custom currency
 
 Items that behave like emeralds in trades (Relic Coins, Poketokens, etc.). **Emeralds are not listed here** — they
-always use `getEffectiveEmeraldRate()` (main config + optional bank sync).
+always use `getEffectiveEmeraldRate()` (= `cobbledollarsEmeraldRate` after load).
 
 ### Fabric
 
@@ -67,10 +67,10 @@ always use `getEffectiveEmeraldRate()` (main config + optional bank sync).
 
 These files belong to **CobbleDollars**, not this mod:
 
-| File                                     | Purpose                                                                                  |
-|------------------------------------------|------------------------------------------------------------------------------------------|
-| `config/cobbledollars/default_shop.json` | Default buy offers (prices are already in CD when `directPrice` is used).                |
-| `config/cobbledollars/bank.json`         | Bank sell prices; emerald `price` here is used when `syncCobbleDollarsBankRate` is true. |
+| File                                     | Purpose                                                                                               |
+|------------------------------------------|-------------------------------------------------------------------------------------------------------|
+| `config/cobbledollars/default_shop.json` | Default buy offers (prices are already in CD when `directPrice` is used).                             |
+| `config/cobbledollars/bank.json`         | CobbleDollars bank UI sell prices (set emerald `price` to match villager rate if economy should tie). |
 
 Edit via Mods → Config → Edit shop / Edit bank (this mod’s UI writes to those paths).
 
@@ -78,7 +78,7 @@ Edit via Mods → Config → Edit shop / Edit bank (this mod’s UI writes to th
 
 ## Emerald ↔ CobbleDollars rate
 
-- Villager **emerald** costs convert using the effective rate: bank sync (if enabled) or `cobbledollarsEmeraldRate`.
+- Villager **emerald** costs convert using **`cobbledollarsEmeraldRate`** (Mod Menu / `config.json` / NeoForge TOML).
 - Config shop buy prices in `default_shop.json` are **not** multiplied by the emerald rate when marked direct.
 - Custom currency entries use their own literal `value` per item.
 
