@@ -54,66 +54,46 @@ public class DatapackItemPricing {
      * unlisted items return 0. Used to tell true barter (Trades tab) from CD-priced buy offers.
      */
     public static int getOverridePrice(ItemStack itemStack) {
-        if (itemStack == null || itemStack.isEmpty()) {
-            return 0;
-        }
-        if (!pricesLoaded || customPrices.isEmpty()) {
-            return 0;
-        }
-        Item item = itemStack.getItem();
-        String itemId = getItemId(item);
-        if (customPrices.containsKey(itemId)) {
-            return customPrices.get(itemId) * itemStack.getCount();
-        }
-        ResourceLocation registryName = BuiltInRegistries.ITEM.getKey(item);
-        String fullId = registryName.toString();
-        if (customPrices.containsKey(fullId)) {
-            return customPrices.get(fullId) * itemStack.getCount();
-        }
-        return 0;
+        if (itemStack == null || itemStack.isEmpty()) return 0;
+        if (!pricesLoaded || customPrices.isEmpty()) return 0;
+        int perItem = resolveCustomPrice(itemStack.getItem());
+        return perItem > 0 ? perItem * itemStack.getCount() : 0;
     }
 
     /**
-     * Get the CobbleDollars value for an item stack
-     * Priority: Override prices (highest priority)
+     * Get the CobbleDollars value for an item stack.
+     * Priority: custom price map first, then emerald-rate × count as fallback.
      */
     public static int getPrice(ItemStack itemStack) {
-        if (itemStack == null || itemStack.isEmpty()) {
-            return 0;
-        }
-
-        Item item = itemStack.getItem();
-        String itemId = getItemId(item);
-
-        if (customPrices.containsKey(itemId)) {
-            return customPrices.get(itemId) * itemStack.getCount();
-        }
-
-        ResourceLocation registryName = BuiltInRegistries.ITEM.getKey(item);
-        String fullId = registryName.toString();
-        if (customPrices.containsKey(fullId)) {
-            return customPrices.get(fullId) * itemStack.getCount();
-        }
-
+        if (itemStack == null || itemStack.isEmpty()) return 0;
+        int perItem = resolveCustomPrice(itemStack.getItem());
+        if (perItem > 0) return perItem * itemStack.getCount();
         return CobbleDollarsConfigHelper.getEffectiveEmeraldRate() * itemStack.getCount();
     }
 
     /**
-     * Get price for a single item (not multiplied by count)
-     * Used for configuration UI and price overrides
+     * Get price for a single item (not multiplied by count).
+     * Used for configuration UI and price overrides.
      */
     public static int getSingleItemPrice(Item item) {
-        if (item == null) {
-            return 0;
-        }
+        if (item == null) return 0;
+        int perItem = resolveCustomPrice(item);
+        return perItem > 0 ? perItem : CobbleDollarsConfigHelper.getEffectiveEmeraldRate();
+    }
 
-        String itemId = getItemId(item);
-
-        if (customPrices.containsKey(itemId)) {
-            return customPrices.get(itemId);
-        }
-
-        return CobbleDollarsConfigHelper.getEffectiveEmeraldRate();
+    /**
+     * Looks up {@code item} in the custom price map, trying the short path key first then the full
+     * {@code namespace:path} key. Returns 0 if not found.
+     */
+    private static int resolveCustomPrice(Item item) {
+        if (item == null) return 0;
+        String path = getItemId(item);
+        Integer byPath = customPrices.get(path);
+        if (byPath != null) return byPath;
+        ResourceLocation registryName = BuiltInRegistries.ITEM.getKey(item);
+        if (registryName == null) return 0;
+        Integer byFull = customPrices.get(registryName.toString());
+        return byFull != null ? byFull : 0;
     }
 
     /**

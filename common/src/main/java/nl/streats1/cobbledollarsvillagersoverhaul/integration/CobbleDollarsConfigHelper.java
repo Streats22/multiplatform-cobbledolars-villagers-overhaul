@@ -10,6 +10,9 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import nl.streats1.cobbledollarsvillagersoverhaul.Config;
 import nl.streats1.cobbledollarsvillagersoverhaul.network.CobbleDollarsShopPayloads;
+import nl.streats1.cobbledollarsvillagersoverhaul.util.JsonPriceParser;
+import nl.streats1.cobbledollarsvillagersoverhaul.util.ModConfig;
+import nl.streats1.cobbledollarsvillagersoverhaul.util.ShopOfferEntryFactory;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -20,13 +23,13 @@ import java.util.OptionalInt;
 public final class CobbleDollarsConfigHelper {
 
     private static final String COBBLEDOLLARS_CONFIG_SUBDIR = "cobbledollars";
-    private static Path configRootOverride = null;
 
     /**
      * Set config root (e.g. FabricLoader.getConfigDir()). Null = use default.
+     * Delegates to {@link ModConfig#setConfigRoot(Path)}.
      */
     public static void setConfigRoot(Path path) {
-        configRootOverride = path;
+        ModConfig.setConfigRoot(path);
     }
     private static final String BANK_FILE = "bank.json";
     private static final String DEFAULT_SHOP_FILE = "default_shop.json";
@@ -85,7 +88,6 @@ public final class CobbleDollarsConfigHelper {
             String content = Files.readString(shopFile);
             JsonObject root = JsonParser.parseString(content).getAsJsonObject();
             List<CobbleDollarsShopPayloads.ShopOfferEntry> out = new ArrayList<>();
-            ItemStack empty = ItemStack.EMPTY;
 
             if (root.has(DEFAULT_SHOP_KEY)) {
                 JsonElement arrEl = root.get(DEFAULT_SHOP_KEY);
@@ -102,13 +104,13 @@ public final class CobbleDollarsConfigHelper {
                                 JsonObject o = offerEl.getAsJsonObject();
                                 String itemId = o.has("item") ? o.get("item").getAsString() : null;
                                 if (itemId == null || itemId.isEmpty()) continue;
-                                int price = parsePrice(o.get("price"));
+                                int price = JsonPriceParser.parse(o.get("price"));
                                 if (price <= 0) continue;
                                 ResourceLocation id = ResourceLocation.tryParse(itemId);
                                 if (id == null) continue;
                                 var item = BuiltInRegistries.ITEM.get(id);
                                 if (item == Items.AIR) continue;
-                                out.add(new CobbleDollarsShopPayloads.ShopOfferEntry(new ItemStack(item, 1), price, empty, true, "", "", "", 0, 0, ItemStack.EMPTY, catName != null ? catName : ""));
+                                out.add(ShopOfferEntryFactory.buyConfig(new ItemStack(item, 1), price, catName != null ? catName : ""));
                             }
                         }
                     }
@@ -120,13 +122,13 @@ public final class CobbleDollarsConfigHelper {
                     JsonElement catEl = merchantShop.get(category);
                     if (!catEl.isJsonObject()) continue;
                     for (String itemId : catEl.getAsJsonObject().keySet()) {
-                        int price = parsePrice(catEl.getAsJsonObject().get(itemId));
+                        int price = JsonPriceParser.parse(catEl.getAsJsonObject().get(itemId));
                         if (price <= 0) continue;
                         ResourceLocation id = ResourceLocation.tryParse(itemId);
                         if (id == null) continue;
                         var item = BuiltInRegistries.ITEM.get(id);
                         if (item == Items.AIR) continue;
-                        out.add(new CobbleDollarsShopPayloads.ShopOfferEntry(new ItemStack(item, 1), price, empty, true, "", "", "", 0, 0, ItemStack.EMPTY, category));
+                        out.add(ShopOfferEntryFactory.buyConfig(new ItemStack(item, 1), price, category));
                     }
                 }
             }
@@ -134,24 +136,6 @@ public final class CobbleDollarsConfigHelper {
         } catch (Exception e) {
             return List.of();
         }
-    }
-
-    private static int parsePrice(JsonElement el) {
-        if (el == null || el.isJsonNull()) return 0;
-        if (el.isJsonPrimitive()) {
-            var p = el.getAsJsonPrimitive();
-            if (p.isNumber()) return p.getAsInt();
-            if (p.isString()) {
-                String s = p.getAsString().trim().toLowerCase();
-                int mult = 1;
-                if (s.endsWith("k")) { mult = 1000; s = s.substring(0, s.length() - 1); }
-                else if (s.endsWith("m")) { mult = 1_000_000; s = s.substring(0, s.length() - 1); }
-                try {
-                    return (int) (Double.parseDouble(s) * mult);
-                } catch (NumberFormatException ignored) {}
-            }
-        }
-        return 0;
     }
 
     /**
@@ -177,15 +161,14 @@ public final class CobbleDollarsConfigHelper {
                 JsonObject obj = entry.getAsJsonObject();
                 String itemId = obj.has("item") ? obj.get("item").getAsString() : null;
                 if (itemId == null || itemId.isEmpty()) continue;
-                int price = parsePrice(obj.get("price"));
+                int price = JsonPriceParser.parse(obj.get("price"));
                 if (price <= 0) continue;
                 ResourceLocation id = ResourceLocation.tryParse(itemId);
                 if (id == null) continue;
                 var item = BuiltInRegistries.ITEM.get(id);
                 if (item == null || item == Items.AIR) continue;
                 // Sell offer: result = item player gives, emeraldCount = CD they receive (directPrice=true)
-                out.add(new CobbleDollarsShopPayloads.ShopOfferEntry(
-                        new ItemStack(item, 1), price, ItemStack.EMPTY, true, "", "", "", 0, 0, ItemStack.EMPTY, ""));
+                out.add(ShopOfferEntryFactory.sellDirect(new ItemStack(item, 1), price));
             }
             return out;
         } catch (Exception e) {
@@ -205,7 +188,6 @@ public final class CobbleDollarsConfigHelper {
      * Config root (e.g. .minecraft/config). Used by CobbleDollars config files.
      */
     public static Path getConfigDirectory() {
-        if (configRootOverride != null) return configRootOverride;
-        return Path.of("config").toAbsolutePath();
+        return ModConfig.getConfigDirectory();
     }
 }

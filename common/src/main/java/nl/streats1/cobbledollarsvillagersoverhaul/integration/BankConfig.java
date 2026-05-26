@@ -5,6 +5,8 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import nl.streats1.cobbledollarsvillagersoverhaul.CobbleDollarsVillagersOverhaulRca;
+import nl.streats1.cobbledollarsvillagersoverhaul.util.JsonPriceParser;
+import nl.streats1.cobbledollarsvillagersoverhaul.util.ModConfig;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -23,7 +25,7 @@ public final class BankConfig {
     }
 
     private static Path getBankFile() {
-        return CobbleDollarsConfigHelper.getConfigDirectory().resolve(COBBLEDOLLARS_CONFIG_SUBDIR).resolve(BANK_FILE);
+        return ModConfig.getConfigDirectory().resolve(COBBLEDOLLARS_CONFIG_SUBDIR).resolve(BANK_FILE);
     }
 
     public static List<BankEntryRecord> loadEntries() {
@@ -41,7 +43,7 @@ public final class BankConfig {
                 JsonObject o = e.getAsJsonObject();
                 String itemId = o.has("item") ? o.get("item").getAsString() : null;
                 if (itemId == null || itemId.isEmpty()) continue;
-                int price = o.has("price") ? parsePrice(o.get("price")) : 0;
+                int price = o.has("price") ? JsonPriceParser.parse(o.get("price")) : 0;
                 if (price <= 0) continue;
                 out.add(new BankEntryRecord(itemId, price));
             }
@@ -50,30 +52,6 @@ public final class BankConfig {
             CobbleDollarsVillagersOverhaulRca.LOGGER.warn("Failed to load bank config: {}", ex.getMessage());
             return new ArrayList<>();
         }
-    }
-
-    private static int parsePrice(JsonElement el) {
-        if (el == null || el.isJsonNull()) return 0;
-        if (el.isJsonPrimitive()) {
-            var p = el.getAsJsonPrimitive();
-            if (p.isNumber()) return p.getAsInt();
-            if (p.isString()) {
-                String s = p.getAsString().trim().toLowerCase();
-                int mult = 1;
-                if (s.endsWith("k")) {
-                    mult = 1000;
-                    s = s.substring(0, s.length() - 1);
-                } else if (s.endsWith("m")) {
-                    mult = 1_000_000;
-                    s = s.substring(0, s.length() - 1);
-                }
-                try {
-                    return (int) (Double.parseDouble(s) * mult);
-                } catch (NumberFormatException ignored) {
-                }
-            }
-        }
-        return 0;
     }
 
     public static void saveEntries(List<BankEntryRecord> entries) {

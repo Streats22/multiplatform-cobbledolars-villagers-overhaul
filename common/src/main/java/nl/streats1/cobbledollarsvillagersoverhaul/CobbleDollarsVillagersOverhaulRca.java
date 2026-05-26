@@ -8,6 +8,7 @@ import net.minecraft.world.entity.npc.Villager;
 import net.minecraft.world.entity.npc.VillagerProfession;
 import net.minecraft.world.entity.npc.WanderingTrader;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.CobbleDollarsIntegration;
+import nl.streats1.cobbledollarsvillagersoverhaul.integration.McaVillagerCompat;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.RctTrainerAssociationCompat;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.VillagerCobbleDollarsHandler;
 import nl.streats1.cobbledollarsvillagersoverhaul.network.CobbleDollarsShopPayloadHandlers;
@@ -46,6 +47,12 @@ public class CobbleDollarsVillagersOverhaulRca {
 
         if (!Config.USE_COBBLEDOLLARS_SHOP_UI) {
             return false;
+        }
+
+        // Handle MCA villagers - they replace vanilla villagers
+        if (McaVillagerCompat.isMcaVillager(target)) {
+            cancelAction.run();
+            return true;
         }
 
         if (target instanceof Villager villager) {

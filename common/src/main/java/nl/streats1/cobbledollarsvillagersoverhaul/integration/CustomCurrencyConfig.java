@@ -10,6 +10,8 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import org.slf4j.Logger;
 
+import nl.streats1.cobbledollarsvillagersoverhaul.util.ModConfig;
+
 import java.lang.reflect.Type;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -67,16 +69,14 @@ public final class CustomCurrencyConfig {
     private static boolean loaded = false;
     /** Override from mod config (JSON string) - takes precedence over file */
     private static String configOverride = null;
-    /** Optional config root (Fabric sets via FabricLoader.getConfigDir()) */
-    private static Path configRootOverride = null;
 
     /** Set config directory (e.g. FabricLoader.getInstance().getConfigDir()). Null = use default. */
     public static void setConfigRoot(Path path) {
-        configRootOverride = path;
+        ModConfig.setConfigRoot(path);
     }
 
     public static void loadFromFile() {
-        Path configDir = getConfigDirectory();
+        Path configDir = ModConfig.getConfigDirectory();
         Path dir = configDir.resolve(CONFIG_SUBDIR);
         Path file = dir.resolve(CONFIG_FILE);
         if (!Files.isRegularFile(file)) {
@@ -196,7 +196,7 @@ public final class CustomCurrencyConfig {
     public static void saveToFile() {
         if (configOverride != null) return; // NeoForge uses TOML; platform handles save
         try {
-            Path dir = getConfigDirectory().resolve(CONFIG_SUBDIR);
+            Path dir = ModConfig.getConfigDirectory().resolve(CONFIG_SUBDIR);
             Files.createDirectories(dir);
             Path file = dir.resolve(CONFIG_FILE);
             List<CurrencyEntry> list = new ArrayList<>();
@@ -215,7 +215,7 @@ public final class CustomCurrencyConfig {
     /** Write entries to custom_currency.json. Call from GUI save so JSON stays in sync (Fabric + NeoForge). */
     public static void writeEntriesToFile(List<CurrencyEntryRecord> entries) {
         try {
-            Path dir = getConfigDirectory().resolve(CONFIG_SUBDIR);
+            Path dir = ModConfig.getConfigDirectory().resolve(CONFIG_SUBDIR);
             Files.createDirectories(dir);
             Path file = dir.resolve(CONFIG_FILE);
             Files.writeString(file, entriesToJson(entries));
@@ -235,11 +235,6 @@ public final class CustomCurrencyConfig {
             }
         }
         return new Gson().toJson(list);
-    }
-
-    private static Path getConfigDirectory() {
-        if (configRootOverride != null) return configRootOverride;
-        return Path.of("config").toAbsolutePath();
     }
 
     private static class CurrencyEntry {
