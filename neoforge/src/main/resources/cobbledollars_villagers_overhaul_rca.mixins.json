@@ -5,10 +5,12 @@
   "compatibilityLevel": "JAVA_21",
   "mixins": [
     "BankMixin",
-    "MerchantTradeOrbSuppressionMixin"
+    "MerchantTradeOrbSuppressionMixin",
+    "VillagerStartTradingMixin"
   ],
   "client": [
-    "VillagerEmeraldSignMixin"
+    "VillagerEmeraldSignMixin",
+    "MinecraftMerchantMcaSuppressNeoForgeMixin"
   ],
   "server": []
 }

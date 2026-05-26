@@ -7,14 +7,11 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
+import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.InputEvent;
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
 import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
 import net.neoforged.neoforge.network.PacketDistributor;
-
-import java.util.List;
-import java.util.function.Supplier;
-
 import nl.streats1.cobbledollarsvillagersoverhaul.Config;
 import nl.streats1.cobbledollarsvillagersoverhaul.client.CycleTradesKeybind;
 import nl.streats1.cobbledollarsvillagersoverhaul.client.screen.CobbleDollarsShopScreen;
@@ -22,6 +19,9 @@ import nl.streats1.cobbledollarsvillagersoverhaul.client.screen.ConfigHomeScreen
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.CurrencyEntryRecord;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.CustomCurrencyConfig;
 import nl.streats1.cobbledollarsvillagersoverhaul.platform.PlatformNetwork;
+
+import java.util.List;
+import java.util.function.Supplier;
 
 @SuppressWarnings("null")
 public class CobbleDollarsVillagersOverhaulNeoForgeClient {
@@ -103,7 +103,13 @@ public class CobbleDollarsVillagersOverhaulNeoForgeClient {
     /** Restore local config after leaving a remote server (multiplayer sync overwrites in-memory flags). */
     @SubscribeEvent
     public static void onClientLoggingOut(ClientPlayerNetworkEvent.LoggingOut event) {
+        NeoForgePendingCustomShopMerchantSuppress.clear("disconnect");
         ConfigNeoForge.loadConfig(ConfigNeoForge.SPEC);
+    }
+
+    @SubscribeEvent
+    public static void onClientTickPost(ClientTickEvent.Post event) {
+        NeoForgePendingCustomShopMerchantSuppress.onClientTick();
     }
 
     @SubscribeEvent

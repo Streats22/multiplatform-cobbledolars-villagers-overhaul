@@ -39,7 +39,9 @@ public final class NeoForgeNetworking {
                                 data.useCobbleDollarsShopUi(),
                                 data.villagersAcceptCobbleDollars(),
                                 data.useDatapackTrades(),
-                                data.useRctTradesOverhaul())));
+                                data.useRctTradesOverhaul(),
+                                data.emeraldRateCdPerEmerald(),
+                                data.syncCobbleDollarsBankRate())));
 
         registrar.playToClient(
                 Objects.requireNonNull(CobbleDollarsShopPayloads.ShopData.TYPE),
@@ -54,6 +56,7 @@ public final class NeoForgeNetworking {
                                 data.tradesOffers() != null ? data.tradesOffers().size() : 0,
                                 data.buyOffersFromConfig(),
                                 data.canCycleTrades());
+                    NeoForgePendingCustomShopMerchantSuppress.onShopDataReceived(data.villagerId());
                         CobbleDollarsShopScreen.openFromPayload(
                                 data.villagerId(), data.balance(), data.buyOffers(), data.sellOffers(), data.tradesOffers(), data.buyOffersFromConfig(), data.canCycleTrades());
                 })

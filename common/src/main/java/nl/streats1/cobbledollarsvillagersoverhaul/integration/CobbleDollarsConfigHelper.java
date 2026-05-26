@@ -64,7 +64,7 @@ public final class CobbleDollarsConfigHelper {
                     JsonObject obj = entry.getAsJsonObject();
                     String item = obj.has("item") ? obj.get("item").getAsString() : null;
                     if (EMERALD_ITEM.equals(item) && obj.has("price")) {
-                        int price = obj.get("price").getAsInt();
+                        int price = EmeraldRateHelper.normalizeCdPerEmerald(obj.get("price").getAsInt());
                         if (price > 0) {
                             cachedBankEmeraldPrice = price;
                             return OptionalInt.of(price);
@@ -179,9 +179,18 @@ public final class CobbleDollarsConfigHelper {
     public static int getEffectiveEmeraldRate() {
         if (Config.SYNC_COBBLEDOLLARS_BANK_RATE) {
             OptionalInt bank = getBankEmeraldPrice();
-            if (bank.isPresent()) return bank.getAsInt();
+            if (bank.isPresent()) {
+                return bank.getAsInt();
+            }
         }
-        return Config.COBBLEDOLLARS_EMERALD_RATE;
+        return Math.max(1, Config.COBBLEDOLLARS_EMERALD_RATE);
+    }
+
+    /**
+     * Call after config or bank.json changes so sync picks up a new emerald price.
+     */
+    public static void invalidateBankEmeraldPriceCache() {
+        cachedBankEmeraldPrice = -1;
     }
 
     /**

@@ -32,6 +32,10 @@ enhanced trading experience with RCT series support.
 
 **Casino Rocket** (Fabric): Fully compatible. Casino Worker villagers keep their native casino UI; other villagers use the CobbleDollars shop. Add Casino Rocket to your mods folder alongside this mod.
 
+**Minecraft Comes Alive (MCA)** (optional): Right-click opens MCA's interaction GUI (Talk, Interact, Family, etc.). Use
+the **Trade** button in that GUI or **shift-click** a tradable MCA villager to open the CobbleDollars shop. Compatible
+with **MCA: Cobblemon** — Pokémon dialogue and gifts work normally; only trading uses CobbleDollars.
+
 **For in-game config screen** (Mods menu → Config button):
 - **Fabric**: [Cloth Config API](https://modrinth.com/mod/cloth-config) + [Mod Menu](https://modrinth.com/mod/modmenu)
 - **NeoForge**: [Cloth Config API](https://modrinth.com/mod/cloth-config) (config button appears in mod list)
@@ -64,15 +68,15 @@ Config files are created automatically when you first run the game.
 
 ### Config Options
 
-| Option                        | Type    | Default | Description                                   |
-|------------------------------|---------|---------|-----------------------------------------------|
-| `useCobbleDollarsShopUi`     | Boolean | true    | Enable the custom shop UI                     |
-| `villagersAcceptCobbleDollars`| Boolean | true    | Pay villager trades with CobbleDollars        |
-| `freeMinimumEmeraldTrade`    | Boolean | false   | When true, 1-emerald trades (after curing) are free - no CobbleDollars charged |
-| `cobbledollarsEmeraldRate`    | Int     | 3       | Step 1-3: 1=250, 2=500, 3=750 CD per emerald (or raw value) |
-| `syncCobbleDollarsBankRate`  | Boolean | true    | Sync emerald rate with CobbleDollars bank    |
-| `useRctTradesOverhaul`       | Boolean | true    | Enable RCT series trades overhaul            |
-| `useDatapackTrades`          | Boolean | true    | Use datapack default shop offers             |
+| Option                         | Type    | Default | Description                                                                    |
+|--------------------------------|---------|---------|--------------------------------------------------------------------------------|
+| `useCobbleDollarsShopUi`       | Boolean | true    | Enable the custom shop UI                                                      |
+| `villagersAcceptCobbleDollars` | Boolean | true    | Pay villager trades with CobbleDollars                                         |
+| `freeMinimumEmeraldTrade`      | Boolean | false   | When true, 1-emerald trades (after curing) are free - no CobbleDollars charged |
+| `cobbledollarsEmeraldRate`     | Int     | 750     | CobbleDollars per emerald (literal: 250 = 250 CD)                              |
+| `syncCobbleDollarsBankRate`    | Boolean | true    | Sync emerald rate with CobbleDollars bank                                      |
+| `useRctTradesOverhaul`         | Boolean | true    | Enable RCT series trades overhaul                                              |
+| `useDatapackTrades`            | Boolean | true    | Use datapack default shop offers                                               |
 
 ### Custom Currency Items (Relic Coins, Poketokens, etc.)
 
@@ -81,7 +85,9 @@ Config files are created automatically when you first run the game.
 - **Cobblemon**: Relic Coin (250 CD), Relic Coin Pouch (2250 CD), Relic Coin Sack (20250 CD)
 - **All The Mons / Poketokens**: Token (250 CD per token)
 
-**Emerald steps** (CobbleDollars scale): 1 = 250 CD, 2 = 500 CD, 3 = 750 CD per emerald. Default is step 3.
+**Emerald rate**: the config value is CobbleDollars per emerald (literal). Example: `250` → 250 CD per emerald, `200` →
+200 CD. With `syncCobbleDollarsBankRate: true`, the rate comes from CobbleDollars `config/cobbledollars/bank.json` (
+emerald `price` field) instead.
 
 - **Trades where you GET the currency** → **Sell tab** (you receive CobbleDollars)
 - **Trades where you SPEND the currency** → **Buy tab** (you pay CobbleDollars)
@@ -97,6 +103,7 @@ Format: `[{"item":"cobblemon:relic_coin","value":250},{"item":"allthemons:token"
 ### Opening the Shop
 
 - **Villagers**: Right-click on any villager (except nitwits) to open the shop
+- **MCA villagers**: Right-click for MCA interaction GUI; click **Trade** or shift-click to open the CobbleDollars shop
 - **Wandering Trader**: Right-click on a wandering trader to open the shop
 - **RCT Trainers**: Right-click on RCT trainer entities to open the shop with series selection
 

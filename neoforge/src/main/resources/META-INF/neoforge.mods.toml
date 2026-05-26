@@ -60,3 +60,19 @@ type = "optional"
 versionRange = "*"
 ordering = "NONE"
 side = "BOTH"
+
+# Optional: Minecraft Comes Alive — interaction GUI on right-click; CobbleDollars shop on Trade/shift-trade.
+[[dependencies.cobbledollars_villagers_overhaul_rca]]
+modId = "mca"
+type = "optional"
+versionRange = "*"
+ordering = "NONE"
+side = "BOTH"
+
+# Optional: MCA Cobblemon — Pokémon dialogue on MCA villagers; trading still uses CobbleDollars shop.
+[[dependencies.cobbledollars_villagers_overhaul_rca]]
+modId = "mca_cobblemon"
+type = "optional"
+versionRange = "*"
+ordering = "NONE"
+side = "BOTH"

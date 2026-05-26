@@ -49,10 +49,10 @@ public class CobbleDollarsVillagersOverhaulRca {
             return false;
         }
 
-        // Handle MCA villagers - they replace vanilla villagers
-        if (McaVillagerCompat.isMcaVillager(target)) {
-            cancelAction.run();
-            return true;
+        // When MCA is loaded, let MCA handle normal right-click (interaction GUI).
+        // CobbleDollars shop opens from Trade/shift-trade via VillagerStartTradingMixin.
+        if (McaVillagerCompat.isModLoaded() && McaVillagerCompat.isMcaVillager(target)) {
+            return false;
         }
 
         if (target instanceof Villager villager) {

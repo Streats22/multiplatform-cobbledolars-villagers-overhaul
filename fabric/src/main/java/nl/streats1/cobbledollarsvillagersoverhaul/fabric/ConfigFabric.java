@@ -4,18 +4,16 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-
 import net.fabricmc.loader.api.FabricLoader;
-
-import java.nio.file.Files;
-import java.nio.file.Path;
-
 import nl.streats1.cobbledollarsvillagersoverhaul.CobbleDollarsVillagersOverhaulRca;
 import nl.streats1.cobbledollarsvillagersoverhaul.Config;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.CobbleDollarsConfigHelper;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.CustomCurrencyConfig;
-import nl.streats1.cobbledollarsvillagersoverhaul.integration.VillagerShopConfig;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.ItemPriceConfig;
+import nl.streats1.cobbledollarsvillagersoverhaul.integration.VillagerShopConfig;
+
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 /**
  * Fabric config loader. Creates config/cobbledollars_villagers_overhaul_rca/config.json
@@ -45,8 +43,11 @@ public final class ConfigFabric {
             JsonObject root = JsonParser.parseString(content).getAsJsonObject();
 
             if (root.has("cobbledollarsEmeraldRate")) {
-                Config.setCobbledollarsEmeraldRate(stepToCd(root.get("cobbledollarsEmeraldRate").getAsInt()));
+                Config.setCobbledollarsEmeraldRate(
+                        nl.streats1.cobbledollarsvillagersoverhaul.integration.EmeraldRateHelper.normalizeCdPerEmerald(
+                                root.get("cobbledollarsEmeraldRate").getAsInt()));
             }
+            CobbleDollarsConfigHelper.invalidateBankEmeraldPriceCache();
             if (root.has("syncCobbleDollarsBankRate")) {
                 Config.setSyncCobbleDollarsBankRate(root.get("syncCobbleDollarsBankRate").getAsBoolean());
             }
@@ -90,28 +91,7 @@ public final class ConfigFabric {
         }
     }
 
-    /** Steps 1-3 → 250/500/750 CD. Other values used as raw CD. */
-    public static int stepToCd(int raw) {
-        return (raw >= 1 && raw <= 3) ? raw * 250 : raw;
-    }
-
     private static String getDefaultConfigJson() {
-        return """
-                {
-                  "cobbledollarsEmeraldRate": 3,
-                  "syncCobbleDollarsBankRate": true,
-                  "villagersAcceptCobbleDollars": true,
-                  "freeMinimumEmeraldTrade": false,
-                  "useCobbleDollarsShopUi": true,
-                  "useRctTradesOverhaul": true,
-                  "useDatapackTrades": true,
-                  "excludedVillagerProfessionNamespaces": ["cobbledollars"],
-                  "excludedVillagerProfessionIds": ["casinorocket:casino_worker"],
-                  "_comment_emeraldSteps": "1=250, 2=500, 3=750 CD per emerald (CobbleDollars scale)",
-                  "_comment_freeMinimum": "freeMinimumEmeraldTrade: when true, 1-emerald trades (after curing) are free - no CD charged.",
-                  "_comment_excluded": "excludedVillagerProfessionNamespaces: mod namespaces to exclude. excludedVillagerProfessionIds: specific professions (e.g. casinorocket:casino_worker). Excluded villagers use their native UI.",
-                  "_comment": "Edit config/cobbledollars_villagers_overhaul_rca/custom_currency.json for Relic Coins, Poketokens, etc."
-                }
-                """;
+        return nl.streats1.cobbledollarsvillagersoverhaul.integration.ModConfigDefaults.fabricMainConfigJson();
     }
 }

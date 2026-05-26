@@ -201,7 +201,9 @@ public final class CobbleDollarsShopPayloads {
             boolean useCobbleDollarsShopUi,
             boolean villagersAcceptCobbleDollars,
             boolean useDatapackTrades,
-            boolean useRctTradesOverhaul
+            boolean useRctTradesOverhaul,
+            int emeraldRateCdPerEmerald,
+            boolean syncCobbleDollarsBankRate
     ) implements CustomPacketPayload {
         public static final CustomPacketPayload.Type<ServerShopConfigSync> TYPE =
                 new CustomPacketPayload.Type<>(Objects.requireNonNull(id("server_shop_config_sync")));
@@ -212,11 +214,15 @@ public final class CobbleDollarsShopPayloads {
                             BOOL.encode(buf, data.villagersAcceptCobbleDollars());
                             BOOL.encode(buf, data.useDatapackTrades());
                             BOOL.encode(buf, data.useRctTradesOverhaul());
+                            VAR_INT.encode(buf, data.emeraldRateCdPerEmerald());
+                            BOOL.encode(buf, data.syncCobbleDollarsBankRate());
                         },
                         buf -> new ServerShopConfigSync(
                                 BOOL.decode(buf),
                                 BOOL.decode(buf),
                                 BOOL.decode(buf),
+                                BOOL.decode(buf),
+                                VAR_INT.decode(buf),
                                 BOOL.decode(buf))
                 );
 

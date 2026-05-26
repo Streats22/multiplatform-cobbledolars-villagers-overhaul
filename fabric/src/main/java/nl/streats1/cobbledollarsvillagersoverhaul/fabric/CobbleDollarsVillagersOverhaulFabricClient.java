@@ -45,7 +45,9 @@ public class CobbleDollarsVillagersOverhaulFabricClient implements ClientModInit
                     payload.useCobbleDollarsShopUi(),
                     payload.villagersAcceptCobbleDollars(),
                     payload.useDatapackTrades(),
-                    payload.useRctTradesOverhaul())));
+                    payload.useRctTradesOverhaul(),
+                    payload.emeraldRateCdPerEmerald(),
+                    payload.syncCobbleDollarsBankRate())));
 
         ClientPlayNetworking.registerGlobalReceiver(CobbleDollarsShopPayloads.ShopData.TYPE, 
             (payload, context) -> {

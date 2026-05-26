@@ -27,7 +27,9 @@
     "casinorocket": "*",
     "trade_cycling": "*",
     "easy_villagers": "*",
-    "villagerconfig": "*"
+    "villagerconfig": "*",
+    "mca": "*",
+    "mca_cobblemon": "*"
   },
   "mixins": ["cobbledollars_villagers_overhaul_rca.mixins.json"]
 }

@@ -1,8 +1,8 @@
 {
   "config.cobbledollars_villagers_overhaul_rca.title": "CobbleDollars Villagers Overhaul Config",
   "config.cobbledollars_villagers_overhaul_rca.category.general": "General",
-  "config.cobbledollars_villagers_overhaul_rca.cobbledollarsEmeraldRate": "Emerald step (1-3)",
-  "config.cobbledollars_villagers_overhaul_rca.cobbledollarsEmeraldRate.tooltip": "CobbleDollars scale: 1 = 250 CD, 2 = 500 CD, 3 = 750 CD per emerald. Or use raw value (250, 500, 750). Ignored if sync with bank is enabled.",
+  "config.cobbledollars_villagers_overhaul_rca.cobbledollarsEmeraldRate": "CobbleDollars per emerald",
+  "config.cobbledollars_villagers_overhaul_rca.cobbledollarsEmeraldRate.tooltip": "Literal CD per emerald (e.g. 250 = 250 CD). Ignored if sync with CobbleDollars bank is enabled.",
   "config.cobbledollars_villagers_overhaul_rca.syncCobbleDollarsBankRate": "Sync Emerald Rate with CobbleDollars Bank",
   "config.cobbledollars_villagers_overhaul_rca.syncCobbleDollarsBankRate.tooltip": "Use emerald price from CobbleDollars bank.json if found.",
   "config.cobbledollars_villagers_overhaul_rca.freeMinimumEmeraldTrade": "Free 1-Emerald Trades",

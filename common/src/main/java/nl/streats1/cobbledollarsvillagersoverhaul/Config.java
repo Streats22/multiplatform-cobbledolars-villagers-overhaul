@@ -6,7 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Config {
-    public static int COBBLEDOLLARS_EMERALD_RATE = 750;
+    public static int COBBLEDOLLARS_EMERALD_RATE = nl.streats1.cobbledollarsvillagersoverhaul.integration.ModConfigDefaults.DEFAULT_EMERALD_RATE_CD;
     public static boolean SYNC_COBBLEDOLLARS_BANK_RATE = true;
     public static boolean VILLAGERS_ACCEPT_COBBLEDOLLARS = true;
     public static boolean USE_COBBLEDOLLARS_SHOP_UI = true;
@@ -33,11 +33,12 @@ public class Config {
     }
     
     public static void setCobbledollarsEmeraldRate(int value) {
-        COBBLEDOLLARS_EMERALD_RATE = value;
+        COBBLEDOLLARS_EMERALD_RATE = Math.max(1, value);
     }
     
     public static void setSyncCobbleDollarsBankRate(boolean value) {
         SYNC_COBBLEDOLLARS_BANK_RATE = value;
+        nl.streats1.cobbledollarsvillagersoverhaul.integration.CobbleDollarsConfigHelper.invalidateBankEmeraldPriceCache();
     }
     
     public static void setVillagersAcceptCobbleDollars(boolean value) {
@@ -74,10 +75,19 @@ public class Config {
      */
     public static void applyServerShopRuntimeConfig(boolean useCobbleDollarsShopUi, boolean villagersAcceptCobbleDollars,
                                                     boolean useDatapackTrades, boolean useRctTradesOverhaul) {
+        applyServerShopRuntimeConfig(useCobbleDollarsShopUi, villagersAcceptCobbleDollars, useDatapackTrades,
+                useRctTradesOverhaul, COBBLEDOLLARS_EMERALD_RATE, SYNC_COBBLEDOLLARS_BANK_RATE);
+    }
+
+    public static void applyServerShopRuntimeConfig(boolean useCobbleDollarsShopUi, boolean villagersAcceptCobbleDollars,
+                                                    boolean useDatapackTrades, boolean useRctTradesOverhaul,
+                                                    int emeraldRateCdPerEmerald, boolean syncCobbleDollarsBankRate) {
         USE_COBBLEDOLLARS_SHOP_UI = useCobbleDollarsShopUi;
         VILLAGERS_ACCEPT_COBBLEDOLLARS = villagersAcceptCobbleDollars;
         USE_DATAPACK_TRADES = useDatapackTrades;
         USE_RCT_TRADES_OVERHAUL = useRctTradesOverhaul;
+        COBBLEDOLLARS_EMERALD_RATE = Math.max(1, emeraldRateCdPerEmerald);
+        SYNC_COBBLEDOLLARS_BANK_RATE = syncCobbleDollarsBankRate;
     }
 
     /** Check by namespace (all professions from that mod). */

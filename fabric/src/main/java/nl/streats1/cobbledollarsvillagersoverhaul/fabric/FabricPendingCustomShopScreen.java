@@ -27,8 +27,15 @@ public final class FabricPendingCustomShopScreen {
     }
 
     public static void beginAwaitingShopData(int villagerEntityId) {
+        beginAwaitingShopData(villagerEntityId, false);
+    }
+
+    /**
+     * @param bypassSingleplayerGate when true (e.g. MCA merchant screen redirect), arms suppress on integrated singleplayer too.
+     */
+    public static void beginAwaitingShopData(int villagerEntityId, boolean bypassSingleplayerGate) {
         Minecraft mc = Minecraft.getInstance();
-        if (mc.getSingleplayerServer() != null) {
+        if (!bypassSingleplayerGate && mc.getSingleplayerServer() != null) {
             return;
         }
         pendingEntityId = villagerEntityId;

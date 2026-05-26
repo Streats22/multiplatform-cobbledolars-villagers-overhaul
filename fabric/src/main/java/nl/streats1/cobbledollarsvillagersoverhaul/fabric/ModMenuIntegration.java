@@ -2,33 +2,23 @@ package nl.streats1.cobbledollarsvillagersoverhaul.fabric;
 
 import com.terraformersmc.modmenu.api.ConfigScreenFactory;
 import com.terraformersmc.modmenu.api.ModMenuApi;
-
-import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.network.chat.Component;
-
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.stream.Collectors;
-
 import me.shedaniel.clothconfig2.api.ConfigBuilder;
 import me.shedaniel.clothconfig2.api.ConfigCategory;
 import me.shedaniel.clothconfig2.api.ConfigEntryBuilder;
+import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.Component;
 import nl.streats1.cobbledollarsvillagersoverhaul.Config;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.CustomCurrencyConfig;
+import nl.streats1.cobbledollarsvillagersoverhaul.integration.ModConfigDefaults;
+
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 /**
  * Mod Menu integration: Config button in Mods list opens our in-game config screen.
  */
 public class ModMenuIntegration implements ModMenuApi {
-
-    /** Display step (1-3) when value is 250/500/750; else show raw CD. */
-    private static int cdToStep(int cd) {
-        if (cd == 250) return 1;
-        if (cd == 500) return 2;
-        if (cd == 750) return 3;
-        return cd;
-    }
 
     @Override
     public ConfigScreenFactory<?> getModConfigScreenFactory() {
@@ -46,33 +36,16 @@ public class ModMenuIntegration implements ModMenuApi {
                         Path dir = configDir.resolve("cobbledollars_villagers_overhaul_rca");
                         Path file = dir.resolve("config.json");
                         Files.createDirectories(dir);
-                        int emeraldDisplay = cdToStep(Config.COBBLEDOLLARS_EMERALD_RATE);
-                        String excludedNsJson = Config.EXCLUDED_VILLAGER_PROFESSION_NAMESPACES.stream()
-                                .map(s -> "\"" + s.replace("\\", "\\\\").replace("\"", "\\\"") + "\"")
-                                .collect(Collectors.joining(", "));
-                        String excludedIdsJson = Config.EXCLUDED_VILLAGER_PROFESSION_IDS.stream()
-                                .map(s -> "\"" + s.replace("\\", "\\\\").replace("\"", "\\\"") + "\"")
-                                .collect(Collectors.joining(", "));
-                        String json = String.format("""
-                                {
-                                  "cobbledollarsEmeraldRate": %d,
-                                  "syncCobbleDollarsBankRate": %b,
-                                  "villagersAcceptCobbleDollars": %b,
-                                  "useCobbleDollarsShopUi": %b,
-                                  "useRctTradesOverhaul": %b,
-                                  "useDatapackTrades": %b,
-                                  "excludedVillagerProfessionNamespaces": [%s],
-                                  "excludedVillagerProfessionIds": [%s]
-                                }
-                                """,
-                                emeraldDisplay,
+                        String json = ModConfigDefaults.fabricMainConfigJson(
+                                Config.COBBLEDOLLARS_EMERALD_RATE,
                                 Config.SYNC_COBBLEDOLLARS_BANK_RATE,
                                 Config.VILLAGERS_ACCEPT_COBBLEDOLLARS,
+                                Config.FREE_MINIMUM_EMERALD_TRADE,
                                 Config.USE_COBBLEDOLLARS_SHOP_UI,
                                 Config.USE_RCT_TRADES_OVERHAUL,
                                 Config.USE_DATAPACK_TRADES,
-                                excludedNsJson,
-                                excludedIdsJson
+                                Config.EXCLUDED_VILLAGER_PROFESSION_NAMESPACES,
+                                Config.EXCLUDED_VILLAGER_PROFESSION_IDS
                         );
                         Files.writeString(file, json);
                         ConfigFabric.loadConfig();
@@ -85,11 +58,12 @@ public class ModMenuIntegration implements ModMenuApi {
 
         general.addEntry(entryBuilder.startIntField(
                         Component.translatable("config.cobbledollars_villagers_overhaul_rca.cobbledollarsEmeraldRate"),
-                        cdToStep(Config.COBBLEDOLLARS_EMERALD_RATE))
-                .setDefaultValue(3)
+                        Config.COBBLEDOLLARS_EMERALD_RATE)
+                .setDefaultValue(ModConfigDefaults.DEFAULT_EMERALD_RATE_CD)
                 .setMin(1).setMax(Integer.MAX_VALUE)
                 .setTooltip(Component.translatable("config.cobbledollars_villagers_overhaul_rca.cobbledollarsEmeraldRate.tooltip"))
-                .setSaveConsumer(v -> Config.setCobbledollarsEmeraldRate(ConfigFabric.stepToCd(v)))
+                .setSaveConsumer(v -> Config.setCobbledollarsEmeraldRate(
+                        nl.streats1.cobbledollarsvillagersoverhaul.integration.EmeraldRateHelper.normalizeCdPerEmerald(v)))
                 .build());
 
         general.addEntry(entryBuilder.startBooleanToggle(

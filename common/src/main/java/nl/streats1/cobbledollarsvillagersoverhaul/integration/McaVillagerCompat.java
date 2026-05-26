@@ -3,37 +3,58 @@ package nl.streats1.cobbledollarsvillagersoverhaul.integration;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.item.trading.Merchant;
+
+import java.util.Set;
 
 /**
  * Utility to detect Minecraft Comes Alive (MCA) villager entities.
- * 
- * MCA replaces vanilla villagers with its own entities (VillagerEntityMCA).
- * This class provides detection methods for both entity type registry and class name.
- * MCA is an optional dependency - detection only works when MCA is loaded.
+ *
+ * <p>MCA adds {@code male_villager} / {@code female_villager} (plus zombie variants).
+ * MCA is optional — detection uses registry paths and lightweight reflection when MCA is loaded.
  */
 public final class McaVillagerCompat {
     private static final String MCA_MOD_ID = "mca";
+    private static final String MCA_COBBLEMON_MOD_ID = "mca_cobblemon";
+
+    /**
+     * Registry paths under {@code mca:}; MC 1.21.1 MCA 7.x.
+     */
+    private static final Set<String> MCA_TRADEABLE_ENTITY_PATHS = Set.of(
+            "male_villager",
+            "female_villager",
+            "male_zombie_villager",
+            "female_zombie_villager"
+    );
+
     private static Boolean modLoaded = null;
+    private static Boolean mcaCobblemonLoaded = null;
 
     private McaVillagerCompat() {
     }
 
-    /**
-     * Check if MCA mod is loaded (optional dependency).
-     */
     public static boolean isModLoaded() {
         if (modLoaded == null) {
-            modLoaded = detectModLoaded();
+            modLoaded = detectModLoaded(MCA_MOD_ID);
         }
         return modLoaded;
     }
 
-    private static boolean detectModLoaded() {
-        // NeoForge / Forge
+    /**
+     * MCA: Cobblemon (optional add-on dialogue / behaviours).
+     */
+    public static boolean isMcaCobblemonLoaded() {
+        if (mcaCobblemonLoaded == null) {
+            mcaCobblemonLoaded = detectModLoaded(MCA_COBBLEMON_MOD_ID);
+        }
+        return mcaCobblemonLoaded;
+    }
+
+    private static boolean detectModLoaded(String modId) {
         try {
             Class<?> modListClass = Class.forName("net.neoforged.fml.ModList");
             Object modList = modListClass.getMethod("get").invoke(null);
-            Object loaded = modListClass.getMethod("isLoaded", String.class).invoke(modList, MCA_MOD_ID);
+            Object loaded = modListClass.getMethod("isLoaded", String.class).invoke(modList, modId);
             if (loaded instanceof Boolean b) {
                 return b;
             }
@@ -42,51 +63,63 @@ public final class McaVillagerCompat {
         try {
             Class<?> modListClass = Class.forName("net.minecraftforge.fml.ModList");
             Object modList = modListClass.getMethod("get").invoke(null);
-            Object loaded = modListClass.getMethod("isLoaded", String.class).invoke(modList, MCA_MOD_ID);
+            Object loaded = modListClass.getMethod("isLoaded", String.class).invoke(modList, modId);
             if (loaded instanceof Boolean b) {
                 return b;
             }
         } catch (Throwable ignored) {
         }
-
-        // Fabric
         try {
             Class<?> fabricLoaderClass = Class.forName("net.fabricmc.loader.api.FabricLoader");
             Object loader = fabricLoaderClass.getMethod("getInstance").invoke(null);
-            Object loaded = fabricLoaderClass.getMethod("isModLoaded", String.class).invoke(loader, MCA_MOD_ID);
+            Object loaded = fabricLoaderClass.getMethod("isModLoaded", String.class).invoke(loader, modId);
             if (loaded instanceof Boolean b) {
                 return b;
             }
         } catch (Throwable ignored) {
         }
-
         return false;
     }
 
-    /**
-     * Check if the entity is an MCA villager.
-     * Only returns true if MCA mod is loaded and the entity is an MCA villager.
-     */
     public static boolean isMcaVillager(Entity entity) {
-        if (!isModLoaded()) {
-            return false;
-        }
-        if (entity == null) {
+        if (!isModLoaded() || entity == null) {
             return false;
         }
 
-        // Check by entity type registry key (preferred method)
         ResourceLocation id = BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType());
-        if (id != null && "mca".equals(id.getNamespace()) && "villager".equals(id.getPath())) {
+        if (id != null && MCA_MOD_ID.equals(id.getNamespace()) && MCA_TRADEABLE_ENTITY_PATHS.contains(id.getPath())) {
             return true;
         }
 
-        // Fallback: check by class name
         String className = entity.getClass().getName();
-        if (className.contains("VillagerEntityMCA")) {
+        return className.contains("VillagerEntityMCA");
+    }
+
+    /**
+     * Mirrors MCA GUI {@code trader} constraint when possible; permissive fallback if reflection fails.
+     */
+    public static boolean canTradeWithProfession(Entity entity) {
+        if (!isMcaVillager(entity)) {
             return true;
         }
+        try {
+            var method = entity.getClass().getMethod("canTradeWithProfession");
+            method.setAccessible(true);
+            Object result = method.invoke(entity);
+            if (result instanceof Boolean b) {
+                return b;
+            }
+        } catch (Throwable ignored) {
+        }
 
-        return false;
+        try {
+            if (entity instanceof Merchant merchant) {
+                var offers = merchant.getOffers();
+                return offers != null && !offers.isEmpty();
+            }
+        } catch (Throwable ignored) {
+        }
+
+        return true;
     }
 }

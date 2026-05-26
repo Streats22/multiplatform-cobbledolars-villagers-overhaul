@@ -8,9 +8,8 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import org.slf4j.Logger;
-
 import nl.streats1.cobbledollarsvillagersoverhaul.util.ModConfig;
+import org.slf4j.Logger;
 
 import java.lang.reflect.Type;
 import java.nio.file.Files;
@@ -32,28 +31,11 @@ public final class CustomCurrencyConfig {
     private static final String CONFIG_FILE = "custom_currency.json";
     private static final String CONFIG_SUBDIR = "cobbledollars_villagers_overhaul_rca";
 
-    /** Default currencies: emerald + Cobblemon Relic Coins (if Cobblemon present) + Poketokens (if All The Mons present). Only items from loaded mods are included. */
     private static String getDefaultJson() {
-        List<CurrencyEntry> defaults = new ArrayList<>();
-        defaults.add(entry("minecraft:emerald", 750));
-        defaults.add(entry("cobblemon:relic_coin", 250));
-        defaults.add(entry("cobblemon:relic_coin_pouch", 2250));
-        defaults.add(entry("cobblemon:relic_coin_sack", 20250));
-        defaults.add(entry("allthemons:token", 750));
-        List<CurrencyEntry> filtered = defaults.stream()
-                .filter(e -> e != null && e.item != null && isItemRegistered(e.item))
-                .toList();
-        return new Gson().toJson(filtered);
+        return ModConfigDefaults.customCurrencyJson();
     }
 
-    private static CurrencyEntry entry(String itemId, int value) {
-        CurrencyEntry e = new CurrencyEntry();
-        e.item = itemId;
-        e.value = value;
-        return e;
-    }
-
-    private static boolean isItemRegistered(String itemId) {
+    public static boolean isItemIdRegistered(String itemId) {
         try {
             String id = itemId.contains(":") ? itemId : "minecraft:" + itemId;
             ResourceLocation loc = ResourceLocation.parse(id);
@@ -113,7 +95,10 @@ public final class CustomCurrencyConfig {
                 for (CurrencyEntry e : entries) {
                     if (e != null && e.item != null && !e.item.isEmpty()) {
                         String id = e.item.contains(":") ? e.item : "minecraft:" + e.item;
-                        int val = e.value > 0 ? e.value : 750;
+                        if ("minecraft:emerald".equalsIgnoreCase(id)) {
+                            continue;
+                        }
+                        int val = e.value > 0 ? e.value : ModConfigDefaults.DEFAULT_EMERALD_RATE_CD;
                         CURRENCY_VALUES.put(id.toLowerCase(), val);
                     }
                 }
@@ -154,6 +139,9 @@ public final class CustomCurrencyConfig {
     /** CobbleDollars value per single item. 0 if not a currency item. */
     public static int getCurrencyValue(ItemStack stack) {
         if (stack == null || stack.isEmpty()) return 0;
+        if (stack.is(Items.EMERALD)) {
+            return CobbleDollarsConfigHelper.getEffectiveEmeraldRate();
+        }
         ensureLoaded();
         ResourceLocation id = BuiltInRegistries.ITEM.getKey(stack.getItem());
         String fullId = id.toString().toLowerCase();
@@ -185,7 +173,7 @@ public final class CustomCurrencyConfig {
         for (CurrencyEntryRecord e : entries) {
             if (e != null && e.itemId() != null && !e.itemId().isEmpty()) {
                 String id = e.itemId().contains(":") ? e.itemId() : "minecraft:" + e.itemId();
-                int val = e.value() > 0 ? e.value() : 750;
+                int val = e.value() > 0 ? e.value() : ModConfigDefaults.DEFAULT_EMERALD_RATE_CD;
                 CURRENCY_VALUES.put(id.toLowerCase(), val);
             }
         }
@@ -230,7 +218,7 @@ public final class CustomCurrencyConfig {
             if (e != null && e.itemId() != null && !e.itemId().isEmpty()) {
                 CurrencyEntry ce = new CurrencyEntry();
                 ce.item = e.itemId().contains(":") ? e.itemId() : "minecraft:" + e.itemId();
-                ce.value = e.value() > 0 ? e.value() : 750;
+                ce.value = e.value() > 0 ? e.value() : ModConfigDefaults.DEFAULT_EMERALD_RATE_CD;
                 list.add(ce);
             }
         }

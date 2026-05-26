@@ -28,6 +28,7 @@ import nl.streats1.cobbledollarsvillagersoverhaul.integration.RctTrainerAssociat
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.TradeCyclingModCompat;
 import nl.streats1.cobbledollarsvillagersoverhaul.network.CobbleDollarsShopPayloads;
 import nl.streats1.cobbledollarsvillagersoverhaul.platform.PlatformNetwork;
+import nl.streats1.cobbledollarsvillagersoverhaul.util.TradeIngredientHelper;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -1244,19 +1245,7 @@ public class CobbleDollarsShopScreen extends Screen {
         ItemStack offerCostB = costBStackFrom(entry);
         if (offerCostB.isEmpty()) return false;
         int required = Math.max(1, offerCostB.getCount()) * Math.max(1, qty);
-        int have = 0;
-        ItemStack needle = offerCostB.copy();
-        needle.setCount(1);
-        var inv = minecraft.player.getInventory();
-        for (int slot = 0; slot < inv.getContainerSize(); slot++) {
-            ItemStack stack = inv.getItem(slot);
-            if (stack.isEmpty()) continue;
-            if (ItemStack.isSameItemSameComponents(stack, needle)) {
-                have += stack.getCount();
-                if (have >= required) return true;
-            }
-        }
-        return false;
+        return TradeIngredientHelper.hasInInventory(minecraft.player, offerCostB, required);
     }
 
     private int getRate() {
