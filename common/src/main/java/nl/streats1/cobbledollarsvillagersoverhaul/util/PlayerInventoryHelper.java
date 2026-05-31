@@ -61,6 +61,10 @@ public final class PlayerInventoryHelper {
         return countMatching(player, needle) >= required;
     }
 
+    public static boolean hasEnoughExact(ServerPlayer player, ItemStack needle, int required) {
+        return required > 0 && countMatchingExact(player, needle) >= required;
+    }
+
     /**
      * Removes exactly {@code amount} items matching {@code needle} from the player's inventory.
      * Assumes you have already verified the player has enough (e.g. via {@link #hasEnough}).
@@ -103,6 +107,12 @@ public final class PlayerInventoryHelper {
     public static boolean tryConsume(ServerPlayer player, ItemStack needle, int amount) {
         if (!hasEnough(player, needle, amount)) return false;
         shrink(player, needle, amount);
+        return true;
+    }
+
+    public static boolean tryConsumeExact(ServerPlayer player, ItemStack needle, int amount) {
+        if (!hasEnoughExact(player, needle, amount)) return false;
+        shrinkExact(player, needle, amount);
         return true;
     }
 
