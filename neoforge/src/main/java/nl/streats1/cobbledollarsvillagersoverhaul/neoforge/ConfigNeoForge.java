@@ -12,13 +12,13 @@ public class ConfigNeoForge {
     private static final ModConfigSpec.Builder BUILDER = new ModConfigSpec.Builder();
 
     public static final ModConfigSpec.IntValue COBBLEDOLLARS_EMERALD_RATE = BUILDER
-            .comment("CobbleDollars per emerald (literal): used for villager emerald costs. Editing this updates trade CD prices.")
+            .comment("CobbleDollars per emerald (literal): used when bank sync is off or bank.json has no emerald price.")
             .defineInRange("cobbledollarsEmeraldRate",
                     nl.streats1.cobbledollarsvillagersoverhaul.integration.ModConfigDefaults.DEFAULT_EMERALD_RATE_CD,
                     1, Integer.MAX_VALUE);
 
     public static final ModConfigSpec.BooleanValue SYNC_COBBLEDOLLARS_BANK_RATE = BUILDER
-            .comment("Legacy toggle (kept for config compatibility). Villager emerald rate always uses cobbledollarsEmeraldRate; set it to match bank.json emerald price if your pack ties them.")
+            .comment("When true, villager emerald prices use CobbleDollars bank.json emerald price if present; otherwise cobbledollarsEmeraldRate is used.")
             .define("syncCobbleDollarsBankRate", true);
 
     public static final ModConfigSpec.BooleanValue VILLAGERS_ACCEPT_COBBLEDOLLARS = BUILDER
