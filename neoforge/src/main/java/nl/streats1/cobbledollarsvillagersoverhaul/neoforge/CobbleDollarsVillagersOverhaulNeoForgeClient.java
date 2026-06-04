@@ -52,7 +52,7 @@ public class CobbleDollarsVillagersOverhaulNeoForgeClient {
         general.addEntry(entryBuilder.startIntField(
                         Component.translatable("config.cobbledollars_villagers_overhaul_rca.cobbledollarsEmeraldRate"),
                         ConfigNeoForge.COBBLEDOLLARS_EMERALD_RATE.get())
-                .setDefaultValue(3)
+                .setDefaultValue(nl.streats1.cobbledollarsvillagersoverhaul.integration.ModConfigDefaults.DEFAULT_EMERALD_RATE_CD)
                 .setMin(1).setMax(Integer.MAX_VALUE)
                 .setTooltip(Component.translatable("config.cobbledollars_villagers_overhaul_rca.cobbledollarsEmeraldRate.tooltip"))
                 .setSaveConsumer(ConfigNeoForge.COBBLEDOLLARS_EMERALD_RATE::set)
