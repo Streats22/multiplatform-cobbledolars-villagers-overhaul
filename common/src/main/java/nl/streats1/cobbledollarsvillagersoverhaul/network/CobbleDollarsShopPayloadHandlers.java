@@ -146,6 +146,10 @@ public final class CobbleDollarsShopPayloadHandlers {
                 && entity.distanceTo(serverPlayer) <= MAX_SHOP_INTERACTION_DISTANCE;
     }
 
+    private static boolean isMcaMerchant(Entity entity) {
+        return McaVillagerCompat.isMcaVillager(entity) && entity instanceof AbstractVillager;
+    }
+
     private static boolean canUseVirtualShop(ServerPlayer serverPlayer, int villagerId) {
         return !VirtualShopIds.isVirtual(villagerId) || serverPlayer.hasPermissions(2);
     }
@@ -203,6 +207,20 @@ public final class CobbleDollarsShopPayloadHandlers {
                 buildItemForItemTrades(allOffers, tradesOffers);
             } finally {
                 villager.setTradingPlayer(null);
+            }
+        } else if (isMcaMerchant(entity)) {
+            AbstractVillager mcaVillager = (AbstractVillager) entity;
+            mcaVillager.setTradingPlayer(serverPlayer);
+            try {
+                MerchantTradeGenerationHelper.ensureMerchantOffersReady(serverPlayer.serverLevel(), mcaVillager);
+                List<MerchantOffer> allOffers = mcaVillager.getOffers();
+                buildOfferLists(allOffers, buyOffers, sellOffers);
+                if (Config.USE_DATAPACK_TRADES) {
+                    buildDatapackOffers(allOffers, buyOffers, sellOffers);
+                }
+                buildItemForItemTrades(allOffers, tradesOffers);
+            } finally {
+                mcaVillager.setTradingPlayer(null);
             }
         } else if (entity instanceof WanderingTrader trader) {
             MerchantTradeGenerationHelper.ensureMerchantOffersReady(serverPlayer.serverLevel(), trader);
@@ -1041,6 +1059,21 @@ public final class CobbleDollarsShopPayloadHandlers {
             } finally {
                 villager.setTradingPlayer(null);
             }
+        } else if (isMcaMerchant(entity)) {
+            AbstractVillager mcaVillager = (AbstractVillager) entity;
+            mcaVillager.setTradingPlayer(serverPlayer);
+            try {
+                MerchantTradeGenerationHelper.ensureMerchantOffersReady(serverPlayer.serverLevel(), mcaVillager);
+                LOGGER.debug("Entity is MCA villager, processing merchant trades");
+                allOffers = mcaVillager.getOffers();
+                buildOfferLists(allOffers, buyOffers, sellOffers);
+                if (Config.USE_DATAPACK_TRADES) {
+                    buildDatapackOffers(allOffers, buyOffers, sellOffers);
+                }
+                buildItemForItemTrades(allOffers, tradesOffers);
+            } finally {
+                mcaVillager.setTradingPlayer(null);
+            }
         } else if (Config.USE_RCT_TRADES_OVERHAUL && RctTrainerAssociationCompat.isTrainerAssociation(entity)) {
             try {
                 for (var method : entity.getClass().getDeclaredMethods()) {
@@ -1656,7 +1689,8 @@ public final class CobbleDollarsShopPayloadHandlers {
 
         ServerLevel level = serverPlayer.serverLevel();
         Entity entity = level.getEntity(villagerId);
-        if (!(entity instanceof Villager) && !(entity instanceof WanderingTrader) && !RctTrainerAssociationCompat.isTrainerAssociation(entity))
+        if (!(entity instanceof Villager) && !(entity instanceof WanderingTrader)
+                && !isMcaMerchant(entity) && !RctTrainerAssociationCompat.isTrainerAssociation(entity))
             return;
         if (!isWithinShopRange(serverPlayer, entity)) {
             return;
@@ -1677,6 +1711,12 @@ public final class CobbleDollarsShopPayloadHandlers {
             trader.setTradingPlayer(serverPlayer);
             tradingMerchant = trader;
             allOffers = trader.getOffers();
+        } else if (isMcaMerchant(entity)) {
+            AbstractVillager mcaVillager = (AbstractVillager) entity;
+            mcaVillager.setTradingPlayer(serverPlayer);
+            tradingMerchant = mcaVillager;
+            MerchantTradeGenerationHelper.ensureMerchantOffersReady(level, mcaVillager);
+            allOffers = mcaVillager.getOffers();
         } else if (RctTrainerAssociationCompat.isTrainerAssociation(entity)) {
             try {
                 var updateOffersForMethod = entity.getClass().getMethod("updateOffersFor", net.minecraft.world.entity.player.Player.class);
@@ -1914,7 +1954,8 @@ public final class CobbleDollarsShopPayloadHandlers {
         ServerLevel level = serverPlayer.serverLevel();
         Entity entity = level.getEntity(villagerId);
 
-        if (!(entity instanceof Villager) && !(entity instanceof WanderingTrader) && !RctTrainerAssociationCompat.isTrainerAssociation(entity)) {
+        if (!(entity instanceof Villager) && !(entity instanceof WanderingTrader)
+                && !isMcaMerchant(entity) && !RctTrainerAssociationCompat.isTrainerAssociation(entity)) {
             return;
         }
         if (!isWithinShopRange(serverPlayer, entity)) {
@@ -1936,6 +1977,12 @@ public final class CobbleDollarsShopPayloadHandlers {
             trader.setTradingPlayer(serverPlayer);
             tradingMerchant = trader;
             allOffers = trader.getOffers();
+        } else if (isMcaMerchant(entity)) {
+            AbstractVillager mcaVillager = (AbstractVillager) entity;
+            mcaVillager.setTradingPlayer(serverPlayer);
+            tradingMerchant = mcaVillager;
+            MerchantTradeGenerationHelper.ensureMerchantOffersReady(level, mcaVillager);
+            allOffers = mcaVillager.getOffers();
         } else if (RctTrainerAssociationCompat.isTrainerAssociation(entity)) {
             try {
                 var getOffersMethod = entity.getClass().getMethod("getOffers");
