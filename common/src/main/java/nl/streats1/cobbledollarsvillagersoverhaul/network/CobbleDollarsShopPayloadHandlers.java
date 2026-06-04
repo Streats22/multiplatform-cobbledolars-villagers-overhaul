@@ -147,7 +147,9 @@ public final class CobbleDollarsShopPayloadHandlers {
     }
 
     private static boolean isMcaMerchant(Entity entity) {
-        return McaVillagerCompat.isMcaVillager(entity) && entity instanceof AbstractVillager;
+        return McaVillagerCompat.isMcaVillager(entity)
+                && entity instanceof AbstractVillager
+                && McaVillagerCompat.canTradeWithProfession(entity);
     }
 
     private static boolean canUseVirtualShop(ServerPlayer serverPlayer, int villagerId) {
