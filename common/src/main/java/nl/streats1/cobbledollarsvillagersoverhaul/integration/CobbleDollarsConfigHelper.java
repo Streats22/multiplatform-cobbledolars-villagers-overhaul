@@ -179,12 +179,14 @@ public final class CobbleDollarsConfigHelper {
     /**
      * CobbleDollars charged per emerald in villager (and similar) trades.
      * <p>
-     * This mod's config value ({@link Config#COBBLEDOLLARS_EMERALD_RATE}) — from Mod Menu, NeoForge config, or
-     * Fabric {@code config.json} — is always authoritative so editing it updates trade prices immediately.
-     * {@link Config#SYNC_COBBLEDOLLARS_BANK_RATE} remains for forwards compatibility but no longer overrides this
-     * rate; align {@code cobbledollarsEmeraldRate} with {@code bank.json}'s emerald price yourself if desired.
+     * If bank sync is enabled and CobbleDollars exposes an emerald sell price, that bank value is authoritative.
+     * Otherwise the mod's configured literal CD-per-emerald value is used.
      */
     public static int getEffectiveEmeraldRate() {
+        if (Config.SYNC_COBBLEDOLLARS_BANK_RATE) {
+            OptionalInt bank = getBankEmeraldPrice();
+            if (bank.isPresent()) return bank.getAsInt();
+        }
         return Math.max(1, Config.COBBLEDOLLARS_EMERALD_RATE);
     }
 

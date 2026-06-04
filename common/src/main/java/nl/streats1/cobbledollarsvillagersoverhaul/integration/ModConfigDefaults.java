@@ -42,8 +42,8 @@ public final class ModConfigDefaults {
                   "excludedVillagerProfessionIds": [
                     "casinorocket:casino_worker"
                   ],
-                  "_comment_emeraldRate": "CobbleDollars per emerald (literal). Used for villager trades. Example: 250 = 250 CD.",
-                  "_comment_syncBank": "Legacy field; villager rate always uses cobbledollarsEmeraldRate. Match that to bank.json emerald price if desired.",
+                  "_comment_emeraldRate": "CobbleDollars per emerald (literal). Used when bank sync is off or bank.json has no emerald price. Example: 250 = 250 CD.",
+                  "_comment_syncBank": "When true, villager emerald prices use CobbleDollars bank.json emerald price if present; otherwise cobbledollarsEmeraldRate is used.",
                   "_comment_freeMinimum": "freeMinimumEmeraldTrade: 1-emerald trades (e.g. after curing) cost 0 CD when true.",
                   "_comment_excluded": "Excluded villagers keep their mod's native UI (not the CobbleDollars shop on right-click).",
                   "_comment_customCurrency": "Relic coins etc.: edit custom_currency.json in this folder."
@@ -78,8 +78,8 @@ public final class ModConfigDefaults {
                   "useDatapackTrades": %s,
                   "excludedVillagerProfessionNamespaces": %s,
                   "excludedVillagerProfessionIds": %s,
-                  "_comment_emeraldRate": "CobbleDollars per emerald (literal). Used for villager trades. Example: 250 = 250 CD.",
-                  "_comment_syncBank": "Legacy field; villager rate always uses cobbledollarsEmeraldRate. Match that to bank.json emerald price if desired.",
+                  "_comment_emeraldRate": "CobbleDollars per emerald (literal). Used when bank sync is off or bank.json has no emerald price. Example: 250 = 250 CD.",
+                  "_comment_syncBank": "When true, villager emerald prices use CobbleDollars bank.json emerald price if present; otherwise cobbledollarsEmeraldRate is used.",
                   "_comment_freeMinimum": "freeMinimumEmeraldTrade: 1-emerald trades (e.g. after curing) cost 0 CD when true.",
                   "_comment_excluded": "Excluded villagers keep their mod's native UI (not the CobbleDollars shop on right-click).",
                   "_comment_customCurrency": "Relic coins etc.: edit custom_currency.json in this folder."

@@ -14,8 +14,8 @@ Config files live under `config/cobbledollars_villagers_overhaul_rca/` (Fabric) 
 
 | Key                                    | Default                          | Description                                                                                                            |
 |----------------------------------------|----------------------------------|------------------------------------------------------------------------------------------------------------------------|
-| `cobbledollarsEmeraldRate`             | `750`                            | **Literal** CobbleDollars per emerald; **always** used for villager emerald→CD pricing (menu + this JSON reload).      |
-| `syncCobbleDollarsBankRate`            | `true`                           | Legacy field; preserved in files. Align `cobbledollarsEmeraldRate` with `bank.json` emerald price manually if desired. |
+| `cobbledollarsEmeraldRate`             | `750`                            | **Literal** CobbleDollars per emerald; used when bank sync is off or `bank.json` has no emerald price.                 |
+| `syncCobbleDollarsBankRate`            | `true`                           | When true, villager emerald prices use CobbleDollars `bank.json` emerald price if present.                             |
 | `villagersAcceptCobbleDollars`         | `true`                           | Villager emerald costs can be paid from CobbleDollars balance.                                                         |
 | `freeMinimumEmeraldTrade`              | `false`                          | If true, trades that cost 1 emerald (e.g. after curing) charge 0 CD.                                                   |
 | `useCobbleDollarsShopUi`               | `true`                           | Use the CobbleDollars shop UI instead of vanilla trading.                                                              |
@@ -37,7 +37,7 @@ Config files live under `config/cobbledollars_villagers_overhaul_rca/` (Fabric) 
 ## Custom currency
 
 Items that behave like emeralds in trades (Relic Coins, Poketokens, etc.). **Emeralds are not listed here** — they
-always use `getEffectiveEmeraldRate()` (= `cobbledollarsEmeraldRate` after load).
+always use `getEffectiveEmeraldRate()` (bank emerald price when synced, otherwise `cobbledollarsEmeraldRate`).
 
 ### Fabric
 
@@ -78,7 +78,9 @@ Edit via Mods → Config → Edit shop / Edit bank (this mod’s UI writes to th
 
 ## Emerald ↔ CobbleDollars rate
 
-- Villager **emerald** costs convert using **`cobbledollarsEmeraldRate`** (Mod Menu / `config.json` / NeoForge TOML).
+- Villager **emerald** costs convert using the CobbleDollars bank emerald price when
+  `syncCobbleDollarsBankRate=true` and `config/cobbledollars/bank.json` has an emerald entry.
+- Otherwise villager emerald costs convert using **`cobbledollarsEmeraldRate`** (Mod Menu / `config.json` / NeoForge TOML).
 - Config shop buy prices in `default_shop.json` are **not** multiplied by the emerald rate when marked direct.
 - Custom currency entries use their own literal `value` per item.
 
