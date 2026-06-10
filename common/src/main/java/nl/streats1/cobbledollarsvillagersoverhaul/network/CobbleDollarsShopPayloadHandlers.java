@@ -31,10 +31,11 @@ import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 public final class CobbleDollarsShopPayloadHandlers {
     private static final Logger LOGGER = LogUtils.getLogger();
+    private static final int MAX_PACKET_QUANTITY = 64;
+    private static final double MAX_SHOP_INTERACTION_DISTANCE = 6.0D;
 
     private static final java.util.Map<java.util.UUID, SeriesCacheEntry> SERIES_CACHE = new java.util.concurrent.ConcurrentHashMap<>();
     private static final long CACHE_TIMEOUT_MS = 30_000;
@@ -177,6 +178,40 @@ public final class CobbleDollarsShopPayloadHandlers {
             return;
         }
         sendBalanceUpdate(serverPlayer, villagerId);
+    }
+
+    private static boolean isValidPacketQuantity(int quantity) {
+        return quantity >= 1 && quantity <= MAX_PACKET_QUANTITY;
+    }
+
+    private static int checkedTotalCount(int perTrade, int quantity) {
+        if (perTrade < 1 || !isValidPacketQuantity(quantity)) {
+            return -1;
+        }
+        long total = (long) perTrade * quantity;
+        return total > Integer.MAX_VALUE ? -1 : (int) total;
+    }
+
+    private static boolean scaleForQuantity(ItemStack stack, int quantity) {
+        int total = checkedTotalCount(stack.getCount(), quantity);
+        if (total < 1) {
+            return false;
+        }
+        stack.setCount(total);
+        return true;
+    }
+
+    private static boolean canReachShop(ServerPlayer serverPlayer, Entity entity) {
+        return entity != null && entity.distanceTo(serverPlayer) <= MAX_SHOP_INTERACTION_DISTANCE;
+    }
+
+    private static boolean canUseVirtualShop(ServerPlayer serverPlayer, int villagerId) {
+        return !VirtualShopIds.isVirtual(villagerId) || serverPlayer.hasPermissions(2);
+    }
+
+    private static boolean hasAvailableUses(MerchantOffer offer, int quantity) {
+        return offer != null && isValidPacketQuantity(quantity) && !offer.isOutOfStock()
+                && offer.getUses() <= offer.getMaxUses() - quantity;
     }
 
     /**
@@ -853,6 +888,10 @@ public final class CobbleDollarsShopPayloadHandlers {
             openVanillaMerchantMenu(serverPlayer, villagerId);
             return;
         }
+        if (!canUseVirtualShop(serverPlayer, villagerId)) {
+            LOGGER.warn("[shop] handleRequestShopData: player {} attempted unauthorized virtual shop {}", serverPlayer.getName().getString(), villagerId);
+            return;
+        }
 
         sendServerShopConfigTo(serverPlayer);
 
@@ -870,6 +909,11 @@ public final class CobbleDollarsShopPayloadHandlers {
         LOGGER.debug("Retrieved entity: {} (class: {})",
                 entity != null ? entity.getName().getString() : "null",
                 entity != null ? entity.getClass().getName() : "null");
+
+        if (entity != null && !canReachShop(serverPlayer, entity)) {
+            LOGGER.warn("[shop] handleRequestShopData: player {} too far from entity {}", serverPlayer.getName().getString(), villagerId);
+            return;
+        }
 
         if (entity == null) {
             if (VirtualShopIds.isVirtualShop(villagerId)) {
@@ -1056,6 +1100,7 @@ public final class CobbleDollarsShopPayloadHandlers {
         ServerLevel level = serverPlayer.serverLevel();
         Entity entity = level.getEntity(villagerId);
         if (!(entity instanceof Villager villager)) return;
+        if (!canReachShop(serverPlayer, entity)) return;
         if (!TradeCyclingCompat.canCycleTrades(villager)) return;
         TradeCyclingCompat.cycleTrades(villager, serverPlayer, () -> handleRequestShopData(serverPlayer, villagerId));
     }
@@ -1090,6 +1135,9 @@ public final class CobbleDollarsShopPayloadHandlers {
     }
 
     private static void handleSellFromBank(ServerPlayer serverPlayer, int offerIndex, int quantity) {
+        if (!isValidPacketQuantity(quantity)) {
+            return;
+        }
         List<CobbleDollarsShopPayloads.ShopOfferEntry> bankOffers = CobbleDollarsConfigHelper.getBankSellOffers();
         if (offerIndex < 0 || offerIndex >= bankOffers.size()) {
             LOGGER.warn("Bank offer index {} out of range (0-{})", offerIndex, bankOffers.size() - 1);
@@ -1102,7 +1150,10 @@ public final class CobbleDollarsShopPayloadHandlers {
         long toAdd = (long) pricePerUnit * quantity;
 
         int perTrade = costA.getCount();
-        int totalNeeded = perTrade * quantity;
+        int totalNeeded = checkedTotalCount(perTrade, quantity);
+        if (totalNeeded < 1) {
+            return;
+        }
         if (!PlayerInventoryHelper.hasEnough(serverPlayer, costA, totalNeeded)) {
             LOGGER.warn("Not enough items to sell to bank! Has: {}, Needs: {}", PlayerInventoryHelper.countMatching(serverPlayer, costA), totalNeeded);
             return;
@@ -1119,6 +1170,9 @@ public final class CobbleDollarsShopPayloadHandlers {
     }
 
     private static void handleBuyFromConfig(ServerPlayer serverPlayer, int villagerId, int offerIndex, int quantity) {
+        if (!isValidPacketQuantity(quantity)) {
+            return;
+        }
         List<CobbleDollarsShopPayloads.ShopOfferEntry> configOffers = CobbleDollarsConfigHelper.getDefaultShopBuyOffers();
 
         if (offerIndex < 0 || offerIndex >= configOffers.size()) {
@@ -1142,7 +1196,11 @@ public final class CobbleDollarsShopPayloadHandlers {
 
         ItemStack out = entry.result().copy();
         if (!out.isEmpty() && !out.is(Items.AIR)) {
-            out.setCount(Math.max(1, out.getCount()) * quantity);
+            out.setCount(Math.max(1, out.getCount()));
+            if (!scaleForQuantity(out, quantity)) {
+                CobbleDollarsIntegration.addBalance(serverPlayer, cost);
+                return;
+            }
             PlayerInventoryHelper.give(serverPlayer, out);
         }
 
@@ -1259,6 +1317,40 @@ public final class CobbleDollarsShopPayloadHandlers {
             }
         }
         return buyOffers;
+    }
+
+    private static List<MerchantOffer> getRctaBuyOffers(List<MerchantOffer> allOffers) {
+        List<MerchantOffer> buyOffers = new ArrayList<>();
+        for (MerchantOffer o : allOffers) {
+            if (o == null) continue;
+            ItemStack costA = o.getCostA();
+            ItemStack result = o.getResult();
+            if (costA == null || result == null || result.isEmpty()) continue;
+            if (!costA.isEmpty() && costA.is(Items.EMERALD)) {
+                buyOffers.add(o);
+            } else if (costA.isEmpty() && !TradeIngredientHelper.secondaryIngredient(o).isEmpty()) {
+                buyOffers.add(o);
+            }
+        }
+        return buyOffers;
+    }
+
+    private static List<MerchantOffer> getSellOffersForVillager(List<MerchantOffer> allOffers) {
+        return allOffers.stream()
+                .filter(o -> {
+                    if (o == null || o.getResult().isEmpty() || o.getCostA().isEmpty()) return false;
+                    ItemStack res = o.getResult();
+                    return res.is(Items.EMERALD)
+                            || res.is(Items.GOLD_INGOT)
+                            || CustomCurrencyConfig.getCurrencyValue(res) > 0;
+                })
+                .toList();
+    }
+
+    private static List<MerchantOffer> getRctaSellOffers(List<MerchantOffer> allOffers) {
+        return allOffers.stream()
+                .filter(o -> o != null && !o.getCostA().isEmpty() && o.getResult().is(Items.EMERALD))
+                .toList();
     }
 
     /**
@@ -1388,6 +1480,44 @@ public final class CobbleDollarsShopPayloadHandlers {
                 ItemStack safeCostB = TradeIngredientHelper.secondaryIngredient(o);
                 buyOut.add(ShopOfferEntryFactory.buyDirect(safeResult, price, safeCostB));
             }
+        }
+    }
+
+    private static boolean canUseConfigShop(ServerPlayer serverPlayer, int villagerId, Entity entity) {
+        if (VirtualShopIds.isVirtualShop(villagerId)) {
+            return serverPlayer.hasPermissions(2);
+        }
+        if (!(entity instanceof Villager villager) || !canReachShop(serverPlayer, entity)) {
+            return false;
+        }
+        if (VillagerShopConfig.usesConfigShop(villager.getUUID())) {
+            return true;
+        }
+        return villagerFallsBackToConfigShop(serverPlayer, villager);
+    }
+
+    private static boolean villagerFallsBackToConfigShop(ServerPlayer serverPlayer, Villager villager) {
+        Player previousTradingPlayer = villager.getTradingPlayer();
+        villager.setTradingPlayer(serverPlayer);
+        updateVillagerSpecialPrices(villager, serverPlayer);
+        try {
+            if (McaVillagerCompat.isMcaVillager(villager)) {
+                MerchantTradeGenerationHelper.ensureMerchantOffersReady(serverPlayer.serverLevel(), villager);
+            } else {
+                VillagerConfigCompat.prepareVillagerForShop(serverPlayer.serverLevel(), villager);
+            }
+            List<MerchantOffer> allOffers = villager.getOffers();
+            List<CobbleDollarsShopPayloads.ShopOfferEntry> buyOffers = new ArrayList<>();
+            List<CobbleDollarsShopPayloads.ShopOfferEntry> sellOffers = new ArrayList<>();
+            List<CobbleDollarsShopPayloads.ShopOfferEntry> tradesOffers = new ArrayList<>();
+            buildOfferLists(allOffers, buyOffers, sellOffers);
+            if (Config.USE_DATAPACK_TRADES) {
+                buildDatapackOffers(allOffers, buyOffers, sellOffers);
+            }
+            buildItemForItemTrades(allOffers, tradesOffers);
+            return buyOffers.isEmpty() && sellOffers.isEmpty() && tradesOffers.isEmpty();
+        } finally {
+            villager.setTradingPlayer(previousTradingPlayer);
         }
     }
 
@@ -1526,19 +1656,29 @@ public final class CobbleDollarsShopPayloadHandlers {
         if (!CobbleDollarsIntegration.isAvailable()) {
             return;
         }
-        if (quantity < 1) {
-            return;
-        }
-
-        if (fromConfigShop) {
-            handleBuyFromConfig(serverPlayer, villagerId, offerIndex, quantity);
+        if (!isValidPacketQuantity(quantity)) {
             return;
         }
 
         ServerLevel level = serverPlayer.serverLevel();
-        Entity entity = level.getEntity(villagerId);
+        Entity entity = VirtualShopIds.isVirtual(villagerId) ? null : level.getEntity(villagerId);
+
+        if (fromConfigShop) {
+            if (!canUseConfigShop(serverPlayer, villagerId, entity)) {
+                return;
+            }
+            handleBuyFromConfig(serverPlayer, villagerId, offerIndex, quantity);
+            return;
+        }
+
+        if (VirtualShopIds.isVirtual(villagerId)) {
+            return;
+        }
         if (!(entity instanceof Villager) && !(entity instanceof WanderingTrader) && !RctTrainerAssociationCompat.isTrainerAssociation(entity))
             return;
+        if (!canReachShop(serverPlayer, entity)) {
+            return;
+        }
 
         // Set trading player so vanilla reputation (curing, hero of village) applies to offer costs/amounts
         AbstractVillager tradingMerchant = null;
@@ -1584,10 +1724,7 @@ public final class CobbleDollarsShopPayloadHandlers {
         if (RctTrainerAssociationCompat.isTrainerAssociation(entity)) {
             List<MerchantOffer> filteredOffers;
             if (tab == 0) {
-                var emerald = Objects.requireNonNull(net.minecraft.world.item.Items.EMERALD);
-                filteredOffers = allOffers.stream()
-                        .filter(o -> !o.getCostA().isEmpty() && o.getCostA().is(emerald))
-                        .toList();
+                filteredOffers = getRctaBuyOffers(allOffers);
             } else if (tab == 2) {
                 filteredOffers = allOffers.stream()
                         .filter(o -> !o.getCostA().isEmpty() && isTrainerCard(o.getCostA().getItem()))
@@ -1607,10 +1744,16 @@ public final class CobbleDollarsShopPayloadHandlers {
             if (offerIndex < 0 || offerIndex >= buyOffersList.size()) return;
             offer = buyOffersList.get(offerIndex);
         }
+        if (!hasAvailableUses(offer, quantity)) {
+            return;
+        }
 
         ItemStack costA = offer.getCostA();
         if (tab == 2 && RctTrainerAssociationCompat.isTrainerAssociation(entity) && !costA.isEmpty() && isTrainerCard(costA.getItem())) {
-            int totalNeeded = costA.getCount() * quantity;
+            int totalNeeded = checkedTotalCount(costA.getCount(), quantity);
+            if (totalNeeded < 1) {
+                return;
+            }
             int have = 0;
             var inv = serverPlayer.getInventory();
             for (int slot = 0; slot < inv.getContainerSize(); slot++) {
@@ -1663,7 +1806,9 @@ public final class CobbleDollarsShopPayloadHandlers {
             SERIES_CACHE.remove(serverPlayer.getUUID());
 
             ItemStack resultCopy = offer.getResult().copy();
-            resultCopy.setCount(resultCopy.getCount() * quantity);
+            if (!scaleForQuantity(resultCopy, quantity)) {
+                return;
+            }
             PlayerInventoryHelper.give(serverPlayer, resultCopy);
 
             Merchant merchant = null;
@@ -1686,7 +1831,10 @@ public final class CobbleDollarsShopPayloadHandlers {
         long totalCost;
 
         if (costA.is(Items.EMERALD)) {
-            int emeraldCost = costA.getCount() * quantity;
+            int emeraldCost = checkedTotalCount(costA.getCount(), quantity);
+            if (emeraldCost < 1) {
+                return;
+            }
             if (Config.FREE_MINIMUM_EMERALD_TRADE && emeraldCost == quantity && costA.getCount() == 1) {
                 totalCost = 0;
             } else {
@@ -1698,7 +1846,10 @@ public final class CobbleDollarsShopPayloadHandlers {
             int pricePerTrade = DatapackItemPricing.getOverridePrice(costA);
             totalCost = (long) pricePerTrade * quantity;
         } else {
-            int totalNeeded = costA.getCount() * quantity;
+            int totalNeeded = checkedTotalCount(costA.getCount(), quantity);
+            if (totalNeeded < 1) {
+                return;
+            }
             if (!PlayerInventoryHelper.hasEnough(serverPlayer, costA, totalNeeded)) {
                 return;
             }
@@ -1720,7 +1871,13 @@ public final class CobbleDollarsShopPayloadHandlers {
             java.util.Optional<net.minecraft.world.item.trading.ItemCost> itemCostB = offer.getItemCostB();
             if (itemCostB.isPresent()) {
                 net.minecraft.world.item.trading.ItemCost cost = itemCostB.get();
-                int totalNeeded = cost.count() * quantity;
+                int totalNeeded = checkedTotalCount(cost.count(), quantity);
+                if (totalNeeded < 1) {
+                    if (totalCost > 0) {
+                        CobbleDollarsIntegration.addBalance(serverPlayer, totalCost);
+                    }
+                    return;
+                }
                 if (!TradeIngredientHelper.hasInInventory(serverPlayer, cost, totalNeeded)) {
                     if (totalCost > 0) {
                         CobbleDollarsIntegration.addBalance(serverPlayer, totalCost);
@@ -1731,7 +1888,13 @@ public final class CobbleDollarsShopPayloadHandlers {
             } else {
                 ItemStack costB = TradeIngredientHelper.secondaryIngredient(offer);
                 if (!costB.isEmpty()) {
-                    int totalNeeded = costB.getCount() * quantity;
+                    int totalNeeded = checkedTotalCount(costB.getCount(), quantity);
+                    if (totalNeeded < 1) {
+                        if (totalCost > 0) {
+                            CobbleDollarsIntegration.addBalance(serverPlayer, totalCost);
+                        }
+                        return;
+                    }
                     if (!PlayerInventoryHelper.hasEnough(serverPlayer, costB, totalNeeded)) {
                         if (totalCost > 0) {
                             CobbleDollarsIntegration.addBalance(serverPlayer, totalCost);
@@ -1743,11 +1906,17 @@ public final class CobbleDollarsShopPayloadHandlers {
         }
 
         if (totalCost == 0 && !costA.isEmpty()) {
-            PlayerInventoryHelper.shrink(serverPlayer, costA, costA.getCount() * quantity);
+            int totalNeeded = checkedTotalCount(costA.getCount(), quantity);
+            if (totalNeeded < 1) {
+                return;
+            }
+            PlayerInventoryHelper.shrink(serverPlayer, costA, totalNeeded);
         }
 
         ItemStack result = offer.getResult().copy();
-        result.setCount(result.getCount() * quantity);
+        if (!scaleForQuantity(result, quantity)) {
+            return;
+        }
         PlayerInventoryHelper.give(serverPlayer, result);
 
         Merchant merchant = null;
@@ -1776,13 +1945,19 @@ public final class CobbleDollarsShopPayloadHandlers {
         if (!CobbleDollarsIntegration.isAvailable()) {
             return;
         }
-        if (quantity < 1) {
+        if (!isValidPacketQuantity(quantity)) {
             return;
         }
 
         // Virtual bank: sell to config bank offers
         if (VirtualShopIds.isVirtualBank(villagerId)) {
+            if (!serverPlayer.hasPermissions(2)) {
+                return;
+            }
             handleSellFromBank(serverPlayer, offerIndex, quantity);
+            return;
+        }
+        if (VirtualShopIds.isVirtual(villagerId)) {
             return;
         }
 
@@ -1790,6 +1965,9 @@ public final class CobbleDollarsShopPayloadHandlers {
         Entity entity = level.getEntity(villagerId);
 
         if (!(entity instanceof Villager) && !(entity instanceof WanderingTrader) && !RctTrainerAssociationCompat.isTrainerAssociation(entity)) {
+            return;
+        }
+        if (!canReachShop(serverPlayer, entity)) {
             return;
         }
 
@@ -1828,24 +2006,20 @@ public final class CobbleDollarsShopPayloadHandlers {
         try {
         MerchantOffer offer;
         if (RctTrainerAssociationCompat.isTrainerAssociation(entity)) {
-            if (offerIndex < 0 || offerIndex >= allOffers.size()) {
-                return;
-            }
-            offer = allOffers.get(offerIndex);
-        } else {
-            List<MerchantOffer> sellOffers = allOffers.stream()
-                    .filter(o -> {
-                        if (o.getResult().isEmpty() || o.getCostA().isEmpty()) return false;
-                        ItemStack res = o.getResult();
-                        return res.is(Items.EMERALD)
-                                || res.is(Items.GOLD_INGOT)
-                                || CustomCurrencyConfig.getCurrencyValue(res) > 0;
-                    })
-                    .toList();
+            List<MerchantOffer> sellOffers = getRctaSellOffers(allOffers);
             if (offerIndex < 0 || offerIndex >= sellOffers.size()) {
                 return;
             }
             offer = sellOffers.get(offerIndex);
+        } else {
+            List<MerchantOffer> sellOffers = getSellOffersForVillager(allOffers);
+            if (offerIndex < 0 || offerIndex >= sellOffers.size()) {
+                return;
+            }
+            offer = sellOffers.get(offerIndex);
+        }
+        if (!hasAvailableUses(offer, quantity)) {
+            return;
         }
 
             ItemStack costA = offer.getCostA();
@@ -1856,14 +2030,19 @@ public final class CobbleDollarsShopPayloadHandlers {
         }
 
         int perTrade = costA.getCount();
-        int totalNeeded = perTrade * quantity;
+        int totalNeeded = checkedTotalCount(perTrade, quantity);
+        if (totalNeeded < 1) {
+            return;
+        }
             if (!PlayerInventoryHelper.hasEnough(serverPlayer, costA, totalNeeded)) {
             return;
         }
-            PlayerInventoryHelper.shrink(serverPlayer, costA, totalNeeded);
 
         if (result.is(Items.EMERALD)) {
-            int emeraldCount = result.getCount() * quantity;
+            int emeraldCount = checkedTotalCount(result.getCount(), quantity);
+            if (emeraldCount < 1) {
+                return;
+            }
             int rate = CobbleDollarsConfigHelper.getEffectiveEmeraldRate();
             long toAdd = (long) emeraldCount * rate;
 
@@ -1872,23 +2051,31 @@ public final class CobbleDollarsShopPayloadHandlers {
             }
         } else if (result.is(Items.GOLD_INGOT) && CustomCurrencyConfig.getCurrencyValue(result) == 0) {
             ItemStack resultForQty = result.copy();
-            resultForQty.setCount(result.getCount() * quantity);
+            if (!scaleForQuantity(resultForQty, quantity)) {
+                return;
+            }
             long toAdd = DatapackItemPricing.getPrice(resultForQty);
             if (!CobbleDollarsIntegration.addBalance(serverPlayer, toAdd)) {
                 return;
             }
         } else if (CustomCurrencyConfig.getCurrencyValue(result) > 0) {
             ItemStack resultForQty = result.copy();
-            resultForQty.setCount(result.getCount() * quantity);
+            if (!scaleForQuantity(resultForQty, quantity)) {
+                return;
+            }
             long toAdd = CustomCurrencyConfig.getTotalValue(resultForQty);
             if (!CobbleDollarsIntegration.addBalance(serverPlayer, toAdd)) {
                 return;
             }
         } else {
             ItemStack resultCopy = result.copy();
-            resultCopy.setCount(result.getCount() * quantity);
+            if (!scaleForQuantity(resultCopy, quantity)) {
+                return;
+            }
             PlayerInventoryHelper.give(serverPlayer, resultCopy);
         }
+
+            PlayerInventoryHelper.shrink(serverPlayer, costA, totalNeeded);
 
         if (entity instanceof Merchant merchant) {
             notifyTradeForQuantity(merchant, offer, quantity);
