@@ -63,6 +63,19 @@ dependencies {
         compileOnly(project(":cobbledollars-stub", configuration = "namedElements"))
     }
 
+    // Optional MCA JAR for compile-time validation of optional MCA packet mixin (not bundled).
+    val mcaJar = project.findProperty("mca_jar")?.toString()?.let { file(it).takeIf { f -> f.exists() } }
+        ?: listOf(
+            project.rootDir.resolve("libs/mca-fabric-7.7.11+1.21.1.jar"),
+            project.rootDir.resolve("libs/mca-fabric-7.7.7+1.21.1.jar"),
+            file(System.getProperty("user.home") + "/Downloads/mca-fabric-7.7.11+1.21.1.jar"),
+            file(System.getProperty("user.home") + "/Downloads/mca-fabric-7.7.7+1.21.1.jar"),
+            file("E:/Prism launcher instances/1.21.1(1)/minecraft/mods/mca-fabric-7.7.7+1.21.1.jar")
+        ).firstOrNull { it.exists() }
+    if (mcaJar != null) {
+        compileOnly(files(mcaJar))
+    }
+
     implementation(project(":common", configuration = "namedElements"))
     "developmentFabric"(project(":common", configuration = "namedElements"))
     shadowCommon(project(":common", configuration = "transformProductionFabric"))

@@ -68,28 +68,6 @@ public final class FabricPendingCustomShopScreen {
         }
     }
 
-    /**
-     * {@link MerchantMenu}'s merchant field name differs by Minecraft version / mappings; avoid accessor mixins.
-     */
-    private static Merchant findMerchantForMenu(MerchantMenu menu) {
-        if (menu == null) {
-            return null;
-        }
-        for (Class<?> c = menu.getClass(); c != null && c != Object.class; c = c.getSuperclass()) {
-            for (var f : c.getDeclaredFields()) {
-                if (Merchant.class.isAssignableFrom(f.getType())) {
-                    f.setAccessible(true);
-                    try {
-                        return (Merchant) f.get(menu);
-                    } catch (IllegalAccessException e) {
-                        return null;
-                    }
-                }
-            }
-        }
-        return null;
-    }
-
     public static boolean shouldSuppressMerchantScreen(Screen screen) {
         if (Minecraft.getInstance().getSingleplayerServer() != null) {
             return false;
@@ -101,11 +79,10 @@ public final class FabricPendingCustomShopScreen {
             return false;
         }
         try {
-            var menu = merchantScreen.getMenu();
-            if (!(menu instanceof MerchantMenu merchantMenu)) {
+            if (!(merchantScreen.getMenu() instanceof MerchantMenu merchantMenu)) {
                 return false;
             }
-            Merchant trader = findMerchantForMenu(merchantMenu);
+            Merchant trader = FabricMerchantMenuHelper.getTrader(merchantMenu);
             if (trader instanceof Entity entity && entity.getId() == pendingEntityId) {
                 return true;
             }

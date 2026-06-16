@@ -7,7 +7,6 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.npc.Villager;
-import net.minecraft.world.inventory.MerchantMenu;
 import net.minecraft.world.item.trading.Merchant;
 import nl.streats1.cobbledollarsvillagersoverhaul.Config;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.CobbleDollarsIntegration;
@@ -40,15 +39,11 @@ public final class FabricMerchantMcaRedirect {
         if (mc.player == null || mc.level == null) {
             return false;
         }
-        MerchantMenu merchantMenu = merchantScreen.getMenu();
-        Merchant trader = findMerchantForMenu(merchantMenu);
+        Merchant trader = FabricMerchantMenuHelper.getTrader(merchantScreen.getMenu());
         if (!(trader instanceof Entity entity)) {
             return false;
         }
         if (!McaVillagerCompat.isMcaVillager(entity)) {
-            return false;
-        }
-        if (!McaVillagerCompat.canTradeWithProfession(entity)) {
             return false;
         }
         if (entity instanceof Villager villagerEntity) {
@@ -61,24 +56,5 @@ public final class FabricMerchantMcaRedirect {
         FabricPendingCustomShopScreen.beginAwaitingShopData(traderId, true);
         PlatformNetwork.sendToServer(new CobbleDollarsShopPayloads.RequestShopData(traderId));
         return true;
-    }
-
-    private static Merchant findMerchantForMenu(MerchantMenu menu) {
-        if (menu == null) {
-            return null;
-        }
-        for (Class<?> c = menu.getClass(); c != null && c != Object.class; c = c.getSuperclass()) {
-            for (var f : c.getDeclaredFields()) {
-                if (Merchant.class.isAssignableFrom(f.getType())) {
-                    f.setAccessible(true);
-                    try {
-                        return (Merchant) f.get(menu);
-                    } catch (IllegalAccessException e) {
-                        return null;
-                    }
-                }
-            }
-        }
-        return null;
     }
 }

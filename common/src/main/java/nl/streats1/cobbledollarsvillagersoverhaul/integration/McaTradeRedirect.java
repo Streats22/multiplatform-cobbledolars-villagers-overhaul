@@ -5,12 +5,13 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.npc.AbstractVillager;
 import net.minecraft.world.entity.npc.Villager;
+import net.minecraft.world.entity.npc.VillagerProfession;
 import net.minecraft.world.entity.player.Player;
 import nl.streats1.cobbledollarsvillagersoverhaul.Config;
 import nl.streats1.cobbledollarsvillagersoverhaul.network.CobbleDollarsShopPayloadHandlers;
 
 /**
- * Redirects MCA {@link AbstractVillager#startTrading} into the CobbleDollars shop pipeline.
+ * Redirects MCA trade ({@code startTrading} / {@code openTradingScreen}) into the CobbleDollars shop pipeline.
  */
 public final class McaTradeRedirect {
 
@@ -21,22 +22,29 @@ public final class McaTradeRedirect {
         if (!McaVillagerCompat.isModLoaded() || !McaVillagerCompat.isMcaVillager(villager)) {
             return false;
         }
-        if (!Config.USE_COBBLEDOLLARS_SHOP_UI || !CobbleDollarsIntegration.isAvailable()) {
+        if (!Config.USE_COBBLEDOLLARS_SHOP_UI || !CobbleDollarsIntegration.isModLoaded()) {
             return false;
         }
-        if (!McaVillagerCompat.canTradeWithProfession(villager)) {
+        if (!passesProfessionGate(villager)) {
             return false;
-        }
-        if (villager instanceof Villager v) {
-            ResourceLocation profId = BuiltInRegistries.VILLAGER_PROFESSION.getKey(v.getVillagerData().getProfession());
-            if (Config.isVillagerProfessionExcluded(profId)) {
-                return false;
-            }
         }
         if (!(player instanceof ServerPlayer sp)) {
             return false;
         }
+        MerchantTradeGenerationHelper.ensureMerchantOffersReady(sp.serverLevel(), villager);
         CobbleDollarsShopPayloadHandlers.handleRequestShopData(sp, villager.getId());
         return true;
+    }
+
+    private static boolean passesProfessionGate(AbstractVillager villager) {
+        if (!(villager instanceof Villager v)) {
+            return true;
+        }
+        VillagerProfession prof = v.getVillagerData().getProfession();
+        if (prof == VillagerProfession.NONE || prof == VillagerProfession.NITWIT) {
+            return false;
+        }
+        ResourceLocation profId = BuiltInRegistries.VILLAGER_PROFESSION.getKey(prof);
+        return !Config.isVillagerProfessionExcluded(profId);
     }
 }

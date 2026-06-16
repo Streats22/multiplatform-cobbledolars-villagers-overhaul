@@ -2,10 +2,13 @@
   "required": true,
   "minVersion": "0.8",
   "package": "nl.streats1.cobbledollarsvillagersoverhaul.mixin",
+  "plugin": "nl.streats1.cobbledollarsvillagersoverhaul.mixin.CobbledollarsMixinPlugin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
     "BankMixin",
     "MerchantTradeOrbSuppressionMixin",
+    "MerchantOpenTradingMixin",
+    "PlayerOpenMenuMcaRedirectMixin",
     "VillagerStartTradingMixin"
   ],
   "client": [
