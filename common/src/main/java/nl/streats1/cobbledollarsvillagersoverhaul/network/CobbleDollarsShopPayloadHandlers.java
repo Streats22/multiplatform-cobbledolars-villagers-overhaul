@@ -149,6 +149,11 @@ public final class CobbleDollarsShopPayloadHandlers {
         return total <= Integer.MAX_VALUE ? (int) total : -1;
     }
 
+    private static boolean hasRemainingUses(MerchantOffer offer, int quantity) {
+        return offer != null && isValidTradeQuantity(quantity) && !offer.isOutOfStock()
+                && (long) offer.getUses() + quantity <= offer.getMaxUses();
+    }
+
     private static boolean canInteractWithShopEntity(ServerPlayer player, Entity entity) {
         return entity != null && player.distanceTo(entity) <= SHOP_INTERACTION_RANGE;
     }
@@ -1335,6 +1340,12 @@ public final class CobbleDollarsShopPayloadHandlers {
         return buyOffers;
     }
 
+    private static List<MerchantOffer> getRctaSellOffers(List<MerchantOffer> allOffers) {
+        return allOffers.stream()
+                .filter(o -> o != null && !o.getCostA().isEmpty() && o.getResult().is(Items.EMERALD))
+                .toList();
+    }
+
     /**
      * Item-for-item trades for the Trades tab: no emerald/currency result (or gold-ingot payout),
      * and cost is not emerald or any item listed in {@link CustomCurrencyConfig} (those use Buy).
@@ -1684,6 +1695,9 @@ public final class CobbleDollarsShopPayloadHandlers {
             if (offerIndex < 0 || offerIndex >= buyOffersList.size()) return;
             offer = buyOffersList.get(offerIndex);
         }
+        if (!hasRemainingUses(offer, quantity)) {
+            return;
+        }
 
         ItemStack costA = offer.getCostA();
         if (tab == 2 && RctTrainerAssociationCompat.isTrainerAssociation(entity) && !costA.isEmpty() && isTrainerCard(costA.getItem())) {
@@ -1932,10 +1946,11 @@ public final class CobbleDollarsShopPayloadHandlers {
         try {
         MerchantOffer offer;
         if (RctTrainerAssociationCompat.isTrainerAssociation(entity)) {
-            if (offerIndex < 0 || offerIndex >= allOffers.size()) {
+            List<MerchantOffer> sellOffers = getRctaSellOffers(allOffers);
+            if (offerIndex < 0 || offerIndex >= sellOffers.size()) {
                 return;
             }
-            offer = allOffers.get(offerIndex);
+            offer = sellOffers.get(offerIndex);
         } else {
             List<MerchantOffer> sellOffers = allOffers.stream()
                     .filter(o -> {
@@ -1950,6 +1965,9 @@ public final class CobbleDollarsShopPayloadHandlers {
                 return;
             }
             offer = sellOffers.get(offerIndex);
+        }
+        if (!hasRemainingUses(offer, quantity)) {
+            return;
         }
 
             ItemStack costA = offer.getCostA();
