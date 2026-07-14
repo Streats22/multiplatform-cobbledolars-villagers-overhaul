@@ -1228,7 +1228,7 @@ public final class CobbleDollarsShopPayloadHandlers {
             if (costA == null || result == null) continue;
             if (result.isEmpty()) continue;
 
-            boolean isSeriesTrade = isTrainerCard(costA.getItem()) && isTrainerCard(result.getItem());
+            boolean isSeriesTrade = isRctaSeriesTrade(o);
             String seriesId = "";
             String seriesName = "";
             String seriesTooltip = "";
@@ -1267,8 +1267,7 @@ public final class CobbleDollarsShopPayloadHandlers {
                 if (!safeCostA.isEmpty()) {
                     sellOut.add(ShopOfferEntryFactory.sell(safeCostA, result.getCount()));
                 }
-            } else if (!costA.isEmpty() && !result.isEmpty() &&
-                    !costA.is(Items.EMERALD) && !result.is(Items.EMERALD)) {
+            } else if (isRctaTradeOffer(o)) {
                 ItemStack merchantResult = result.copy();
                 ItemStack merchantCostA = costA.copy();
                 ItemStack merchantCostB = TradeIngredientHelper.secondaryIngredient(o);
@@ -1279,6 +1278,31 @@ public final class CobbleDollarsShopPayloadHandlers {
                 }
             }
         }
+    }
+
+    private static boolean isRctaTradeOffer(MerchantOffer offer) {
+        if (offer == null) return false;
+        ItemStack costA = offer.getCostA();
+        ItemStack result = offer.getResult();
+        return costA != null && result != null
+                && !costA.isEmpty() && !result.isEmpty()
+                && !costA.is(Items.EMERALD) && !result.is(Items.EMERALD);
+    }
+
+    private static boolean isRctaSeriesTrade(MerchantOffer offer) {
+        return isRctaTradeOffer(offer)
+                && isTrainerCard(offer.getCostA().getItem())
+                && isTrainerCard(offer.getResult().getItem());
+    }
+
+    /**
+     * Returns RCT offers in exactly the same order as {@link #buildRctaOfferLists} adds them
+     * to the Trades tab.
+     */
+    private static List<MerchantOffer> getRctaTradeOffers(List<MerchantOffer> allOffers) {
+        return allOffers.stream()
+                .filter(CobbleDollarsShopPayloadHandlers::isRctaTradeOffer)
+                .toList();
     }
 
     /**
@@ -1726,9 +1750,7 @@ public final class CobbleDollarsShopPayloadHandlers {
             if (tab == 0) {
                 filteredOffers = getRctaBuyOffers(allOffers);
             } else if (tab == 2) {
-                filteredOffers = allOffers.stream()
-                        .filter(o -> !o.getCostA().isEmpty() && isTrainerCard(o.getCostA().getItem()))
-                        .toList();
+                filteredOffers = getRctaTradeOffers(allOffers);
             } else {
                 filteredOffers = allOffers;
             }
@@ -1749,7 +1771,7 @@ public final class CobbleDollarsShopPayloadHandlers {
         }
 
         ItemStack costA = offer.getCostA();
-        if (tab == 2 && RctTrainerAssociationCompat.isTrainerAssociation(entity) && !costA.isEmpty() && isTrainerCard(costA.getItem())) {
+        if (tab == 2 && RctTrainerAssociationCompat.isTrainerAssociation(entity) && isRctaSeriesTrade(offer)) {
             int totalNeeded = checkedTotalCount(costA.getCount(), quantity);
             if (totalNeeded < 1) {
                 return;
