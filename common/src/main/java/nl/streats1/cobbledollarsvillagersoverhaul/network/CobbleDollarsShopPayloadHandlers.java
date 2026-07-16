@@ -227,26 +227,22 @@ public final class CobbleDollarsShopPayloadHandlers {
         }
     }
 
-    private static String identifySeriesFromOffer(List<MerchantOffer> allOffers, MerchantOffer offer, ServerPlayer serverPlayer) {
+    private static int getRctaSeriesIndex(List<MerchantOffer> allOffers, MerchantOffer offer) {
         int seriesIndex = 0;
         for (MerchantOffer candidate : allOffers) {
             if (!isRctaSeriesTrade(candidate)) {
                 continue;
             }
             if (candidate == offer) {
-                List<SeriesDisplay> availableSeries = getPlayerAvailableSeries(serverPlayer);
-                if (seriesIndex < availableSeries.size()) {
-                    return availableSeries.get(seriesIndex).id();
-                }
-                return null;
+                return seriesIndex;
             }
             seriesIndex++;
         }
-        return null;
+        return -1;
     }
 
-    private static boolean setCurrentRctaSeries(ServerPlayer serverPlayer, String targetSeries) {
-        if (targetSeries == null || targetSeries.isEmpty()) {
+    private static boolean setCurrentRctaSeries(ServerPlayer serverPlayer, int seriesIndex) {
+        if (seriesIndex < 0) {
             return false;
         }
         try {
@@ -264,11 +260,35 @@ public final class CobbleDollarsShopPayloadHandlers {
             if (trainerPlayerData == null) {
                 return false;
             }
+
+            var getAvailableSeriesMethod = trainerPlayerDataClass.getMethod("getAvailableSeries");
+            var availableSeriesObj = getAvailableSeriesMethod.invoke(trainerPlayerData);
+            if (!(availableSeriesObj instanceof Iterable<?> availableSeries)) {
+                return false;
+            }
+
+            String targetSeries = null;
+            int availableIndex = 0;
+            for (Object seriesObj : availableSeries) {
+                String seriesId = getSeriesId(seriesObj);
+                if (seriesId.isEmpty() || "empty".equals(seriesId)) {
+                    continue;
+                }
+                if (availableIndex == seriesIndex) {
+                    targetSeries = seriesId;
+                    break;
+                }
+                availableIndex++;
+            }
+            if (targetSeries == null) {
+                return false;
+            }
+
             var setCurrentSeriesMethod = trainerPlayerDataClass.getMethod("setCurrentSeries", String.class);
             setCurrentSeriesMethod.invoke(trainerPlayerData, targetSeries);
             return true;
         } catch (Exception e) {
-            LOGGER.warn("Failed to set authoritative RCT series {} for {}", targetSeries, serverPlayer.getName().getString(), e);
+            LOGGER.warn("Failed to set authoritative RCT series index {} for {}", seriesIndex, serverPlayer.getName().getString(), e);
             return false;
         }
     }
@@ -362,7 +382,7 @@ public final class CobbleDollarsShopPayloadHandlers {
                     if (availableSeriesObj instanceof Iterable<?> iterable) {
                         for (Object seriesObj : iterable) {
                             String seriesId = getSeriesId(seriesObj);
-                            if (!seriesId.isEmpty()) {
+                            if (!seriesId.isEmpty() && !"empty".equals(seriesId)) {
                                 String titleKey = defaultSeriesTitleKey(seriesId);
                                 String tooltipKey = defaultSeriesDescriptionKey(seriesId);
                                 int difficulty = getSeriesDifficulty(seriesObj);
@@ -1785,8 +1805,8 @@ public final class CobbleDollarsShopPayloadHandlers {
                 return;
             }
 
-            String targetSeries = identifySeriesFromOffer(allOffers, offer, serverPlayer);
-            if (!setCurrentRctaSeries(serverPlayer, targetSeries)) {
+            int seriesIndex = getRctaSeriesIndex(allOffers, offer);
+            if (!setCurrentRctaSeries(serverPlayer, seriesIndex)) {
                 return;
             }
 
