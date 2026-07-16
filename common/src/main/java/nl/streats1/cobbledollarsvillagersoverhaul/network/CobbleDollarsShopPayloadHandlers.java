@@ -1154,15 +1154,15 @@ public final class CobbleDollarsShopPayloadHandlers {
         if (totalNeeded < 1) {
             return;
         }
-        if (!PlayerInventoryHelper.hasEnough(serverPlayer, costA, totalNeeded)) {
-            LOGGER.warn("Not enough items to sell to bank! Has: {}, Needs: {}", PlayerInventoryHelper.countMatching(serverPlayer, costA), totalNeeded);
+        if (!PlayerInventoryHelper.hasEnoughExact(serverPlayer, costA, totalNeeded)) {
+            LOGGER.warn("Not enough items to sell to bank! Has: {}, Needs: {}", PlayerInventoryHelper.countMatchingExact(serverPlayer, costA), totalNeeded);
             return;
         }
         if (!CobbleDollarsIntegration.addBalance(serverPlayer, toAdd)) {
             LOGGER.error("Failed to add {} CobbleDollars for bank sell", toAdd);
             return;
         }
-        PlayerInventoryHelper.shrink(serverPlayer, costA, totalNeeded);
+        PlayerInventoryHelper.shrinkExact(serverPlayer, costA, totalNeeded);
         serverPlayer.containerMenu.broadcastChanges();
         serverPlayer.inventoryMenu.broadcastChanges();
         sendBalanceUpdate(serverPlayer, VirtualShopIds.VIRTUAL_ID_BANK);
@@ -1798,10 +1798,7 @@ public final class CobbleDollarsShopPayloadHandlers {
                 }
             }
 
-            String targetSeries = selectedSeries;
-            if (targetSeries == null || targetSeries.isEmpty()) {
-                targetSeries = identifySeriesFromOffer(offer, serverPlayer, offerIndex);
-            }
+            String targetSeries = identifySeriesFromOffer(offer, serverPlayer, offerIndex);
 
             if (targetSeries != null) {
                 try {
@@ -2056,10 +2053,11 @@ public final class CobbleDollarsShopPayloadHandlers {
         if (totalNeeded < 1) {
             return;
         }
-            if (!PlayerInventoryHelper.hasEnough(serverPlayer, costA, totalNeeded)) {
+            if (!PlayerInventoryHelper.hasEnoughExact(serverPlayer, costA, totalNeeded)) {
             return;
         }
 
+        boolean inputConsumed = false;
         if (result.is(Items.EMERALD)) {
             int emeraldCount = checkedTotalCount(result.getCount(), quantity);
             if (emeraldCount < 1) {
@@ -2094,10 +2092,14 @@ public final class CobbleDollarsShopPayloadHandlers {
             if (!scaleForQuantity(resultCopy, quantity)) {
                 return;
             }
+            PlayerInventoryHelper.shrinkExact(serverPlayer, costA, totalNeeded);
+            inputConsumed = true;
             PlayerInventoryHelper.give(serverPlayer, resultCopy);
         }
 
-            PlayerInventoryHelper.shrink(serverPlayer, costA, totalNeeded);
+            if (!inputConsumed) {
+                PlayerInventoryHelper.shrinkExact(serverPlayer, costA, totalNeeded);
+            }
 
         if (entity instanceof Merchant merchant) {
             notifyTradeForQuantity(merchant, offer, quantity);
