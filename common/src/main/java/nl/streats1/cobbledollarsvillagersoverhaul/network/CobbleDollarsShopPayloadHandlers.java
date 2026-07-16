@@ -227,10 +227,28 @@ public final class CobbleDollarsShopPayloadHandlers {
         }
     }
 
-    /**
-     * Try to identify the series from an RCT offer using index-based mapping
-     */
-    private static String identifySeriesFromOffer(MerchantOffer offer, ServerPlayer serverPlayer, int offerIndex) {
+    private static String identifySeriesFromOffer(List<MerchantOffer> allOffers, MerchantOffer offer, ServerPlayer serverPlayer) {
+        int seriesIndex = 0;
+        for (MerchantOffer candidate : allOffers) {
+            if (!isRctaSeriesTrade(candidate)) {
+                continue;
+            }
+            if (candidate == offer) {
+                List<SeriesDisplay> availableSeries = getPlayerAvailableSeries(serverPlayer);
+                if (seriesIndex < availableSeries.size()) {
+                    return availableSeries.get(seriesIndex).id();
+                }
+                return null;
+            }
+            seriesIndex++;
+        }
+        return null;
+    }
+
+    private static boolean setCurrentRctaSeries(ServerPlayer serverPlayer, String targetSeries) {
+        if (targetSeries == null || targetSeries.isEmpty()) {
+            return false;
+        }
         try {
             var rctModClass = Class.forName("com.gitlab.srcmc.rctmod.api.RCTMod");
             var getInstanceMethod = rctModClass.getMethod("getInstance");
@@ -240,48 +258,19 @@ public final class CobbleDollarsShopPayloadHandlers {
             var getTrainerManagerMethod = rctModClass.getMethod("getTrainerManager");
             var trainerManager = getTrainerManagerMethod.invoke(rctModInstance);
 
-            var serverPlayerParam = serverPlayer;
-
             var trainerPlayerDataClass = Class.forName("com.gitlab.srcmc.rctmod.api.data.save.TrainerPlayerData");
             var getDataMethod = trainerManagerClass.getMethod("getData", Player.class);
-            var trainerPlayerData = getDataMethod.invoke(trainerManager, serverPlayerParam);
-
-            if (trainerPlayerData != null) {
-                try {
-                    var getCurrentSeriesMethod = trainerPlayerDataClass.getMethod("getCurrentSeries");
-                    getCurrentSeriesMethod.invoke(trainerPlayerData);
-
-                    try {
-                        var getAvailableSeriesMethod = trainerPlayerDataClass.getMethod("getAvailableSeries");
-                        var availableSeriesObj = getAvailableSeriesMethod.invoke(trainerPlayerData);
-
-                        if (availableSeriesObj instanceof List<?> availableSeriesList) {
-
-                            var playableSeries = availableSeriesList.stream()
-                                    .map(Object::toString)
-                                    .filter(series -> !"empty".equals(series))
-                                    .toList();
-
-                            if (!playableSeries.isEmpty()) {
-                                int seriesIndex = Math.min(offerIndex, playableSeries.size() - 1);
-                                String mappedSeries = playableSeries.get(seriesIndex);
-                                return mappedSeries;
-                            }
-                        }
-                    } catch (Exception e) {
-                    }
-
-                    return null;
-
-                } catch (Exception e) {
-                }
+            var trainerPlayerData = getDataMethod.invoke(trainerManager, serverPlayer);
+            if (trainerPlayerData == null) {
+                return false;
             }
-
-            return identifySeriesFromOfferOriginal(offer, serverPlayer);
-
+            var setCurrentSeriesMethod = trainerPlayerDataClass.getMethod("setCurrentSeries", String.class);
+            setCurrentSeriesMethod.invoke(trainerPlayerData, targetSeries);
+            return true;
         } catch (Exception e) {
+            LOGGER.warn("Failed to set authoritative RCT series {} for {}", targetSeries, serverPlayer.getName().getString(), e);
+            return false;
         }
-        return null;
     }
 
     private static String identifySeriesFromOfferOriginal(MerchantOffer offer, ServerPlayer serverPlayer) {
@@ -1683,6 +1672,9 @@ public final class CobbleDollarsShopPayloadHandlers {
         if (!isValidPacketQuantity(quantity)) {
             return;
         }
+        if (tab != 0 && tab != 2) {
+            return;
+        }
 
         ServerLevel level = serverPlayer.serverLevel();
         Entity entity = VirtualShopIds.isVirtual(villagerId) ? null : level.getEntity(villagerId);
@@ -1788,6 +1780,16 @@ public final class CobbleDollarsShopPayloadHandlers {
                 return;
             }
 
+            ItemStack resultCopy = offer.getResult().copy();
+            if (!scaleForQuantity(resultCopy, quantity)) {
+                return;
+            }
+
+            String targetSeries = identifySeriesFromOffer(allOffers, offer, serverPlayer);
+            if (!setCurrentRctaSeries(serverPlayer, targetSeries)) {
+                return;
+            }
+
             int remaining = totalNeeded;
             for (int slot = 0; slot < inv.getContainerSize() && remaining > 0; slot++) {
                 ItemStack stack = inv.getItem(slot);
@@ -1798,36 +1800,8 @@ public final class CobbleDollarsShopPayloadHandlers {
                 }
             }
 
-            String targetSeries = identifySeriesFromOffer(offer, serverPlayer, offerIndex);
-
-            if (targetSeries != null) {
-                try {
-                    var rctModClass = Class.forName("com.gitlab.srcmc.rctmod.api.RCTMod");
-                    var getInstanceMethod = rctModClass.getMethod("getInstance");
-                    var rctModInstance = getInstanceMethod.invoke(null);
-
-                    var trainerManagerClass = Class.forName("com.gitlab.srcmc.rctmod.api.service.TrainerManager");
-                    var getTrainerManagerMethod = rctModClass.getMethod("getTrainerManager");
-                    var trainerManager = getTrainerManagerMethod.invoke(rctModInstance);
-
-                    var trainerPlayerDataClass = Class.forName("com.gitlab.srcmc.rctmod.api.data.save.TrainerPlayerData");
-                    var getDataMethod = trainerManagerClass.getMethod("getData", Player.class);
-                    var trainerPlayerData = getDataMethod.invoke(trainerManager, serverPlayer);
-
-                    if (trainerPlayerData != null) {
-                        var setCurrentSeriesMethod = trainerPlayerDataClass.getMethod("setCurrentSeries", String.class);
-                        setCurrentSeriesMethod.invoke(trainerPlayerData, targetSeries);
-                    }
-                } catch (Exception e) {
-                }
-            }
-
             SERIES_CACHE.remove(serverPlayer.getUUID());
 
-            ItemStack resultCopy = offer.getResult().copy();
-            if (!scaleForQuantity(resultCopy, quantity)) {
-                return;
-            }
             PlayerInventoryHelper.give(serverPlayer, resultCopy);
 
             Merchant merchant = null;
