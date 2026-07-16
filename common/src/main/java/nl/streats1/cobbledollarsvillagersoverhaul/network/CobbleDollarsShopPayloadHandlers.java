@@ -1800,6 +1800,23 @@ public final class CobbleDollarsShopPayloadHandlers {
                 return;
             }
 
+            java.util.Optional<net.minecraft.world.item.trading.ItemCost> itemCostB = offer.getItemCostB();
+            ItemStack costB = TradeIngredientHelper.secondaryIngredient(offer);
+            int totalNeededB = costB.isEmpty() ? 0 : checkedTotalCount(costB.getCount(), quantity);
+            if ((itemCostB.isPresent() || !costB.isEmpty()) && totalNeededB < 1) {
+                return;
+            }
+            if (!costB.isEmpty() && isTrainerCard(costB.getItem())) {
+                return;
+            }
+            if (itemCostB.isPresent()) {
+                if (!TradeIngredientHelper.hasInInventory(serverPlayer, itemCostB.get(), totalNeededB)) {
+                    return;
+                }
+            } else if (!costB.isEmpty() && !PlayerInventoryHelper.hasEnough(serverPlayer, costB, totalNeededB)) {
+                return;
+            }
+
             ItemStack resultCopy = offer.getResult().copy();
             if (!scaleForQuantity(resultCopy, quantity)) {
                 return;
@@ -1818,6 +1835,11 @@ public final class CobbleDollarsShopPayloadHandlers {
                     stack.shrink(take);
                     remaining -= take;
                 }
+            }
+            if (itemCostB.isPresent()) {
+                TradeIngredientHelper.shrinkFromInventory(serverPlayer, itemCostB.get(), totalNeededB);
+            } else if (!costB.isEmpty()) {
+                PlayerInventoryHelper.shrink(serverPlayer, costB, totalNeededB);
             }
 
             SERIES_CACHE.remove(serverPlayer.getUUID());
