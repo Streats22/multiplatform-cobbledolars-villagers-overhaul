@@ -27,7 +27,7 @@ public final class NeoForgeMerchantMcaRedirect {
         if (!(screen instanceof MerchantScreen merchantScreen)) {
             return false;
         }
-        if (!Config.USE_COBBLEDOLLARS_SHOP_UI || !CobbleDollarsIntegration.isModLoaded()) {
+        if (!Config.USE_COBBLEDOLLARS_SHOP_UI || !CobbleDollarsIntegration.isAvailable()) {
             return false;
         }
         if (!McaVillagerCompat.isModLoaded()) {
