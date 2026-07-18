@@ -62,6 +62,13 @@ public final class PlayerInventoryHelper {
     }
 
     /**
+     * Returns {@code true} if the player holds at least {@code required} items with the same components as {@code needle}.
+     */
+    public static boolean hasEnoughExact(ServerPlayer player, ItemStack needle, int required) {
+        return countMatchingExact(player, needle) >= required;
+    }
+
+    /**
      * Removes exactly {@code amount} items matching {@code needle} from the player's inventory.
      * Assumes you have already verified the player has enough (e.g. via {@link #hasEnough}).
      */

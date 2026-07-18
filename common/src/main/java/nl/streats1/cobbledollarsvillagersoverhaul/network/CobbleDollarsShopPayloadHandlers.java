@@ -1699,7 +1699,7 @@ public final class CobbleDollarsShopPayloadHandlers {
             totalCost = (long) pricePerTrade * quantity;
         } else {
             int totalNeeded = costA.getCount() * quantity;
-            if (!PlayerInventoryHelper.hasEnough(serverPlayer, costA, totalNeeded)) {
+            if (!PlayerInventoryHelper.hasEnoughExact(serverPlayer, costA, totalNeeded)) {
                 return;
             }
             totalCost = 0;
@@ -1743,7 +1743,7 @@ public final class CobbleDollarsShopPayloadHandlers {
         }
 
         if (totalCost == 0 && !costA.isEmpty()) {
-            PlayerInventoryHelper.shrink(serverPlayer, costA, costA.getCount() * quantity);
+            PlayerInventoryHelper.shrinkExact(serverPlayer, costA, costA.getCount() * quantity);
         }
 
         ItemStack result = offer.getResult().copy();
