@@ -54,10 +54,19 @@ public class DatapackItemPricing {
      * unlisted items return 0. Used to tell true barter (Trades tab) from CD-priced buy offers.
      */
     public static int getOverridePrice(ItemStack itemStack) {
-        if (itemStack == null || itemStack.isEmpty()) return 0;
-        if (!pricesLoaded || customPrices.isEmpty()) return 0;
+        long price = getOverridePriceLong(itemStack);
+        return price > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) price;
+    }
+
+    /**
+     * CobbleDollars total for this stack only when the item has an explicit entry in the custom price map.
+     * Unlike {@link #getPriceLong(ItemStack)}, does <strong>not</strong> fall back to emerald-rate × count.
+     */
+    public static long getOverridePriceLong(ItemStack itemStack) {
+        if (itemStack == null || itemStack.isEmpty()) return 0L;
+        if (!pricesLoaded || customPrices.isEmpty()) return 0L;
         int perItem = resolveCustomPrice(itemStack.getItem());
-        return perItem > 0 ? perItem * itemStack.getCount() : 0;
+        return perItem > 0 ? (long) perItem * itemStack.getCount() : 0L;
     }
 
     /**
@@ -65,10 +74,18 @@ public class DatapackItemPricing {
      * Priority: custom price map first, then emerald-rate × count as fallback.
      */
     public static int getPrice(ItemStack itemStack) {
-        if (itemStack == null || itemStack.isEmpty()) return 0;
+        long price = getPriceLong(itemStack);
+        return price > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) price;
+    }
+
+    /**
+     * Same as {@link #getPrice(ItemStack)} but without int saturation — for balance mutation.
+     */
+    public static long getPriceLong(ItemStack itemStack) {
+        if (itemStack == null || itemStack.isEmpty()) return 0L;
         int perItem = resolveCustomPrice(itemStack.getItem());
-        if (perItem > 0) return perItem * itemStack.getCount();
-        return CobbleDollarsConfigHelper.getEffectiveEmeraldRate() * itemStack.getCount();
+        if (perItem > 0) return (long) perItem * itemStack.getCount();
+        return (long) CobbleDollarsConfigHelper.getEffectiveEmeraldRate() * itemStack.getCount();
     }
 
     /**

@@ -26,6 +26,9 @@ public final class CobbleDollarsShopPayloads {
     @SuppressWarnings({"unchecked", "rawtypes"})
     private static final StreamCodec<RegistryFriendlyByteBuf, String> STRING_UTF8 = (StreamCodec) ByteBufCodecs.STRING_UTF8;
     private static final StreamCodec<RegistryFriendlyByteBuf, ItemStack> ITEM_STACK = ItemStack.STREAM_CODEC;
+    /** Allows empty stacks; do not use a real item (e.g. stone) as an empty sentinel. */
+    private static final StreamCodec<RegistryFriendlyByteBuf, ItemStack> OPTIONAL_ITEM_STACK =
+            ItemStack.OPTIONAL_STREAM_CODEC;
 
     /**
      * One logical shop entry.
@@ -58,29 +61,30 @@ public final class CobbleDollarsShopPayloads {
                 new StreamCodec<>() {
                     @Override
                     public void encode(RegistryFriendlyByteBuf buf, ShopOfferEntry entry) {
+                        // result is required by STREAM_CODEC; offers never intentionally omit it.
                         ItemStack result = entry.result();
                         if (result == null || result.isEmpty()) result = new ItemStack(Items.BREAD);
 
                         ItemStack costB = entry.costB();
-                        if (costB == null || costB.isEmpty() || costB.is(Items.AIR)) {
-                            costB = new ItemStack(Items.STONE);
+                        if (costB == null || costB.is(Items.AIR)) {
+                            costB = ItemStack.EMPTY;
                         }
 
                         ItemStack sec = entry.itemTradeSecondary();
-                        if (sec == null || sec.isEmpty() || sec.is(Items.AIR)) {
-                            sec = new ItemStack(Items.STONE);
+                        if (sec == null || sec.is(Items.AIR)) {
+                            sec = ItemStack.EMPTY;
                         }
 
                         ITEM_STACK.encode(buf, result);
                         VAR_INT.encode(buf, entry.emeraldCount());
-                        ITEM_STACK.encode(buf, costB);
+                        OPTIONAL_ITEM_STACK.encode(buf, costB);
                         BOOL.encode(buf, entry.directPrice());
                         STRING_UTF8.encode(buf, entry.seriesId() != null ? entry.seriesId() : "");
                         STRING_UTF8.encode(buf, entry.seriesName() != null ? entry.seriesName() : "");
                         STRING_UTF8.encode(buf, entry.seriesTooltip() != null ? entry.seriesTooltip() : "");
                         buf.writeFloat(entry.seriesDifficulty());
                         VAR_INT.encode(buf, entry.seriesCompleted());
-                        ITEM_STACK.encode(buf, sec);
+                        OPTIONAL_ITEM_STACK.encode(buf, sec);
                         STRING_UTF8.encode(buf, entry.categoryName() != null ? entry.categoryName() : "");
                     }
 
@@ -88,26 +92,19 @@ public final class CobbleDollarsShopPayloads {
                     public ShopOfferEntry decode(RegistryFriendlyByteBuf buf) {
                         ItemStack result = ITEM_STACK.decode(buf);
                         int emeraldCount = VAR_INT.decode(buf);
-                        ItemStack costB = ITEM_STACK.decode(buf);
-                        if (costB != null && costB.is(Items.STONE) && costB.getCount() == 1) {
-                            costB = ItemStack.EMPTY;
-                        }
+                        ItemStack costB = OPTIONAL_ITEM_STACK.decode(buf);
                         boolean directPrice = BOOL.decode(buf);
                         String seriesId = STRING_UTF8.decode(buf);
                         String seriesName = STRING_UTF8.decode(buf);
                         String seriesTooltip = STRING_UTF8.decode(buf);
                         float seriesDifficulty = buf.readFloat();
                         int seriesCompleted = VAR_INT.decode(buf);
-                        ItemStack itemTradeSecondary = ITEM_STACK.decode(buf);
-                        if (itemTradeSecondary != null && itemTradeSecondary.is(Items.STONE)
-                                && itemTradeSecondary.getCount() == 1) {
-                            itemTradeSecondary = ItemStack.EMPTY;
-                        }
+                        ItemStack itemTradeSecondary = OPTIONAL_ITEM_STACK.decode(buf);
                         String categoryName = STRING_UTF8.decode(buf);
                         return new ShopOfferEntry(
                                 result,
                                 emeraldCount,
-                                costB,
+                                costB != null ? costB : ItemStack.EMPTY,
                                 directPrice,
                                 seriesId != null ? seriesId : "",
                                 seriesName != null ? seriesName : "",

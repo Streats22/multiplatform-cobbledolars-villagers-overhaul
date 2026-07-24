@@ -1324,11 +1324,14 @@ public final class CobbleDollarsShopPayloadHandlers {
                 continue;
             }
             if (!costA.isEmpty() && CustomCurrencyConfig.getCurrencyValue(costA) > 0) {
-                int cobbleDollarsPerTrade = costA.getCount() * CustomCurrencyConfig.getCurrencyValue(costA);
+                long cobbleDollarsPerTrade = CustomCurrencyConfig.getTotalValue(costA);
                 ItemStack safeResult = result.copy();
                 ItemStack safeCostB = TradeIngredientHelper.secondaryIngredient(o);
                 if (!safeResult.isEmpty()) {
-                    buyOut.add(ShopOfferEntryFactory.buyDirect(safeResult, cobbleDollarsPerTrade, safeCostB));
+                    int displayPrice = cobbleDollarsPerTrade > Integer.MAX_VALUE
+                            ? Integer.MAX_VALUE
+                            : (int) cobbleDollarsPerTrade;
+                    buyOut.add(ShopOfferEntryFactory.buyDirect(safeResult, displayPrice, safeCostB));
                 }
                 continue;
             }
@@ -1348,10 +1351,13 @@ public final class CobbleDollarsShopPayloadHandlers {
                 continue;
             }
             if (!result.isEmpty() && CustomCurrencyConfig.getCurrencyValue(result) > 0 && !costA.isEmpty()) {
-                int cobbleDollarsPerTrade = result.getCount() * CustomCurrencyConfig.getCurrencyValue(result);
+                long cobbleDollarsPerTrade = CustomCurrencyConfig.getTotalValue(result);
                 ItemStack safeCostA = costA.copy();
                 if (!safeCostA.isEmpty()) {
-                    sellOut.add(ShopOfferEntryFactory.sellDirect(safeCostA, cobbleDollarsPerTrade));
+                    int displayPrice = cobbleDollarsPerTrade > Integer.MAX_VALUE
+                            ? Integer.MAX_VALUE
+                            : (int) cobbleDollarsPerTrade;
+                    sellOut.add(ShopOfferEntryFactory.sellDirect(safeCostA, displayPrice));
                 }
             }
         }
@@ -1694,9 +1700,8 @@ public final class CobbleDollarsShopPayloadHandlers {
             }
         } else if (!costA.isEmpty() && CustomCurrencyConfig.getCurrencyValue(costA) > 0) {
             totalCost = CustomCurrencyConfig.getTotalValue(costA) * quantity;
-        } else if (!costA.isEmpty() && Config.USE_DATAPACK_TRADES && DatapackItemPricing.getOverridePrice(costA) > 0) {
-            int pricePerTrade = DatapackItemPricing.getOverridePrice(costA);
-            totalCost = (long) pricePerTrade * quantity;
+        } else if (!costA.isEmpty() && Config.USE_DATAPACK_TRADES && DatapackItemPricing.getOverridePriceLong(costA) > 0) {
+            totalCost = DatapackItemPricing.getOverridePriceLong(costA) * quantity;
         } else {
             int totalNeeded = costA.getCount() * quantity;
             if (!PlayerInventoryHelper.hasEnough(serverPlayer, costA, totalNeeded)) {
@@ -1873,7 +1878,7 @@ public final class CobbleDollarsShopPayloadHandlers {
         } else if (result.is(Items.GOLD_INGOT) && CustomCurrencyConfig.getCurrencyValue(result) == 0) {
             ItemStack resultForQty = result.copy();
             resultForQty.setCount(result.getCount() * quantity);
-            long toAdd = DatapackItemPricing.getPrice(resultForQty);
+            long toAdd = DatapackItemPricing.getPriceLong(resultForQty);
             if (!CobbleDollarsIntegration.addBalance(serverPlayer, toAdd)) {
                 return;
             }
