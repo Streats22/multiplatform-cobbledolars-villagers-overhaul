@@ -1154,12 +1154,38 @@ public class CobbleDollarsShopScreen extends Screen {
     }
 
     private boolean hasRequiredTradeTabItems(CobbleDollarsShopPayloads.ShopOfferEntry entry, int qty) {
-        if (entry == null || resultStackFrom(entry).isEmpty()) return false;
-        if (!playerInventoryHasItemCount(resultStackFrom(entry), qty)) return false;
-        if (entry.hasItemTradeSecondary()) {
-            return playerInventoryHasItemCount(itemTradeSecondaryFrom(entry), qty);
+        // Trades-tab encoding: result field = costA (player gives), itemTradeSecondary = costB.
+        ItemStack primary = resultStackFrom(entry);
+        if (entry == null || primary.isEmpty()) return false;
+        int qtyN = Math.max(1, qty);
+        int needPrimary = Math.max(1, primary.getCount()) * qtyN;
+        ItemStack secondary = itemTradeSecondaryFrom(entry);
+        if (!secondary.isEmpty()) {
+            ItemStack primaryNeedle = primary.copyWithCount(1);
+            ItemStack secondaryNeedle = secondary.copyWithCount(1);
+            if (ItemStack.isSameItemSameComponents(primaryNeedle, secondaryNeedle)) {
+                int needCombined = needPrimary + Math.max(1, secondary.getCount()) * qtyN;
+                return playerInventoryCountExact(primaryNeedle) >= needCombined;
+            }
+            return playerInventoryCountExact(primaryNeedle) >= needPrimary
+                    && playerInventoryCountExact(secondaryNeedle) >= Math.max(1, secondary.getCount()) * qtyN;
         }
-        return true;
+        return playerInventoryCountExact(primary.copyWithCount(1)) >= needPrimary;
+    }
+
+    private static int playerInventoryCountExact(ItemStack needle) {
+        if (needle == null || needle.isEmpty()) return 0;
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null) return 0;
+        int have = 0;
+        var inv = mc.player.getInventory();
+        for (int slot = 0; slot < inv.getContainerSize(); slot++) {
+            ItemStack stack = inv.getItem(slot);
+            if (!stack.isEmpty() && ItemStack.isSameItemSameComponents(stack, needle)) {
+                have += stack.getCount();
+            }
+        }
+        return have;
     }
 
     /** Buy tab: checks emerald-line second ingredient. Trades tab: both barter inputs when present. */
