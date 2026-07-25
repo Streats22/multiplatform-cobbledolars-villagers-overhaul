@@ -65,11 +65,13 @@ public final class TradeCyclingCompat {
 
     /**
      * Check if a villager can have its trades cycled (refreshed).
-     * Only level 1 villagers (novice, not yet traded) can cycle; once leveled up, trades are locked.
+     * Only level 1 villagers that have never been traded with (XP == 0) can cycle —
+     * matching Trade Cycling / Easy Villagers. Once any trade awards XP, offers are locked.
      */
     public static boolean canCycleTrades(Villager villager) {
         if (villager == null) return false;
         if (villager.getVillagerData().getLevel() > 1) return false;
+        if (villager.getVillagerXp() > 0) return false;
         if (villager.getVillagerData().getProfession() == VillagerProfession.NONE
                 || villager.getVillagerData().getProfession() == VillagerProfession.NITWIT) {
             return false;
@@ -85,12 +87,7 @@ public final class TradeCyclingCompat {
      * @param onSuccess callback to run after cycle completes (e.g. send refreshed shop data). Called once.
      */
     public static boolean cycleTrades(Villager villager, ServerPlayer player, Runnable onSuccess) {
-        if (villager == null) return false;
-        if (villager.getVillagerData().getLevel() > 1) {
-            return false;
-        }
-        if (villager.getVillagerData().getProfession() == VillagerProfession.NONE
-                || villager.getVillagerData().getProfession() == VillagerProfession.NITWIT) {
+        if (!canCycleTrades(villager)) {
             return false;
         }
         try {

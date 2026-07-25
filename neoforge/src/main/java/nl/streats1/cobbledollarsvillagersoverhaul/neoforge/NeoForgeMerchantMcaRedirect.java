@@ -27,7 +27,11 @@ public final class NeoForgeMerchantMcaRedirect {
         if (!(screen instanceof MerchantScreen merchantScreen)) {
             return false;
         }
-        if (!Config.USE_COBBLEDOLLARS_SHOP_UI || !CobbleDollarsIntegration.isModLoaded()) {
+        // Must match server ability to open the CobbleDollars shop. Otherwise the server falls back
+        // to vanilla MerchantScreen and this redirect suppresses it again (trade lockout / request loop).
+        if (!Config.USE_COBBLEDOLLARS_SHOP_UI
+                || !Config.VILLAGERS_ACCEPT_COBBLEDOLLARS
+                || !CobbleDollarsIntegration.isAvailable()) {
             return false;
         }
         if (!McaVillagerCompat.isModLoaded()) {

@@ -21,7 +21,9 @@ public final class McaTradeRedirect {
         if (!McaVillagerCompat.isModLoaded() || !McaVillagerCompat.isMcaVillager(villager)) {
             return false;
         }
-        if (!Config.USE_COBBLEDOLLARS_SHOP_UI || !CobbleDollarsIntegration.isAvailable()) {
+        if (!Config.USE_COBBLEDOLLARS_SHOP_UI
+                || !Config.VILLAGERS_ACCEPT_COBBLEDOLLARS
+                || !CobbleDollarsIntegration.isAvailable()) {
             return false;
         }
         if (!McaVillagerCompat.canTradeWithProfession(villager)) {

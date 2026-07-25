@@ -840,16 +840,20 @@ public final class CobbleDollarsShopPayloadHandlers {
 
         if (!Config.USE_COBBLEDOLLARS_SHOP_UI) {
             LOGGER.debug("[shop] handleRequestShopData: USE_COBBLEDOLLARS_SHOP_UI=false, opening vanilla menu if applicable");
+            // Sync first so clients that suppressed MerchantScreen stop redirecting after learning server flags.
+            sendServerShopConfigTo(serverPlayer);
             openVanillaMerchantMenu(serverPlayer, villagerId);
             return;
         }
         if (!Config.VILLAGERS_ACCEPT_COBBLEDOLLARS) {
             LOGGER.debug("[shop] handleRequestShopData: VILLAGERS_ACCEPT_COBBLEDOLLARS=false — opening vanilla menu");
+            sendServerShopConfigTo(serverPlayer);
             openVanillaMerchantMenu(serverPlayer, villagerId);
             return;
         }
         if (!CobbleDollarsIntegration.isAvailable()) {
             LOGGER.warn("[shop] handleRequestShopData: CobbleDollars integration not available — opening vanilla menu");
+            sendServerShopConfigTo(serverPlayer);
             openVanillaMerchantMenu(serverPlayer, villagerId);
             return;
         }
@@ -1684,6 +1688,8 @@ public final class CobbleDollarsShopPayloadHandlers {
 
         int rate = CobbleDollarsConfigHelper.getEffectiveEmeraldRate();
         long totalCost;
+        boolean consumeCostAFromInventory = false;
+        int costANeeded = 0;
 
         if (costA.is(Items.EMERALD)) {
             int emeraldCost = costA.getCount() * quantity;
@@ -1698,11 +1704,38 @@ public final class CobbleDollarsShopPayloadHandlers {
             int pricePerTrade = DatapackItemPricing.getOverridePrice(costA);
             totalCost = (long) pricePerTrade * quantity;
         } else {
-            int totalNeeded = costA.getCount() * quantity;
-            if (!PlayerInventoryHelper.hasEnough(serverPlayer, costA, totalNeeded)) {
+            consumeCostAFromInventory = !costA.isEmpty();
+            costANeeded = costA.getCount() * quantity;
+            totalCost = 0;
+        }
+
+        java.util.Optional<net.minecraft.world.item.trading.ItemCost> itemCostB = offer.getItemCostB();
+        ItemStack costBFallback = itemCostB.isPresent() ? ItemStack.EMPTY : TradeIngredientHelper.secondaryIngredient(offer);
+        int costBNeeded = 0;
+        if (itemCostB.isPresent()) {
+            costBNeeded = itemCostB.get().count() * quantity;
+        } else if (!costBFallback.isEmpty()) {
+            costBNeeded = costBFallback.getCount() * quantity;
+        }
+
+        // Independent checks under-count when costA and costB pull from the same item pool
+        // (e.g. diamond + diamond). Require the combined total before mutating inventory/balance.
+        if (consumeCostAFromInventory && costBNeeded > 0 && costsShareInventoryPool(costA, itemCostB, costBFallback)) {
+            if (!PlayerInventoryHelper.hasEnough(serverPlayer, costA, costANeeded + costBNeeded)) {
                 return;
             }
-            totalCost = 0;
+        } else {
+            if (consumeCostAFromInventory && !PlayerInventoryHelper.hasEnough(serverPlayer, costA, costANeeded)) {
+                return;
+            }
+            if (costBNeeded > 0) {
+                boolean hasCostB = itemCostB.isPresent()
+                        ? TradeIngredientHelper.hasInInventory(serverPlayer, itemCostB.get(), costBNeeded)
+                        : PlayerInventoryHelper.hasEnough(serverPlayer, costBFallback, costBNeeded);
+                if (!hasCostB) {
+                    return;
+                }
+            }
         }
 
         if (totalCost > 0) {
@@ -1717,33 +1750,16 @@ public final class CobbleDollarsShopPayloadHandlers {
             }
         }
 
-            java.util.Optional<net.minecraft.world.item.trading.ItemCost> itemCostB = offer.getItemCostB();
+        if (costBNeeded > 0) {
             if (itemCostB.isPresent()) {
-                net.minecraft.world.item.trading.ItemCost cost = itemCostB.get();
-                int totalNeeded = cost.count() * quantity;
-                if (!TradeIngredientHelper.hasInInventory(serverPlayer, cost, totalNeeded)) {
-                    if (totalCost > 0) {
-                        CobbleDollarsIntegration.addBalance(serverPlayer, totalCost);
-                    }
-                    return;
-                }
-                TradeIngredientHelper.shrinkFromInventory(serverPlayer, cost, totalNeeded);
+                TradeIngredientHelper.shrinkFromInventory(serverPlayer, itemCostB.get(), costBNeeded);
             } else {
-                ItemStack costB = TradeIngredientHelper.secondaryIngredient(offer);
-                if (!costB.isEmpty()) {
-                    int totalNeeded = costB.getCount() * quantity;
-                    if (!PlayerInventoryHelper.hasEnough(serverPlayer, costB, totalNeeded)) {
-                        if (totalCost > 0) {
-                            CobbleDollarsIntegration.addBalance(serverPlayer, totalCost);
-                        }
-                        return;
-                    }
-                    PlayerInventoryHelper.shrink(serverPlayer, costB, totalNeeded);
-                }
+                PlayerInventoryHelper.shrink(serverPlayer, costBFallback, costBNeeded);
+            }
         }
 
-        if (totalCost == 0 && !costA.isEmpty()) {
-            PlayerInventoryHelper.shrink(serverPlayer, costA, costA.getCount() * quantity);
+        if (consumeCostAFromInventory) {
+            PlayerInventoryHelper.shrink(serverPlayer, costA, costANeeded);
         }
 
         ItemStack result = offer.getResult().copy();
