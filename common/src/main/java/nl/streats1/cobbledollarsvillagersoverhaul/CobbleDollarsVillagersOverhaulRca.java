@@ -35,7 +35,9 @@ public class CobbleDollarsVillagersOverhaulRca {
         }
 
         if (RctTrainerAssociationCompat.isTrainerAssociation(target)) {
-            if (!Config.USE_COBBLEDOLLARS_SHOP_UI) {
+            if (!Config.USE_COBBLEDOLLARS_SHOP_UI
+                    || !Config.VILLAGERS_ACCEPT_COBBLEDOLLARS
+                    || !CobbleDollarsIntegration.isAvailable()) {
                 return false;
             }
             if (!isClientSide && !Config.USE_RCT_TRADES_OVERHAUL) {
@@ -45,7 +47,11 @@ public class CobbleDollarsVillagersOverhaulRca {
             return true;
         }
 
-        if (!Config.USE_COBBLEDOLLARS_SHOP_UI) {
+        // Must match server handleRequestShopData gates; otherwise interaction is cancelled,
+        // vanilla MerchantScreen is suppressed, and trading lockouts / request loops follow.
+        if (!Config.USE_COBBLEDOLLARS_SHOP_UI
+                || !Config.VILLAGERS_ACCEPT_COBBLEDOLLARS
+                || !CobbleDollarsIntegration.isAvailable()) {
             return false;
         }
 
