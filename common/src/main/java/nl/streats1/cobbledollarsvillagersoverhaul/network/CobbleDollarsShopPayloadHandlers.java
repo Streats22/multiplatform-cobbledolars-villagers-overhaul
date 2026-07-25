@@ -835,6 +835,24 @@ public final class CobbleDollarsShopPayloadHandlers {
         }
     }
 
+    /**
+     * True when primary and secondary merchant costs consume from the same inventory item pool.
+     */
+    private static boolean costsShareInventoryPool(
+            ItemStack costA,
+            java.util.Optional<net.minecraft.world.item.trading.ItemCost> itemCostB,
+            ItemStack costBFallback) {
+        if (costA == null || costA.isEmpty()) {
+            return false;
+        }
+        if (itemCostB != null && itemCostB.isPresent()) {
+            return itemCostB.get().test(TradeIngredientHelper.normalizeIngredient(costA));
+        }
+        return costBFallback != null
+                && !costBFallback.isEmpty()
+                && TradeIngredientHelper.matchesIngredient(costA, costBFallback);
+    }
+
     private static void handleRequestShopData(ServerPlayer serverPlayer, int villagerId, int entityLookupRetry) {
         LOGGER.debug("[shop] handleRequestShopData: player={} villagerEntityId={} retry={}", serverPlayer.getName().getString(), villagerId, entityLookupRetry);
 

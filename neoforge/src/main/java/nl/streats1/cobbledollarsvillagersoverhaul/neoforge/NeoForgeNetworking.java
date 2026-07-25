@@ -34,14 +34,19 @@ public final class NeoForgeNetworking {
         registrar.playToClient(
                 Objects.requireNonNull(CobbleDollarsShopPayloads.ServerShopConfigSync.TYPE),
                 Objects.requireNonNull(CobbleDollarsShopPayloads.ServerShopConfigSync.STREAM_CODEC),
-                (data, context) -> context.enqueueWork(() ->
+                (data, context) -> context.enqueueWork(() -> {
                         Config.applyServerShopRuntimeConfig(
                                 data.useCobbleDollarsShopUi(),
                                 data.villagersAcceptCobbleDollars(),
                                 data.useDatapackTrades(),
                                 data.useRctTradesOverhaul(),
                                 data.emeraldRateCdPerEmerald(),
-                                data.syncCobbleDollarsBankRate())));
+                                data.syncCobbleDollarsBankRate());
+                        // Server is falling back to vanilla — do not keep suppressing MerchantScreen.
+                        if (!data.useCobbleDollarsShopUi() || !data.villagersAcceptCobbleDollars()) {
+                            NeoForgePendingCustomShopMerchantSuppress.clear("server-shop-disabled");
+                        }
+                }));
 
         registrar.playToClient(
                 Objects.requireNonNull(CobbleDollarsShopPayloads.ShopData.TYPE),

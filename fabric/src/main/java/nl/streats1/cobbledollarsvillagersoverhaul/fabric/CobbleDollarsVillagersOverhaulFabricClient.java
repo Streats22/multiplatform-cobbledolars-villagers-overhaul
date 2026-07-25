@@ -41,13 +41,19 @@ public class CobbleDollarsVillagersOverhaulFabricClient implements ClientModInit
         });
 
         ClientPlayNetworking.registerGlobalReceiver(CobbleDollarsShopPayloads.ServerShopConfigSync.TYPE,
-            (payload, context) -> context.client().execute(() -> Config.applyServerShopRuntimeConfig(
-                    payload.useCobbleDollarsShopUi(),
-                    payload.villagersAcceptCobbleDollars(),
-                    payload.useDatapackTrades(),
-                    payload.useRctTradesOverhaul(),
-                    payload.emeraldRateCdPerEmerald(),
-                    payload.syncCobbleDollarsBankRate())));
+            (payload, context) -> context.client().execute(() -> {
+                Config.applyServerShopRuntimeConfig(
+                        payload.useCobbleDollarsShopUi(),
+                        payload.villagersAcceptCobbleDollars(),
+                        payload.useDatapackTrades(),
+                        payload.useRctTradesOverhaul(),
+                        payload.emeraldRateCdPerEmerald(),
+                        payload.syncCobbleDollarsBankRate());
+                // Server is falling back to vanilla — do not keep suppressing MerchantScreen.
+                if (!payload.useCobbleDollarsShopUi() || !payload.villagersAcceptCobbleDollars()) {
+                    FabricPendingCustomShopScreen.clear("server-shop-disabled");
+                }
+            }));
 
         ClientPlayNetworking.registerGlobalReceiver(CobbleDollarsShopPayloads.ShopData.TYPE, 
             (payload, context) -> {
