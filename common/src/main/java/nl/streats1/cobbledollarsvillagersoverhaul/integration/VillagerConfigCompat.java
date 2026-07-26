@@ -8,8 +8,12 @@ import java.lang.reflect.Method;
 
 /**
  * Optional integration with <a href="https://modrinth.com/mod/villagerconfig">VillagerConfig</a>.
- * When a villager has a custom trade table, VC injects in {@code updateTrades}; if vanilla offers were
- * generated first, VC can add on top — we clear once when a custom table exists, then refresh.
+ * VillagerConfig injects datapack trades from {@code updateTrades}; the shop only needs to generate
+ * offers when the list is still empty.
+ * <p>
+ * Do <strong>not</strong> clear a non-empty offer list on shop open: that recreates
+ * {@link net.minecraft.world.item.trading.MerchantOffer} instances and resets uses/demand, which
+ * lets players infinitely restock limited trades by closing and reopening the shop.
  */
 public final class VillagerConfigCompat {
 
@@ -45,6 +49,14 @@ public final class VillagerConfigCompat {
     }
 
     /**
+     * Whether existing offers should be wiped before regenerating for a VillagerConfig custom table.
+     * Always {@code false}: non-empty lists hold live stock/uses; empty lists need no clear.
+     */
+    static boolean shouldClearOffersBeforeRefresh(boolean hasCustomTradeTable, int existingOfferCount) {
+        return false;
+    }
+
+    /**
      * Run before reading {@link Villager#getOffers()} for the shop on the server.
      */
     public static void prepareVillagerForShop(ServerLevel level, Villager villager) {
@@ -55,11 +67,11 @@ public final class VillagerConfigCompat {
             resolveGetTradeTable();
             if (getTradeTable != null) {
                 try {
-                    if (getTradeTable.invoke(null, villager) != null) {
-                        MerchantOffers offers = villager.getOffers();
-                        if (offers != null) {
-                            offers.clear();
-                        }
+                    boolean hasCustomTradeTable = getTradeTable.invoke(null, villager) != null;
+                    MerchantOffers offers = villager.getOffers();
+                    int existingOfferCount = offers == null ? 0 : offers.size();
+                    if (shouldClearOffersBeforeRefresh(hasCustomTradeTable, existingOfferCount) && offers != null) {
+                        offers.clear();
                     }
                 } catch (Throwable ignored) {
                 }
