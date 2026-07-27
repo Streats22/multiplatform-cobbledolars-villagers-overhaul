@@ -1262,6 +1262,51 @@ public final class CobbleDollarsShopPayloadHandlers {
     }
 
     /**
+     * Sell-tab offers in the same order as {@link #buildOfferLists}.
+     * Buy classifications (emerald / custom-currency cost) take precedence so a hybrid like
+     * {@code relic_coin → emerald} or {@code emerald → relic_coin} is not also treated as a sell —
+     * otherwise client Sell indices and server resolution diverge.
+     */
+    private static List<MerchantOffer> getSellOffersForVillager(List<MerchantOffer> allOffers) {
+        List<MerchantOffer> sellOffers = new ArrayList<>();
+        for (MerchantOffer o : allOffers) {
+            if (o == null) continue;
+            ItemStack costA = o.getCostA();
+            ItemStack result = o.getResult();
+            if (costA == null || result == null || costA.isEmpty() || result.isEmpty()) continue;
+            if (!isSellTabOffer(
+                    costA.is(Items.EMERALD),
+                    CustomCurrencyConfig.getCurrencyValue(costA) > 0,
+                    result.is(Items.EMERALD),
+                    result.is(Items.GOLD_INGOT),
+                    CustomCurrencyConfig.getCurrencyValue(result) > 0)) {
+                continue;
+            }
+            sellOffers.add(o);
+        }
+        return sellOffers;
+    }
+
+    /**
+     * Pure sell-tab membership policy shared by list building and {@link #handleSell}.
+     * Exposed for unit tests.
+     */
+    static boolean isSellTabOffer(boolean costAEmerald, boolean costACurrency,
+                                  boolean resultEmerald, boolean resultGoldIngot, boolean resultCurrency) {
+        // Mirror buildOfferLists: emerald/currency costs are Buy, never Sell.
+        if (costAEmerald || costACurrency) {
+            return false;
+        }
+        if (resultEmerald) {
+            return true;
+        }
+        if (resultGoldIngot && !resultCurrency) {
+            return true;
+        }
+        return resultCurrency;
+    }
+
+    /**
      * Item-for-item trades for the Trades tab: no emerald/currency result (or gold-ingot payout),
      * and cost is not emerald or any item listed in {@link CustomCurrencyConfig} (those use Buy).
      * CD-priced buys from explicit {@link DatapackItemPricing#getOverridePrice(ItemStack)} stay on Buy.
@@ -1332,6 +1377,7 @@ public final class CobbleDollarsShopPayloadHandlers {
                 }
                 continue;
             }
+            // Sell-tab membership must stay aligned with getSellOffersForVillager / isSellTabOffer.
             if (result.is(Items.EMERALD) && !costA.isEmpty()) {
                 ItemStack safeCostA = costA.copy();
                 if (!safeCostA.isEmpty()) {
@@ -1833,15 +1879,7 @@ public final class CobbleDollarsShopPayloadHandlers {
             }
             offer = allOffers.get(offerIndex);
         } else {
-            List<MerchantOffer> sellOffers = allOffers.stream()
-                    .filter(o -> {
-                        if (o.getResult().isEmpty() || o.getCostA().isEmpty()) return false;
-                        ItemStack res = o.getResult();
-                        return res.is(Items.EMERALD)
-                                || res.is(Items.GOLD_INGOT)
-                                || CustomCurrencyConfig.getCurrencyValue(res) > 0;
-                    })
-                    .toList();
+            List<MerchantOffer> sellOffers = getSellOffersForVillager(allOffers);
             if (offerIndex < 0 || offerIndex >= sellOffers.size()) {
                 return;
             }
