@@ -129,6 +129,17 @@ public class CobbleDollarsVillagersOverhaulNeoForge {
         }
     }
 
+    /**
+     * Custom shop keeps {@code AbstractVillager.tradingPlayer} set without a {@code MerchantMenu}; hard
+     * disconnects never send {@code ShopScreenClosed}, so release merchants here.
+     */
+    @SubscribeEvent
+    public void onPlayerLoggedOut(PlayerEvent.PlayerLoggedOutEvent event) {
+        if (event.getEntity() instanceof ServerPlayer sp) {
+            CobbleDollarsShopPayloadHandlers.handlePlayerDisconnect(sp);
+        }
+    }
+
     /** Fires before EntityInteract; needed so we cancel before vanilla opens the merchant GUI. */
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     public void onEntityInteractSpecific(PlayerInteractEvent.EntityInteractSpecific event) {

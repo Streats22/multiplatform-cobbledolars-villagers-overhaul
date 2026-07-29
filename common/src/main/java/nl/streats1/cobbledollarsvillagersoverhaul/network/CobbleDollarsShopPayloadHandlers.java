@@ -187,8 +187,46 @@ public final class CobbleDollarsShopPayloadHandlers {
             return;
         }
         Entity entity = serverPlayer.serverLevel().getEntity(villagerId);
-        if (entity instanceof AbstractVillager v && v.getTradingPlayer() == serverPlayer) {
+        if (entity instanceof AbstractVillager v && shouldReleaseMerchantOnDisconnect(v.getTradingPlayer(), serverPlayer)) {
             v.setTradingPlayer(null);
+        }
+    }
+
+    /**
+     * Whether a merchant whose {@code tradingPlayer} is {@code tradingPlayer} should be released when
+     * {@code disconnected} leaves the server.
+     * <p>
+     * The custom shop deliberately keeps {@link AbstractVillager#setTradingPlayer} set between buys/sells
+     * (no server {@code MerchantMenu}), and only clears it from {@link #handleShopScreenClosed}. Hard
+     * disconnects never send that packet, so merchants would stay {@code isTrading()} forever (wandering
+     * traders skip despawn; the disconnected {@link ServerPlayer} stays referenced).
+     */
+    static boolean shouldReleaseMerchantOnDisconnect(Player tradingPlayer, ServerPlayer disconnected) {
+        return tradingPlayer != null && disconnected != null && tradingPlayer == disconnected;
+    }
+
+    /**
+     * Player left the server: release any merchants still bound to them and drop per-player session state.
+     * Must run server-side on disconnect — {@link CobbleDollarsShopPayloads.ShopScreenClosed} is not sent
+     * when the connection dies.
+     */
+    public static void handlePlayerDisconnect(ServerPlayer serverPlayer) {
+        if (serverPlayer == null) {
+            return;
+        }
+        AssignModeTracker.clear(serverPlayer.getUUID());
+        SERIES_CACHE.remove(serverPlayer.getUUID());
+        var server = serverPlayer.getServer();
+        if (server == null) {
+            return;
+        }
+        for (ServerLevel level : server.getAllLevels()) {
+            for (Entity entity : level.getAllEntities()) {
+                if (entity instanceof AbstractVillager villager
+                        && shouldReleaseMerchantOnDisconnect(villager.getTradingPlayer(), serverPlayer)) {
+                    villager.setTradingPlayer(null);
+                }
+            }
         }
     }
 

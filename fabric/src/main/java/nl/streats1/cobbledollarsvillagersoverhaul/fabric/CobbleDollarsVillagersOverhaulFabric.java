@@ -58,6 +58,14 @@ public class CobbleDollarsVillagersOverhaulFabric implements ModInitializer {
                 CobbleDollarsShopPayloadHandlers.sendServerShopConfigTo(sp);
             }
         });
+
+        // Custom shop keeps AbstractVillager.tradingPlayer set without a MerchantMenu; hard disconnects
+        // never send ShopScreenClosed, so release merchants (and assign-mode state) here.
+        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
+            if (handler.player instanceof ServerPlayer sp) {
+                CobbleDollarsShopPayloadHandlers.handlePlayerDisconnect(sp);
+            }
+        });
     }
 
     /**
