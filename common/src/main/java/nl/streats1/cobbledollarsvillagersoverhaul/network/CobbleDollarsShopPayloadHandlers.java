@@ -118,6 +118,23 @@ public final class CobbleDollarsShopPayloadHandlers {
     }
 
     /**
+     * Whether a buy with {@code totalCost == 0} should still remove {@code costA} from inventory.
+     * <p>
+     * Historical bug: free-minimum 1-emerald trades set {@code totalCost = 0} then fell through
+     * {@code if (totalCost == 0 && !costA.isEmpty()) shrink(costA)}, deleting emeralds whenever the
+     * player happened to hold them. Emerald/currency/datapack prices are never item-paid; only true
+     * item barters consume {@code costA}.
+     *
+     * @param costAEmpty whether merchant costA is empty
+     * @param costAIsCdPriced true when costA is emerald, custom currency, or datapack-priced (including free-minimum)
+     */
+    static boolean shouldShrinkCostAWhenTotalCostZero(boolean costAEmpty, boolean costAIsCdPriced) {
+        if (costAEmpty) return false;
+        if (costAIsCdPriced) return false;
+        return true;
+    }
+
+    /**
      * {@link Merchant#notifyTrade} already calls {@link MerchantOffer#increaseUses()}; do not call increaseUses separately.
      */
     private static void notifyTradeForQuantity(Merchant merchant, MerchantOffer offer, int quantity) {
@@ -1722,8 +1739,11 @@ public final class CobbleDollarsShopPayloadHandlers {
 
         int rate = CobbleDollarsConfigHelper.getEffectiveEmeraldRate();
         long totalCost;
+        // Emerald / custom-currency / datapack prices (incl. free-minimum) are CD-priced, never item-shrunk.
+        boolean costAIsCdPriced = false;
 
         if (costA.is(Items.EMERALD)) {
+            costAIsCdPriced = true;
             int emeraldCost = costA.getCount() * quantity;
             if (Config.FREE_MINIMUM_EMERALD_TRADE && emeraldCost == quantity && costA.getCount() == 1) {
                 totalCost = 0;
@@ -1731,8 +1751,10 @@ public final class CobbleDollarsShopPayloadHandlers {
                 totalCost = (long) emeraldCost * rate;
             }
         } else if (!costA.isEmpty() && CustomCurrencyConfig.getCurrencyValue(costA) > 0) {
+            costAIsCdPriced = true;
             totalCost = CustomCurrencyConfig.getTotalValue(costA) * quantity;
         } else if (!costA.isEmpty() && Config.USE_DATAPACK_TRADES && DatapackItemPricing.getOverridePrice(costA) > 0) {
+            costAIsCdPriced = true;
             int pricePerTrade = DatapackItemPricing.getOverridePrice(costA);
             totalCost = (long) pricePerTrade * quantity;
         } else {
@@ -1780,7 +1802,7 @@ public final class CobbleDollarsShopPayloadHandlers {
                 }
         }
 
-        if (totalCost == 0 && !costA.isEmpty()) {
+        if (totalCost == 0 && shouldShrinkCostAWhenTotalCostZero(costA.isEmpty(), costAIsCdPriced)) {
             PlayerInventoryHelper.shrink(serverPlayer, costA, costA.getCount() * quantity);
         }
 

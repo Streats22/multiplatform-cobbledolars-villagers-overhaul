@@ -1,15 +1,12 @@
 package nl.streats1.cobbledollarsvillagersoverhaul.integration;
 
-import net.minecraft.core.GlobalPos;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.entity.ai.memory.MemoryModuleType;
 import net.minecraft.world.entity.npc.Villager;
 import net.minecraft.world.entity.npc.VillagerProfession;
+import net.minecraft.world.item.trading.MerchantOffer;
 import net.minecraft.world.item.trading.MerchantOffers;
 
 import java.lang.reflect.Method;
-import java.util.Optional;
 
 /**
  * Trade cycling support - refreshes villager trades without breaking the workstation.
@@ -80,8 +77,33 @@ public final class TradeCyclingCompat {
     }
 
     /**
+     * Whether a failed regeneration must restore the pre-cycle offer snapshot.
+     * Empty/null post-cycle lists mean the clear already wiped live trades.
+     */
+    static boolean shouldRestoreOffersAfterCycle(boolean regenerationProducedOffers) {
+        return !regenerationProducedOffers;
+    }
+
+    /**
+     * Shallow-copy offer list so restore keeps the same {@link MerchantOffer} instances (uses/demand).
+     */
+    static MerchantOffers snapshotOffers(MerchantOffers source) {
+        MerchantOffers copy = new MerchantOffers();
+        if (source == null || source.isEmpty()) {
+            return copy;
+        }
+        for (MerchantOffer offer : source) {
+            if (offer != null) {
+                copy.add(offer);
+            }
+        }
+        return copy;
+    }
+
+    /**
      * Cycle (refresh) a villager's trades. Clears offers and regenerates from profession pool.
-     * Uses setOffers(null) + getOffers() first; if that yields empty, tries workstation clear/restore.
+     * Snapshots existing offers first and restores them if regeneration yields an empty list,
+     * so a failed cycle cannot permanently wipe the villager's trades.
      * @param onSuccess callback to run after cycle completes (e.g. send refreshed shop data). Called once.
      */
     public static boolean cycleTrades(Villager villager, ServerPlayer player, Runnable onSuccess) {
@@ -93,44 +115,39 @@ public final class TradeCyclingCompat {
                 || villager.getVillagerData().getProfession() == VillagerProfession.NITWIT) {
             return false;
         }
-        try {
-            if (setOffersMethod != null) {
-                MerchantOffers empty = new MerchantOffers();
-                setOffers(villager, empty);
-                MerchantOffers current = villager.getOffers();
-                if (current != null) current.clear();
-                if (updateTradesMethod != null) {
-                    try {
-                        updateTradesMethod.invoke(villager);
-                    } catch (Exception e) {
-                    }
-                } else {
-                    setOffers(villager, null);
-                }
-                MerchantOffers newOffers = villager.getOffers();
-                if (newOffers != null && !newOffers.isEmpty()) {
-                    villager.setTradingPlayer(player);
-                    if (onSuccess != null) onSuccess.run();
-                    return true;
-                }
-            }
-
-            Optional<GlobalPos> jobSite = villager.getBrain().getMemory(MemoryModuleType.JOB_SITE);
-            if (jobSite.isPresent() && villager.level() instanceof ServerLevel serverLevel) {
-                GlobalPos pos = jobSite.get();
-                villager.getBrain().eraseMemory(MemoryModuleType.JOB_SITE);
-                serverLevel.getServer().execute(() -> {
-                    villager.getBrain().setMemory(MemoryModuleType.JOB_SITE, pos);
-                    serverLevel.getServer().execute(() -> {
-                        villager.setTradingPlayer(player);
-                        if (onSuccess != null) onSuccess.run();
-                    });
-                });
-                return true;
-            }
-
+        if (setOffersMethod == null) {
             return false;
+        }
+
+        MerchantOffers previous = snapshotOffers(villager.getOffers());
+        if (previous.isEmpty()) {
+            return false;
+        }
+
+        try {
+            MerchantOffers empty = new MerchantOffers();
+            setOffers(villager, empty);
+            MerchantOffers current = villager.getOffers();
+            if (current != null) current.clear();
+            if (updateTradesMethod != null) {
+                try {
+                    updateTradesMethod.invoke(villager);
+                } catch (Exception e) {
+                }
+            } else {
+                setOffers(villager, null);
+            }
+            MerchantOffers newOffers = villager.getOffers();
+            boolean regenerated = newOffers != null && !newOffers.isEmpty();
+            if (shouldRestoreOffersAfterCycle(regenerated)) {
+                setOffers(villager, previous);
+                return false;
+            }
+            villager.setTradingPlayer(player);
+            if (onSuccess != null) onSuccess.run();
+            return true;
         } catch (Exception e) {
+            setOffers(villager, previous);
             return false;
         }
     }
