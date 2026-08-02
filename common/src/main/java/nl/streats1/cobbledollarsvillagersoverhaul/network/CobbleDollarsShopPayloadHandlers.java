@@ -1001,38 +1001,10 @@ public final class CobbleDollarsShopPayloadHandlers {
                 villager.setTradingPlayer(null);
             }
         } else if (Config.USE_RCT_TRADES_OVERHAUL && RctTrainerAssociationCompat.isTrainerAssociation(entity)) {
-            try {
-                for (var method : entity.getClass().getDeclaredMethods()) {
-                    if (method.getName().equals("updateTrades") || method.getName().startsWith("method_")) {
-                        try {
-                            method.setAccessible(true);
-
-                            var itemOffersField = entity.getClass().getDeclaredField("itemOffers");
-                            itemOffersField.setAccessible(true);
-                            var before = itemOffersField.get(entity);
-
-                            method.invoke(entity);
-
-                            var after = itemOffersField.get(entity);
-
-                            if (before == null && after != null || (before != null && after != null &&
-                                    ((net.minecraft.world.item.trading.MerchantOffers) before).size() <
-                                            ((net.minecraft.world.item.trading.MerchantOffers) after).size())) {
-                                break;
-                            }
-                        } catch (Exception e) {
-                        }
-                    }
-                }
-            } catch (Exception e) {
-            }
-
-            try {
-                var updateOffersForMethod = entity.getClass().getMethod("updateOffersFor", net.minecraft.world.entity.player.Player.class);
-                updateOffersForMethod.setAccessible(true);
-                updateOffersForMethod.invoke(entity, serverPlayer);
-            } catch (Exception e) {
-            }
+            // Prefer named updateTrades; never invoke parameterized method_* overrides without
+            // offer-list rollback (see RctTradeRefreshHelper).
+            RctTradeRefreshHelper.refreshItemOffers(entity);
+            RctTradeRefreshHelper.updateOffersForPlayer(entity, serverPlayer);
 
             List<MerchantOffer> rctaOffers = new ArrayList<>();
 
