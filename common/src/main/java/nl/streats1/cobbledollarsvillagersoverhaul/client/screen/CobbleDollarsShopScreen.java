@@ -434,11 +434,29 @@ public class CobbleDollarsShopScreen extends Screen {
         screen.balanceDeltaTicks = 0;
     }
 
+    /**
+     * Whether teardown should notify the server to release {@code tradingPlayer}.
+     * <p>
+     * Must run from {@link #removed()}, not only {@link #onClose()}: {@code Minecraft.setScreen}
+     * replacements (bank GUI, death screen, another shop, editor) call {@code removed()} and never
+     * {@code onClose()}. Esc/× still reach here because {@code onClose()} → {@code setScreen(null)}
+     * → {@code removed()}.
+     */
+    static boolean shouldNotifyShopClosedOnRemoved(int villagerId, boolean canSendToServer) {
+        return !VirtualShopIds.isVirtual(villagerId) && canSendToServer;
+    }
+
     @Override
-    public void onClose() {
-        if (!VirtualShopIds.isVirtual(villagerId) && PlatformNetwork.canSendToServer()) {
+    public void removed() {
+        if (shouldNotifyShopClosedOnRemoved(villagerId, PlatformNetwork.canSendToServer())) {
             PlatformNetwork.sendToServer(new CobbleDollarsShopPayloads.ShopScreenClosed(villagerId));
         }
+        super.removed();
+    }
+
+    @Override
+    public void onClose() {
+        // ShopScreenClosed is sent from removed() so bank/death/setScreen swaps also release merchants.
         super.onClose();
     }
 

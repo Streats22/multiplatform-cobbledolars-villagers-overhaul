@@ -325,9 +325,10 @@ public final class CobbleDollarsShopPayloads {
     }
 
     /**
-     * Client -> Server: Player dismissed the CobbleDollars shop (Esc or close). On integrated singleplayer / LAN,
-     * we avoid {@link net.minecraft.world.entity.npc.AbstractVillager#setTradingPlayer} during trades so the GUI
-     * stays open; this clears the merchant session when the UI actually closes.
+     * Client -> Server: shop UI was torn down. Sent from {@code Screen.removed()} so Esc/× and
+     * {@code Minecraft.setScreen} replacements (bank, death, other shops) all release the merchant.
+     * Between trades we keep {@link net.minecraft.world.entity.npc.AbstractVillager#setTradingPlayer}
+     * set so the GUI stays open; this clears that session when the UI actually closes.
      */
     public record ShopScreenClosed(int villagerId) implements CustomPacketPayload {
         public static final CustomPacketPayload.Type<ShopScreenClosed> TYPE =

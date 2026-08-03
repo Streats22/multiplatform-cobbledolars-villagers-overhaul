@@ -179,7 +179,8 @@ public final class CobbleDollarsShopPayloadHandlers {
      * {@code ShopData} (avoids list/tab/scroll rebuild flicker on Fabric and NeoForge, singleplayer and multiplayer)
      * and we do not call {@link AbstractVillager#setTradingPlayer} here — clearing the merchant session during trading
      * can close a latent vanilla {@code MerchantMenu} on the client and tear down our screen; the client sends
-     * {@link CobbleDollarsShopPayloads.ShopScreenClosed} when the player closes the UI (Esc/×).
+     * {@link CobbleDollarsShopPayloads.ShopScreenClosed} from shop {@code removed()} (Esc/× and
+     * {@code setScreen} replacements such as bank/death/other shops).
      * <p>
      * RCT trainer associations: balance only (unchanged).
      */
@@ -214,9 +215,10 @@ public final class CobbleDollarsShopPayloadHandlers {
      * {@code disconnected} leaves the server.
      * <p>
      * The custom shop deliberately keeps {@link AbstractVillager#setTradingPlayer} set between buys/sells
-     * (no server {@code MerchantMenu}), and only clears it from {@link #handleShopScreenClosed}. Hard
-     * disconnects never send that packet, so merchants would stay {@code isTrading()} forever (wandering
-     * traders skip despawn; the disconnected {@link ServerPlayer} stays referenced).
+     * (no server {@code MerchantMenu}), and only clears it from {@link #handleShopScreenClosed} (client
+     * {@code removed()}) or {@link #handlePlayerDisconnect}. Hard disconnects never send that packet,
+     * so merchants would stay {@code isTrading()} forever (wandering traders skip despawn; the
+     * disconnected {@link ServerPlayer} stays referenced).
      */
     static boolean shouldReleaseMerchantOnDisconnect(Player tradingPlayer, ServerPlayer disconnected) {
         return tradingPlayer != null && disconnected != null && tradingPlayer == disconnected;
