@@ -55,33 +55,65 @@ public final class CobbleDollarsShopPayloadHandlers {
 
     private static final MethodHandle UPDATE_SPECIAL_PRICES;
 
+    /**
+     * Candidate names for {@link Villager}'s reputation price adjuster across mappings:
+     * Mojmap {@code updateSpecialPrices}, Yarn {@code prepareOffersFor}, intermediary {@code method_19192}
+     * (1.21.1). Never fall back to "first {@code void(Player)}" — on Fabric intermediary that binds
+     * {@code startTrading} ({@code method_19191}), which opens a vanilla merchant menu from shop open/buy/sell.
+     */
+    private static final String[] UPDATE_SPECIAL_PRICES_METHOD_NAMES = {
+            "updateSpecialPrices",
+            "prepareOffersFor",
+            "method_19192"
+    };
+
+    /**
+     * Picks a safe reputation-method name from declared {@code void(Player)} method names.
+     * Returns {@code null} rather than guessing (e.g. {@code startTrading} / {@code method_19191}).
+     */
+    static String selectUpdateSpecialPricesMethodName(Iterable<String> declaredVoidPlayerMethodNames) {
+        if (declaredVoidPlayerMethodNames == null) {
+            return null;
+        }
+        java.util.Set<String> declared = new java.util.HashSet<>();
+        for (String name : declaredVoidPlayerMethodNames) {
+            if (name != null) {
+                declared.add(name);
+            }
+        }
+        for (String candidate : UPDATE_SPECIAL_PRICES_METHOD_NAMES) {
+            if (declared.contains(candidate)) {
+                return candidate;
+            }
+        }
+        return null;
+    }
+
     static {
         MethodHandle handle = null;
-        // Prefer updateSpecialPrices by name (Mojang); fallback to any void(Player) for Fabric/intermediary
+        java.util.List<String> voidPlayerNames = new java.util.ArrayList<>();
         for (var m : Villager.class.getDeclaredMethods()) {
             if (m.getParameterCount() == 1 && Player.class.isAssignableFrom(m.getParameterTypes()[0])
                     && m.getReturnType() == void.class) {
-                if ("updateSpecialPrices".equals(m.getName())) {
-                    try {
-                        m.setAccessible(true);
-                        handle = MethodHandles.lookup().unreflect(m);
-                        break;
-                    } catch (Exception ignored) {
-                    }
-                }
+                voidPlayerNames.add(m.getName());
             }
         }
-        if (handle == null) {
+        String selected = selectUpdateSpecialPricesMethodName(voidPlayerNames);
+        if (selected != null) {
             for (var m : Villager.class.getDeclaredMethods()) {
-                if (m.getParameterCount() == 1 && Player.class.isAssignableFrom(m.getParameterTypes()[0])
-                        && m.getReturnType() == void.class) {
-                    try {
-                        m.setAccessible(true);
-                        handle = MethodHandles.lookup().unreflect(m);
-                        LOGGER.debug("Resolved Villager reputation method (fallback): {}", m.getName());
-                        break;
-                    } catch (Exception ignored) {
-                    }
+                if (!selected.equals(m.getName())) {
+                    continue;
+                }
+                if (m.getParameterCount() != 1 || !Player.class.isAssignableFrom(m.getParameterTypes()[0])
+                        || m.getReturnType() != void.class) {
+                    continue;
+                }
+                try {
+                    m.setAccessible(true);
+                    handle = MethodHandles.lookup().unreflect(m);
+                    LOGGER.debug("Resolved Villager reputation method: {}", selected);
+                    break;
+                } catch (Exception ignored) {
                 }
             }
         }
