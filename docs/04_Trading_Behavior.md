@@ -61,4 +61,10 @@ This order avoids:
 
 This avoids destroying sold items when balance credit fails.
 
-Virtual bank sells (`/cvm open bank`) require op permission on the packet path, matching the command.
+---
+
+## Virtual shop / bank
+
+- `/cvm open shop` and `/cvm open bank` use virtual entity IDs; server sends shop/bank data from config (default shop
+  and bank JSON). Same cost and validation rules as above where applicable.
+- Packet access to virtual shop/bank (open, buy, sell) requires **op permission level 2**, matching the commands.
