@@ -370,6 +370,50 @@ public final class CobbleDollarsShopPayloadHandlers {
             return cached.series;
         }
 
+        List<SeriesDisplay> availableSeries = loadPlayerAvailableSeriesUncached(serverPlayer);
+        SERIES_CACHE.put(serverPlayer.getUUID(), new SeriesCacheEntry(availableSeries));
+        return availableSeries;
+    }
+
+    /**
+     * Live RCT series IDs for security allowlisting — no UI cache, no datapack “all series” fallback.
+     * Fail closed: if the RCT API is unavailable, returns an empty list (non-empty client series rejected).
+     */
+    private static List<String> getLiveAvailableSeriesIds(ServerPlayer serverPlayer) {
+        List<String> ids = new ArrayList<>();
+        try {
+            var rctModClass = Class.forName("com.gitlab.srcmc.rctmod.api.RCTMod");
+            var getInstanceMethod = rctModClass.getMethod("getInstance");
+            var rctModInstance = getInstanceMethod.invoke(null);
+
+            var trainerManagerClass = Class.forName("com.gitlab.srcmc.rctmod.api.service.TrainerManager");
+            var getTrainerManagerMethod = rctModClass.getMethod("getTrainerManager");
+            var trainerManager = getTrainerManagerMethod.invoke(rctModInstance);
+
+            var trainerPlayerDataClass = Class.forName("com.gitlab.srcmc.rctmod.api.data.save.TrainerPlayerData");
+            var getDataMethod = trainerManagerClass.getMethod("getData", Player.class);
+            var trainerPlayerData = getDataMethod.invoke(trainerManager, serverPlayer);
+
+            if (trainerPlayerData == null) {
+                return ids;
+            }
+            var getAvailableSeriesMethod = trainerPlayerDataClass.getMethod("getAvailableSeries");
+            var availableSeriesObj = getAvailableSeriesMethod.invoke(trainerPlayerData);
+            if (availableSeriesObj instanceof Iterable<?> iterable) {
+                for (Object seriesObj : iterable) {
+                    String seriesId = getSeriesId(seriesObj);
+                    if (!seriesId.isEmpty()) {
+                        ids.add(seriesId);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            LOGGER.debug("Live RCT series allowlist unavailable: {}", e.toString());
+        }
+        return ids;
+    }
+
+    private static List<SeriesDisplay> loadPlayerAvailableSeriesUncached(ServerPlayer serverPlayer) {
         List<SeriesDisplay> availableSeries = new ArrayList<>();
 
         try {
@@ -484,7 +528,6 @@ public final class CobbleDollarsShopPayloadHandlers {
             }
         }
 
-        SERIES_CACHE.put(serverPlayer.getUUID(), new SeriesCacheEntry(availableSeries));
         return availableSeries;
     }
 
@@ -885,6 +928,12 @@ public final class CobbleDollarsShopPayloadHandlers {
      */
     private static void openVanillaMerchantMenu(ServerPlayer serverPlayer, int villagerId) {
         Entity entity = serverPlayer.serverLevel().getEntity(villagerId);
+        if (entity == null) {
+            return;
+        }
+        if (!ShopInteractionGuard.isWithinInteractRange(serverPlayer, entity)) {
+            return;
+        }
         if (entity instanceof MenuProvider menuProvider) {
             serverPlayer.openMenu(menuProvider);
         }
@@ -1839,12 +1888,9 @@ public final class CobbleDollarsShopPayloadHandlers {
             if (targetSeries == null) {
                 targetSeries = "";
             }
-            List<String> availableIds = getPlayerAvailableSeries(serverPlayer).stream()
-                    .map(SeriesDisplay::id)
-                    .filter(id -> id != null && !id.isEmpty())
-                    .toList();
+            List<String> availableIds = getLiveAvailableSeriesIds(serverPlayer);
             if (!ShopInteractionGuard.isSeriesAllowed(targetSeries, availableIds)) {
-                LOGGER.warn("Rejected RCT series '{}' for player {} (not in available series)",
+                LOGGER.warn("Rejected RCT series '{}' for player {} (not in live available series)",
                         targetSeries, serverPlayer.getName().getString());
                 return;
             }
