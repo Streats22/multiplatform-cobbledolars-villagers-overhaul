@@ -191,6 +191,11 @@ public final class CobbleDollarsIntegration {
 
         boolean success = false;
 
+        if (amount == Long.MIN_VALUE) {
+            // Math.abs(Long.MIN_VALUE) overflows; reject crafted packets
+            return false;
+        }
+
         if (amount > 0 && addBalanceHandle != null) {
             try {
                 Class<?> secondParam = addBalanceHandle.type().parameterType(1);
@@ -199,6 +204,9 @@ public final class CobbleDollarsIntegration {
                 } else if (secondParam == long.class) {
                     addBalanceHandle.invoke(player, amount);
                 } else {
+                    if (amount > Integer.MAX_VALUE) {
+                        return false;
+                    }
                     addBalanceHandle.invoke(player, (int) amount);
                 }
                 success = true;
@@ -206,6 +214,11 @@ public final class CobbleDollarsIntegration {
             }
         } else if (amount < 0 && removeBalanceHandle != null) {
             long absAmount = Math.abs(amount);
+            // remove* APIs do not always verify funds — check before calling
+            long balance = getBalance(player);
+            if (balance < 0 || balance < absAmount) {
+                return false;
+            }
             try {
                 Class<?> secondParam = removeBalanceHandle.type().parameterType(1);
                 if (secondParam == BigInteger.class) {
@@ -213,6 +226,9 @@ public final class CobbleDollarsIntegration {
                 } else if (secondParam == long.class) {
                     removeBalanceHandle.invoke(player, absAmount);
                 } else {
+                    if (absAmount > Integer.MAX_VALUE) {
+                        return false;
+                    }
                     removeBalanceHandle.invoke(player, (int) absAmount);
                 }
                 success = true;
