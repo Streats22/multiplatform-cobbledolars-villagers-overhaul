@@ -9,6 +9,20 @@
   are not swallowed. Config: `enableMcaCompatibility`, `skipShopOverrideWhenSneaking`, entity-type denylists, and
   item passthrough lists. Fixes GitHub issue #51.
 
+### Security
+
+- **Virtual shop/bank packets require op** — C2S request/buy/sell for virtual IDs (`/cvm open shop|bank`) now match command permission level 2; crafted packets can no longer open or trade admin shop/bank.
+- **Server-derived config shop** — Buy routing no longer trusts the client `fromConfigShop` flag alone.
+- **Quantity capped (1–64) with overflow-safe cost math** — Blocks free-item exploits from int overflow on crafted quantities.
+- **Interact range + excluded professions on buy/sell/cycle** — Remote trading and casino-worker packet bypasses are rejected.
+- **Offer stock enforced** — Buys/sells reject out-of-stock or over-remaining-uses quantities.
+- **Sell credits before consuming items** — Failed balance credit no longer destroys sold items.
+- **Failed trades clear merchant trading player** — Reduces villager lock grief from rejected packets.
+- **RCT series allowlisted; set before consuming trainer cards** — Unknown series strings rejected; card loss on failed series set reduced.
+- **`addBalance` remove path checks funds** — Insufficient balance cannot be forced through remove APIs; rejects `Long.MIN_VALUE` / int truncation overflows.
+- **`ShopInteractionGuard`** — Central server validation helper for shop C2S packets (Fabric/NeoForge share via `common`).
+
+
 ---
 
 ## [0.3.0] — from 0.2.3
