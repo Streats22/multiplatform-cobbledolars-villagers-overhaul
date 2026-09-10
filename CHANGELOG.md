@@ -18,7 +18,8 @@
 - **Offer stock enforced** — Buys/sells reject out-of-stock or over-remaining-uses quantities.
 - **Sell credits before consuming items** — Failed balance credit no longer destroys sold items.
 - **Failed trades clear merchant trading player** — Reduces villager lock grief from rejected packets.
-- **RCT series allowlisted; set before consuming trainer cards** — Unknown series strings rejected; card loss on failed series set reduced.
+- **RCT series allowlisted; set before consuming trainer cards** — Unknown series strings rejected; card loss on failed series set reduced. Allowlist uses **live** RCT available series (not the UI cache).
+- **Vanilla merchant fallback respects interact range** — `openVanillaMerchantMenu` no longer opens remote menus.
 - **`addBalance` remove path checks funds** — Insufficient balance cannot be forced through remove APIs; rejects `Long.MIN_VALUE` / int truncation overflows.
 - **`ShopInteractionGuard`** — Central server validation helper for shop C2S packets (Fabric/NeoForge share via `common`).
 
