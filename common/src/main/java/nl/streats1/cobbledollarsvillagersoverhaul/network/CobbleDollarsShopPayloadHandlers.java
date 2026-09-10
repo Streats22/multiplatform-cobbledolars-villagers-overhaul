@@ -1039,7 +1039,7 @@ public final class CobbleDollarsShopPayloadHandlers {
             updateVillagerSpecialPrices(villager, serverPlayer);
             try {
                 if (McaVillagerCompat.isMcaVillager(villager)) {
-                    MerchantTradeGenerationHelper.ensureMerchantOffersReady(serverPlayer.serverLevel(), villager);
+                    McaMerchantCompat.prepareForShop(serverPlayer.serverLevel(), villager);
                 } else {
                     VillagerConfigCompat.prepareVillagerForShop(serverPlayer.serverLevel(), villager);
                 }
@@ -1770,7 +1770,7 @@ public final class CobbleDollarsShopPayloadHandlers {
         // Empty-offer config fallback must run only after offers are prepared (same as open-shop path)
         if (configBuyOffersAvailable && entity instanceof Villager emptyCheckVillager) {
             if (McaVillagerCompat.isMcaVillager(emptyCheckVillager)) {
-                MerchantTradeGenerationHelper.ensureMerchantOffersReady(level, emptyCheckVillager);
+                McaMerchantCompat.prepareForShop(level, emptyCheckVillager);
             } else {
                 VillagerConfigCompat.prepareVillagerForShop(level, emptyCheckVillager);
             }
@@ -1798,7 +1798,7 @@ public final class CobbleDollarsShopPayloadHandlers {
             updateVillagerSpecialPrices(v, serverPlayer);
             tradingMerchant = v;
             if (McaVillagerCompat.isMcaVillager(v)) {
-                MerchantTradeGenerationHelper.ensureMerchantOffersReady(level, v);
+                McaMerchantCompat.prepareForShop(level, v);
             }
             allOffers = v.getOffers();
         } else if (entity instanceof WanderingTrader trader) {
@@ -2142,7 +2142,7 @@ public final class CobbleDollarsShopPayloadHandlers {
             updateVillagerSpecialPrices(v, serverPlayer);
             tradingMerchant = v;
             if (McaVillagerCompat.isMcaVillager(v)) {
-                MerchantTradeGenerationHelper.ensureMerchantOffersReady(level, v);
+                McaMerchantCompat.prepareForShop(level, v);
             }
             allOffers = v.getOffers();
         } else if (entity instanceof WanderingTrader trader) {

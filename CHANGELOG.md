@@ -9,6 +9,12 @@
   are not swallowed. Config: `enableMcaCompatibility`, `skipShopOverrideWhenSneaking`, entity-type denylists, and
   item passthrough lists. Fixes GitHub issue #51.
 
+### Fixed
+
+- **MCA trade offers not loading in CobbleDollars shop** — Refresh MCA villager trades (`updateTrades` / `restock`) before reading offers; MCA 7.7+ lazy generation no longer falls through to empty/config shop when `startTrading` is redirected.
+- **Broader MCA entity detection** — Defer right-click to MCA for all `mca:` entities; forward-compat villager entity paths; improved `canTradeWithProfession` reflection.
+- **`startTrading` mixin on `AbstractVillager`** — Covers MCA villager subclasses reliably (Fabric + NeoForge).
+
 ### Security
 
 - **Virtual shop/bank packets require op** — C2S request/buy/sell for virtual IDs (`/cvm open shop|bank`) now match command permission level 2; crafted packets can no longer open or trade admin shop/bank.
