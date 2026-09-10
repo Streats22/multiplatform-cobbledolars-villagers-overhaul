@@ -36,6 +36,9 @@ public final class McaTradeRedirect {
         if (!(player instanceof ServerPlayer sp)) {
             return false;
         }
+        if (villager instanceof Villager v) {
+            McaMerchantCompat.prepareForShop(sp.serverLevel(), v);
+        }
         CobbleDollarsShopPayloadHandlers.handleRequestShopData(sp, villager.getId());
         return true;
     }

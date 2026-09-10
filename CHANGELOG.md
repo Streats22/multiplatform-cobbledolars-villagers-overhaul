@@ -1,5 +1,15 @@
 # Changelog
 
+## [Unreleased] — MCA Reborn 7.7+ compat
+
+### Fixed
+
+- **MCA trade offers not loading in CobbleDollars shop** — Refresh MCA villager trades (`updateTrades` / `restock`) before reading offers; MCA 7.7+ lazy generation no longer falls through to empty/config shop when `startTrading` is redirected.
+- **Broader MCA entity detection** — Defer right-click to MCA for all `mca:` entities; forward-compat villager entity paths; improved `canTradeWithProfession` reflection.
+- **`startTrading` mixin on `AbstractVillager`** — Covers MCA villager subclasses reliably (Fabric + NeoForge).
+
+---
+
 ## [Unreleased] — security hardening
 
 ### Security

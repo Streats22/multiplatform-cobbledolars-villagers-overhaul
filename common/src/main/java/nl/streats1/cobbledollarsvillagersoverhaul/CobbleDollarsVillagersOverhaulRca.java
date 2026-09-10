@@ -49,9 +49,9 @@ public class CobbleDollarsVillagersOverhaulRca {
             return false;
         }
 
-        // When MCA is loaded, let MCA handle normal right-click (interaction GUI).
-        // CobbleDollars shop opens from Trade/shift-trade via VillagerStartTradingMixin.
-        if (McaVillagerCompat.isModLoaded() && McaVillagerCompat.isMcaVillager(target)) {
+        // When MCA is loaded, let MCA handle normal right-click (interaction GUI) for all MCA entities.
+        // CobbleDollars shop opens from Trade/shift-trade via startTrading redirect mixin.
+        if (McaVillagerCompat.isModLoaded() && McaVillagerCompat.isMcaEntity(target)) {
             return false;
         }
 
