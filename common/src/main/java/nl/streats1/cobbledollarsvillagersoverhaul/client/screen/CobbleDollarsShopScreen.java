@@ -393,12 +393,30 @@ public class CobbleDollarsShopScreen extends Screen {
         screen.balanceDeltaTicks = 0;
     }
 
+    private boolean merchantReleaseSent;
+
+    private void releaseMerchantIfNeeded() {
+        if (merchantReleaseSent) {
+            return;
+        }
+        if (VirtualShopIds.isVirtual(villagerId) || !PlatformNetwork.canSendToServer()) {
+            return;
+        }
+        merchantReleaseSent = true;
+        PlatformNetwork.sendToServer(new CobbleDollarsShopPayloads.ShopScreenClosed(villagerId));
+    }
+
     @Override
     public void onClose() {
-        if (!VirtualShopIds.isVirtual(villagerId) && PlatformNetwork.canSendToServer()) {
-            PlatformNetwork.sendToServer(new CobbleDollarsShopPayloads.ShopScreenClosed(villagerId));
-        }
+        releaseMerchantIfNeeded();
         super.onClose();
+    }
+
+    @Override
+    public void removed() {
+        // setScreen() replaces GUIs via removed(), not onClose() (bank, editor, overlap recovery).
+        releaseMerchantIfNeeded();
+        super.removed();
     }
 
     @Override

@@ -37,15 +37,8 @@ dependencies {
     modImplementation("me.shedaniel.cloth:cloth-config-neoforge:${property("cloth_config_neoforge_version")}")
     modImplementation("com.cobblemon:neoforge:${property("cobblemon_version")}") { isTransitive = false }
 
-    // CobbleDollars: optional at runtime. For BankMixin compileOnly - put in libs/ or set -Pcobbledollars_jar=/path
-    val cobbledollarsPath = project.findProperty("cobbledollars_jar")?.toString()
-        ?: listOf(
-            project.rootDir.resolve("libs/CobbleDollars-neoforge-2.0.0+Beta-5.1+1.21.1"),
-            file(System.getProperty("user.home") + "/Downloads/Cobbledollars/CobbleDollars-neoforge-2.0.0+Beta-5.1+1.21.1")
-        ).firstOrNull { it.exists() }
-    if (cobbledollarsPath != null) {
-        compileOnly(files(cobbledollarsPath))
-    }
+    // CobbleDollars: optional at runtime. Compile against stub so both Bank API layouts are visible to Mixin AP.
+    compileOnly(project(":cobbledollars-stub", configuration = "namedElements"))
 
     //Needed for cobblemon
     forgeRuntimeLibrary("thedarkcolour:kotlinforforge-neoforge:${property("kotlin_for_forge_version")}") {

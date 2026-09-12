@@ -504,7 +504,7 @@ public final class ShopTransactionService {
 
             completedTrade = true;
         } finally {
-            if (!completedTrade && tradingMerchant != null) {
+            if (tradingMerchant != null && ShopTradePolicy.shouldReleaseTradingPlayerAfterShopTrade()) {
                 tradingMerchant.setTradingPlayer(null);
             }
             finishShopTradeSession(tradingMerchant, entity, serverPlayer, villagerId, completedTrade);
@@ -677,7 +677,7 @@ public final class ShopTransactionService {
 
             completedTrade = true;
         } finally {
-            if (!completedTrade && tradingMerchant != null) {
+            if (tradingMerchant != null && ShopTradePolicy.shouldReleaseTradingPlayerAfterShopTrade()) {
                 tradingMerchant.setTradingPlayer(null);
             }
             finishShopTradeSession(tradingMerchant, entity, serverPlayer, villagerId, completedTrade);

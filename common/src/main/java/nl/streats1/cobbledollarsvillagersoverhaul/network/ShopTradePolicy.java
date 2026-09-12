@@ -22,6 +22,17 @@ public final class ShopTradePolicy {
         return tradingPlayer != null && disconnected != null && tradingPlayer == disconnected;
     }
 
+    /**
+     * Custom shop trades are packet-based (no MerchantMenu). Leaving {@code tradingPlayer} set after a
+     * successful buy/sell relies on {@code ShopScreenClosed}, but Minecraft replaces screens via
+     * {@code removed()} (bank UI, editors, overlap recovery) without calling {@code onClose()}. A stuck
+     * trading player keeps {@code isTrading()} true and can pull the villager off their workstation via
+     * {@code LookAndFollowTradingPlayerSink}, blocking vanilla restock. Always release after the packet.
+     */
+    public static boolean shouldReleaseTradingPlayerAfterShopTrade() {
+        return true;
+    }
+
     public static boolean isSellTabOffer(boolean costAEmerald, boolean costACurrency,
                                         boolean resultEmerald, boolean resultGoldIngot, boolean resultCurrency) {
         if (costAEmerald || costACurrency) {

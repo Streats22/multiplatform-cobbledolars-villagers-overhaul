@@ -1,6 +1,7 @@
 package nl.streats1.cobbledollarsvillagersoverhaul.mixin;
 
 import net.minecraft.world.entity.npc.AbstractVillager;
+import net.minecraft.world.entity.npc.Villager;
 import net.minecraft.world.entity.player.Player;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.McaIntegration;
 import org.spongepowered.asm.mixin.Mixin;
@@ -8,7 +9,12 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@Mixin(AbstractVillager.class)
+/**
+ * MCA / shift-trade path via {@link Villager#startTrading(Player)}.
+ * Fabric Trade-button reliability is covered by {@link McaTradeCommandMixin}; do not also inject
+ * intermediary {@code method_19191} here (would double-fire the same method via refmap).
+ */
+@Mixin(Villager.class)
 public class VillagerStartTradingMixin {
 
     @Inject(method = "startTrading", at = @At("HEAD"), cancellable = true)

@@ -3,6 +3,7 @@ package nl.streats1.cobbledollarsvillagersoverhaul.mixin;
 import net.minecraft.world.item.ItemStack;
 
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Pseudo;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
@@ -12,6 +13,10 @@ import java.math.BigInteger;
 
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.CustomCurrencyConfig;
 
+/**
+ * CobbleDollars Beta-5.x bank currency injection ({@code world.item.trading.shop.Bank#get}).
+ */
+@Pseudo
 @Mixin(targets = "fr.harmex.cobbledollars.common.world.item.trading.shop.Bank")
 public class BankMixin {
 
