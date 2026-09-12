@@ -33,7 +33,7 @@ public final class FabricMerchantMcaRedirect {
         if (!Config.USE_COBBLEDOLLARS_SHOP_UI || !CobbleDollarsIntegration.isModLoaded()) {
             return false;
         }
-        if (!McaVillagerCompat.isModLoaded()) {
+        if (!McaVillagerCompat.isCompatibilityEnabled()) {
             return false;
         }
         Minecraft mc = Minecraft.getInstance();

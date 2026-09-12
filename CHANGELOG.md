@@ -1,5 +1,37 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- **Companion-mod interact passthrough** — Sneak-right-click no longer opens the shop (vanilla). Held items from
+  optional capture/pickup mods (Mob Lassos, Sophisticated Backpacks, Easy Villagers, Carry On, Mob Catcher, Cyclic)
+  are not swallowed. Config: `enableMcaCompatibility`, `skipShopOverrideWhenSneaking`, entity-type denylists, and
+  item passthrough lists. Fixes GitHub issue #51.
+
+### Fixed
+
+- **MCA trade offers not loading in CobbleDollars shop** — Refresh MCA villager trades (`updateTrades` / `restock`) before reading offers; MCA 7.7+ lazy generation no longer falls through to empty/config shop when `startTrading` is redirected.
+- **Broader MCA entity detection** — Defer right-click to MCA for all `mca:` entities; forward-compat villager entity paths; improved `canTradeWithProfession` reflection.
+- **`startTrading` mixin on `AbstractVillager`** — Covers MCA villager subclasses reliably (Fabric + NeoForge).
+
+### Security
+
+- **Virtual shop/bank packets require op** — C2S request/buy/sell for virtual IDs (`/cvm open shop|bank`) now match command permission level 2; crafted packets can no longer open or trade admin shop/bank.
+- **Server-derived config shop** — Buy routing no longer trusts the client `fromConfigShop` flag alone.
+- **Quantity capped (1–64) with overflow-safe cost math** — Blocks free-item exploits from int overflow on crafted quantities.
+- **Interact range + excluded professions on buy/sell/cycle** — Remote trading and casino-worker packet bypasses are rejected.
+- **Offer stock enforced** — Buys/sells reject out-of-stock or over-remaining-uses quantities.
+- **Sell credits before consuming items** — Failed balance credit no longer destroys sold items.
+- **Failed trades clear merchant trading player** — Reduces villager lock grief from rejected packets.
+- **RCT series allowlisted; set before consuming trainer cards** — Unknown series strings rejected; card loss on failed series set reduced. Allowlist uses **live** RCT available series (not the UI cache).
+- **Vanilla merchant fallback respects interact range** — `openVanillaMerchantMenu` no longer opens remote menus.
+- **`addBalance` remove path checks funds** — Insufficient balance cannot be forced through remove APIs; rejects `Long.MIN_VALUE` / int truncation overflows.
+- **`ShopInteractionGuard`** — Central server validation helper for shop C2S packets (Fabric/NeoForge share via `common`).
+
+
+---
+
 ## [0.3.0] — from 0.2.3
 
 **Minecraft 1.21.1** · **Fabric & NeoForge** · Requires [CobbleDollars](https://modrinth.com/mod/cobbledollars)

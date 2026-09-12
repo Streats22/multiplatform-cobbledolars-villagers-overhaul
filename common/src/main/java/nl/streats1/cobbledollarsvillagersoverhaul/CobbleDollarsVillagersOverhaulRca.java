@@ -7,8 +7,10 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.npc.Villager;
 import net.minecraft.world.entity.npc.VillagerProfession;
 import net.minecraft.world.entity.npc.WanderingTrader;
+import net.minecraft.world.item.ItemStack;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.CobbleDollarsIntegration;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.McaVillagerCompat;
+import nl.streats1.cobbledollarsvillagersoverhaul.integration.MerchantInteractCompat;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.RctTrainerAssociationCompat;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.VillagerCobbleDollarsHandler;
 import nl.streats1.cobbledollarsvillagersoverhaul.network.CobbleDollarsShopPayloadHandlers;
@@ -24,13 +26,20 @@ public class CobbleDollarsVillagersOverhaulRca {
     }
 
     public boolean onEntityInteract(Entity target, boolean isClientSide, boolean isSneaking,
-                                   Runnable cancelAction) {
+                                   ItemStack heldItem, Runnable cancelAction) {
         if (!CobbleDollarsIntegration.isModLoaded()) {
             return false;
         }
 
         ResourceLocation typeId = BuiltInRegistries.ENTITY_TYPE.getKey(target.getType());
         if (typeId != null && "cobbledollars".equals(typeId.getNamespace())) {
+            return false;
+        }
+
+        // Optional-mod / vanilla item / sneak passthrough (issue #51: lasso, backpacks, Carry On).
+        if (MerchantInteractCompat.shouldDeferShopOverride(target, isSneaking, heldItem)) {
+            LOGGER.debug("[shop] deferring shop override (sneak/item/entity exclusion), entity={} sneak={}",
+                    target.getType().getDescriptionId(), isSneaking);
             return false;
         }
 
@@ -49,9 +58,9 @@ public class CobbleDollarsVillagersOverhaulRca {
             return false;
         }
 
-        // When MCA is loaded, let MCA handle normal right-click (interaction GUI).
-        // CobbleDollars shop opens from Trade/shift-trade via VillagerStartTradingMixin.
-        if (McaVillagerCompat.isModLoaded() && McaVillagerCompat.isMcaVillager(target)) {
+        // When MCA compat is on, let MCA handle normal right-click for all MCA entities.
+        // CobbleDollars shop opens from Trade/shift-trade via startTrading redirect mixin.
+        if (McaVillagerCompat.shouldDeferNormalRightClick(target)) {
             return false;
         }
 

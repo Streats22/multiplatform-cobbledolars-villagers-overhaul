@@ -40,6 +40,23 @@ Quick reference for issues players and support often run into.
 
 ---
 
+## Can't lasso, pick up, or leash a villager
+
+**Symptoms:** Right-clicking an employed villager with a mob lasso, backpack, or similar tool always opens the
+CobbleDollars shop.
+
+**Cause:** The shop used to cancel villager interacts at highest priority, before other mods.
+
+**Checks:**
+
+- `skipShopOverrideWhenSneaking` should be `true` (default). Sneak-right-click matches vanilla and is what Carry On,
+  Sophisticated Backpacks pickup, Easy Villagers, and leads use.
+- Capture items (Mob Lassos, Mob Catcher, Cyclic, …) are passed through by default via
+  `passthroughInteractItemNamespaces`. If your item still opens the shop, add its item id or namespace.
+- `excludedEntityTypeIds` / `excludedEntityTypeNamespaces` skip the shop for custom NPC entity types.
+
+---
+
 ## GUI background missing / transparent
 
 **Symptoms:** Shop or edit screen shows text and slots but no background texture.

@@ -34,7 +34,13 @@ enhanced trading experience with RCT series support.
 
 **Minecraft Comes Alive (MCA)** (optional): Right-click opens MCA's interaction GUI (Talk, Interact, Family, etc.). Use
 the **Trade** button in that GUI or **shift-click** a tradable MCA villager to open the CobbleDollars shop. Compatible
-with **MCA: Cobblemon** — Pokémon dialogue and gifts work normally; only trading uses CobbleDollars.
+with **MCA: Cobblemon** — Pokémon dialogue and gifts work normally; only trading uses CobbleDollars. Toggle with
+`enableMcaCompatibility` (default on).
+
+**Other villager tools** (optional, no extra JAR required): Sneak-right-click no longer opens the shop (vanilla
+behaviour), so **leads**, **Carry On**, **Sophisticated Backpacks** pickup, and **Easy Villagers** work. Capture items
+such as **Mob Lassos** pass through by item namespace. If another pack item still opens the shop, add its id or
+namespace to `passthroughInteractItemIds` / `passthroughInteractItemNamespaces`.
 
 **For in-game config screen** (Mods menu → Config button):
 - **Fabric**: [Cloth Config API](https://modrinth.com/mod/cloth-config) + [Mod Menu](https://modrinth.com/mod/modmenu)
@@ -77,6 +83,12 @@ Config files are created automatically when you first run the game.
 | `syncCobbleDollarsBankRate`    | Boolean | true    | Legacy; kept for saves. Villager rate uses `cobbledollarsEmeraldRate` only. Match it to bank emerald price if you want parity. |
 | `useRctTradesOverhaul`         | Boolean | true    | Enable RCT series trades overhaul                                                                                              |
 | `useDatapackTrades`            | Boolean | true    | Use datapack default shop offers                                                                                               |
+| `enableMcaCompatibility`       | Boolean | true    | MCA right-click stays with MCA's GUI; Trade / shift-click opens this shop                                                       |
+| `skipShopOverrideWhenSneaking` | Boolean | true    | Sneak-right-click does not open the shop (vanilla). Needed for leads, backpacks, Carry On, Easy Villagers                     |
+| `excludedEntityTypeNamespaces` | List    | `[]`    | Entity-type namespaces that keep their own interact                                                                            |
+| `excludedEntityTypeIds`        | List    | `[]`    | Specific entity-type ids (`namespace:path`) that keep their own interact                                                        |
+| `passthroughInteractItemIds`  | List    | `[]`    | Held-item ids that must not open the shop. Spawn eggs and named name tags always pass through                                     |
+| `passthroughInteractItemNamespaces` | List | lassos/backpacks/catchers | Held-item namespaces that must not open the shop. Unknown mods are ignored                          |
 
 ### Custom Currency Items (Relic Coins, Poketokens, etc.)
 
@@ -102,7 +114,8 @@ Format: `[{"item":"cobblemon:relic_coin","value":250},{"item":"allthemons:token"
 
 ### Opening the Shop
 
-- **Villagers**: Right-click on any villager (except nitwits) to open the shop
+- **Villagers**: Right-click on any villager (except nitwits) to open the shop. **Sneak**-right-click does not open
+  the shop (vanilla), so other mods can leash, pick up, or capture the villager.
 - **MCA villagers**: Right-click for MCA interaction GUI; click **Trade** or shift-click to open the CobbleDollars shop
 - **Wandering Trader**: Right-click on a wandering trader to open the shop
 - **RCT Trainers**: Right-click on RCT trainer entities to open the shop with series selection
@@ -184,6 +197,8 @@ multiplatform-cobbledolars-villagers-overhaul/
 │       ├── integration/                           # Integration handlers
 │       │   ├── CobbleDollarsConfigHelper.java
 │       │   ├── CobbleDollarsIntegration.java
+│       │   ├── MerchantInteractPolicy.java         # Optional-mod interact passthrough
+│       │   ├── McaVillagerCompat.java
 │       │   └── RctTrainerAssociationCompat.java
 │       ├── network/                               # Network packets
 │       │   ├── CobbleDollarsShopPayloads.java    # Packet definitions

@@ -18,7 +18,7 @@ public final class McaTradeRedirect {
     }
 
     public static boolean tryOpenCobbleDollarsShop(AbstractVillager villager, Player player) {
-        if (!McaVillagerCompat.isModLoaded() || !McaVillagerCompat.isMcaVillager(villager)) {
+        if (!McaVillagerCompat.isCompatibilityEnabled() || !McaVillagerCompat.isMcaVillager(villager)) {
             return false;
         }
         if (!Config.USE_COBBLEDOLLARS_SHOP_UI || !CobbleDollarsIntegration.isAvailable()) {
@@ -35,6 +35,9 @@ public final class McaTradeRedirect {
         }
         if (!(player instanceof ServerPlayer sp)) {
             return false;
+        }
+        if (villager instanceof Villager v) {
+            McaMerchantCompat.prepareForShop(sp.serverLevel(), v);
         }
         CobbleDollarsShopPayloadHandlers.handleRequestShopData(sp, villager.getId());
         return true;

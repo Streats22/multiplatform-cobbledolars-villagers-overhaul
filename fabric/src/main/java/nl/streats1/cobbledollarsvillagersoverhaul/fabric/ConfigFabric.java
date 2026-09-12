@@ -14,6 +14,8 @@ import nl.streats1.cobbledollarsvillagersoverhaul.integration.VillagerShopConfig
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Fabric config loader. Creates config/cobbledollars_villagers_overhaul_rca/config.json
@@ -66,21 +68,35 @@ public final class ConfigFabric {
             if (root.has("useDatapackTrades")) {
                 Config.setUseDatapackTrades(root.get("useDatapackTrades").getAsBoolean());
             }
-            if (root.has("excludedVillagerProfessionNamespaces") && root.get("excludedVillagerProfessionNamespaces").isJsonArray()) {
-                JsonArray arr = root.getAsJsonArray("excludedVillagerProfessionNamespaces");
-                java.util.List<String> list = new java.util.ArrayList<>();
-                for (JsonElement el : arr) {
-                    if (el.isJsonPrimitive()) list.add(el.getAsString());
-                }
-                Config.setExcludedVillagerProfessionNamespaces(list);
+            if (root.has("enableMcaCompatibility")) {
+                Config.setEnableMcaCompatibility(root.get("enableMcaCompatibility").getAsBoolean());
             }
-            if (root.has("excludedVillagerProfessionIds") && root.get("excludedVillagerProfessionIds").isJsonArray()) {
-                JsonArray arr = root.getAsJsonArray("excludedVillagerProfessionIds");
-                java.util.List<String> list = new java.util.ArrayList<>();
-                for (JsonElement el : arr) {
-                    if (el.isJsonPrimitive()) list.add(el.getAsString());
-                }
-                Config.setExcludedVillagerProfessionIds(list);
+            if (root.has("skipShopOverrideWhenSneaking")) {
+                Config.setSkipShopOverrideWhenSneaking(root.get("skipShopOverrideWhenSneaking").getAsBoolean());
+            }
+            List<String> excludedNamespaces = readStringArray(root, "excludedVillagerProfessionNamespaces");
+            if (excludedNamespaces != null) {
+                Config.setExcludedVillagerProfessionNamespaces(excludedNamespaces);
+            }
+            List<String> excludedProfessionIds = readStringArray(root, "excludedVillagerProfessionIds");
+            if (excludedProfessionIds != null) {
+                Config.setExcludedVillagerProfessionIds(excludedProfessionIds);
+            }
+            List<String> excludedEntityTypeNamespaces = readStringArray(root, "excludedEntityTypeNamespaces");
+            if (excludedEntityTypeNamespaces != null) {
+                Config.setExcludedEntityTypeNamespaces(excludedEntityTypeNamespaces);
+            }
+            List<String> excludedEntityTypeIds = readStringArray(root, "excludedEntityTypeIds");
+            if (excludedEntityTypeIds != null) {
+                Config.setExcludedEntityTypeIds(excludedEntityTypeIds);
+            }
+            List<String> passthroughItemIds = readStringArray(root, "passthroughInteractItemIds");
+            if (passthroughItemIds != null) {
+                Config.setPassthroughInteractItemIds(passthroughItemIds);
+            }
+            List<String> passthroughItemNamespaces = readStringArray(root, "passthroughInteractItemNamespaces");
+            if (passthroughItemNamespaces != null) {
+                Config.setPassthroughInteractItemNamespaces(passthroughItemNamespaces);
             }
 
             CustomCurrencyConfig.setConfigOverride(null);
@@ -93,5 +109,20 @@ public final class ConfigFabric {
 
     private static String getDefaultConfigJson() {
         return nl.streats1.cobbledollarsvillagersoverhaul.integration.ModConfigDefaults.fabricMainConfigJson();
+    }
+
+    /** @return the list when {@code key} is a JSON array; {@code null} when the key is missing/invalid. */
+    private static List<String> readStringArray(JsonObject root, String key) {
+        if (!root.has(key) || !root.get(key).isJsonArray()) {
+            return null;
+        }
+        JsonArray arr = root.getAsJsonArray(key);
+        List<String> list = new ArrayList<>();
+        for (JsonElement el : arr) {
+            if (el.isJsonPrimitive()) {
+                list.add(el.getAsString());
+            }
+        }
+        return list;
     }
 }

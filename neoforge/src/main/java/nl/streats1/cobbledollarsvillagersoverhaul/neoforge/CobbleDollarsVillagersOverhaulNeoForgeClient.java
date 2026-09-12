@@ -91,6 +91,34 @@ public class CobbleDollarsVillagersOverhaulNeoForgeClient {
                 })
                 .build());
 
+        me.shedaniel.clothconfig2.api.ConfigCategory compatibility = builder.getOrCreateCategory(Component.translatable("config.cobbledollars_villagers_overhaul_rca.category.compatibility"));
+
+        compatibility.addEntry(entryBuilder.startBooleanToggle(
+                        Component.translatable("config.cobbledollars_villagers_overhaul_rca.enableMcaCompatibility"),
+                        ConfigNeoForge.ENABLE_MCA_COMPATIBILITY.get())
+                .setDefaultValue(true)
+                .setTooltip(Component.translatable("config.cobbledollars_villagers_overhaul_rca.enableMcaCompatibility.tooltip"))
+                .setSaveConsumer(v -> {
+                    ConfigNeoForge.ENABLE_MCA_COMPATIBILITY.set(v);
+                    Config.setEnableMcaCompatibility(v);
+                })
+                .build());
+
+        compatibility.addEntry(entryBuilder.startBooleanToggle(
+                        Component.translatable("config.cobbledollars_villagers_overhaul_rca.skipShopOverrideWhenSneaking"),
+                        ConfigNeoForge.SKIP_SHOP_OVERRIDE_WHEN_SNEAKING.get())
+                .setDefaultValue(true)
+                .setTooltip(Component.translatable("config.cobbledollars_villagers_overhaul_rca.skipShopOverrideWhenSneaking.tooltip"))
+                .setSaveConsumer(v -> {
+                    ConfigNeoForge.SKIP_SHOP_OVERRIDE_WHEN_SNEAKING.set(v);
+                    Config.setSkipShopOverrideWhenSneaking(v);
+                })
+                .build());
+
+        compatibility.addEntry(entryBuilder.startTextDescription(
+                        Component.translatable("config.cobbledollars_villagers_overhaul_rca.interactPassthroughHint"))
+                .build());
+
         general.addEntry(entryBuilder.startTextDescription(Component.translatable("config.cobbledollars_villagers_overhaul_rca.customCurrencyHint")).build());
 
         Screen generalScreen = builder.build();

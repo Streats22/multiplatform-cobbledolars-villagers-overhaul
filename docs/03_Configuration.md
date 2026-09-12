@@ -23,6 +23,12 @@ Config files live under `config/cobbledollars_villagers_overhaul_rca/` (Fabric) 
 | `useDatapackTrades`                    | `true`                           | Price non-emerald datapack trades with CobbleDollars item tables.                                                      |
 | `excludedVillagerProfessionNamespaces` | `["cobbledollars"]`              | Mod namespaces whose villagers keep their native UI.                                                                   |
 | `excludedVillagerProfessionIds`        | `["casinorocket:casino_worker"]` | Specific profession IDs to exclude.                                                                                    |
+| `enableMcaCompatibility`             | `true`                           | MCA right-click stays with MCA's GUI; Trade / shift-click opens this shop.                                        |
+| `skipShopOverrideWhenSneaking`       | `true`                           | Sneak-right-click does not open the shop (vanilla). Allows leads, backpacks, Carry On, Easy Villagers.              |
+| `excludedEntityTypeNamespaces`        | `[]`                             | Entity-type namespaces that keep their own interact.                                                               |
+| `excludedEntityTypeIds`               | `[]`                             | Specific entity-type ids (`namespace:path`) that keep their own interact.                                           |
+| `passthroughInteractItemIds`         | `[]`                             | Held-item ids that must not open the shop. Spawn eggs and named name tags always pass through.                        |
+| `passthroughInteractItemNamespaces`    | lassos/backpacks/catchers         | Held-item namespaces that must not open the shop (optional companion mods; ignored if the mod is absent).           |
 
 **Migration:** Older configs used step values (`1` / `2` / `3` → 250 / 500 / 750). Rates are now literal. If you had
 `"cobbledollarsEmeraldRate": 3`, set `750` (or your desired value) explicitly.

@@ -52,7 +52,19 @@ This order avoids:
 
 ---
 
+## Order of operations (sell)
+
+1. Validate quantity (1–64), interact range, profession exclusions, and offer stock.
+2. **Credit CobbleDollars** (or prepare item result) **before** removing the player’s sold items.
+3. Remove costA from inventory only after credit succeeds (or for pure item-for-item, shrink then give).
+4. Notify trade / XP / sync.
+
+This avoids destroying sold items when balance credit fails.
+
+---
+
 ## Virtual shop / bank
 
 - `/cvm open shop` and `/cvm open bank` use virtual entity IDs; server sends shop/bank data from config (default shop
   and bank JSON). Same cost and validation rules as above where applicable.
+- Packet access to virtual shop/bank (open, buy, sell) requires **op permission level 2**, matching the commands.
