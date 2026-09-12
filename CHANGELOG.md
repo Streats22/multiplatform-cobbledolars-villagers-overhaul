@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- **Companion-mod interact passthrough** — Sneak-right-click no longer opens the shop (vanilla). Held items from
+  optional capture/pickup mods (Mob Lassos, Sophisticated Backpacks, Easy Villagers, Carry On, Mob Catcher, Cyclic)
+  are not swallowed. Config: `enableMcaCompatibility`, `skipShopOverrideWhenSneaking`, entity-type denylists, and
+  item passthrough lists. Fixes GitHub issue #51.
+
+---
+
 ## [0.3.0] — from 0.2.3
 
 **Minecraft 1.21.1** · **Fabric & NeoForge** · Requires [CobbleDollars](https://modrinth.com/mod/cobbledollars)

@@ -17,6 +17,28 @@ public final class ModConfigDefaults {
      */
     public static final int DEFAULT_EMERALD_RATE_CD = 750;
 
+    /**
+     * Optional-mod item ids that must not open the shop. Spawn eggs and named name tags are always
+     * passed through in {@link MerchantInteractPolicy} even if omitted here.
+     */
+    public static final List<String> DEFAULT_PASSTHROUGH_INTERACT_ITEM_IDS = List.of();
+
+    /**
+     * Optional companion-mod namespaces whose held items must not open the shop (lassos, backpacks,
+     * villager items, catchers). Unknown namespaces are ignored when the mod is absent.
+     */
+    public static final List<String> DEFAULT_PASSTHROUGH_INTERACT_ITEM_NAMESPACES = List.of(
+            "sophisticatedbackpacks",
+            "easyvillagers",
+            "moblassos",
+            "lasso",
+            "moblasso",
+            "mob_lasso",
+            "mobcatcher",
+            "carryon",
+            "cyclic"
+    );
+
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
     private ModConfigDefaults() {
@@ -27,28 +49,23 @@ public final class ModConfigDefaults {
      * {@code cobbledollarsEmeraldRate} is literal CD per emerald (250 = 250 CD).
      */
     public static String fabricMainConfigJson() {
-        return """
-                {
-                  "cobbledollarsEmeraldRate": %d,
-                  "syncCobbleDollarsBankRate": true,
-                  "villagersAcceptCobbleDollars": true,
-                  "freeMinimumEmeraldTrade": false,
-                  "useCobbleDollarsShopUi": true,
-                  "useRctTradesOverhaul": true,
-                  "useDatapackTrades": true,
-                  "excludedVillagerProfessionNamespaces": [
-                    "cobbledollars"
-                  ],
-                  "excludedVillagerProfessionIds": [
-                    "casinorocket:casino_worker"
-                  ],
-                  "_comment_emeraldRate": "CobbleDollars per emerald (literal). Used for villager trades. Example: 250 = 250 CD.",
-                  "_comment_syncBank": "Legacy field; villager rate always uses cobbledollarsEmeraldRate. Match that to bank.json emerald price if desired.",
-                  "_comment_freeMinimum": "freeMinimumEmeraldTrade: 1-emerald trades (e.g. after curing) cost 0 CD when true.",
-                  "_comment_excluded": "Excluded villagers keep their mod's native UI (not the CobbleDollars shop on right-click).",
-                  "_comment_customCurrency": "Relic coins etc.: edit custom_currency.json in this folder."
-                }
-                """.formatted(DEFAULT_EMERALD_RATE_CD);
+        return fabricMainConfigJson(
+                DEFAULT_EMERALD_RATE_CD,
+                true,
+                true,
+                false,
+                true,
+                true,
+                true,
+                List.of("cobbledollars"),
+                List.of("casinorocket:casino_worker"),
+                true,
+                true,
+                List.of(),
+                List.of(),
+                DEFAULT_PASSTHROUGH_INTERACT_ITEM_IDS,
+                DEFAULT_PASSTHROUGH_INTERACT_ITEM_NAMESPACES
+        );
     }
 
     /**
@@ -65,8 +82,42 @@ public final class ModConfigDefaults {
             java.util.Collection<String> excludedNamespaces,
             java.util.Collection<String> excludedProfessionIds
     ) {
-        String excludedNsJson = jsonStringArray(excludedNamespaces);
-        String excludedIdsJson = jsonStringArray(excludedProfessionIds);
+        return fabricMainConfigJson(
+                cobbledollarsEmeraldRate,
+                syncCobbleDollarsBankRate,
+                villagersAcceptCobbleDollars,
+                freeMinimumEmeraldTrade,
+                useCobbleDollarsShopUi,
+                useRctTradesOverhaul,
+                useDatapackTrades,
+                excludedNamespaces,
+                excludedProfessionIds,
+                nl.streats1.cobbledollarsvillagersoverhaul.Config.ENABLE_MCA_COMPATIBILITY,
+                nl.streats1.cobbledollarsvillagersoverhaul.Config.SKIP_SHOP_OVERRIDE_WHEN_SNEAKING,
+                nl.streats1.cobbledollarsvillagersoverhaul.Config.EXCLUDED_ENTITY_TYPE_NAMESPACES,
+                nl.streats1.cobbledollarsvillagersoverhaul.Config.EXCLUDED_ENTITY_TYPE_IDS,
+                nl.streats1.cobbledollarsvillagersoverhaul.Config.PASSTHROUGH_INTERACT_ITEM_IDS,
+                nl.streats1.cobbledollarsvillagersoverhaul.Config.PASSTHROUGH_INTERACT_ITEM_NAMESPACES
+        );
+    }
+
+    public static String fabricMainConfigJson(
+            int cobbledollarsEmeraldRate,
+            boolean syncCobbleDollarsBankRate,
+            boolean villagersAcceptCobbleDollars,
+            boolean freeMinimumEmeraldTrade,
+            boolean useCobbleDollarsShopUi,
+            boolean useRctTradesOverhaul,
+            boolean useDatapackTrades,
+            java.util.Collection<String> excludedNamespaces,
+            java.util.Collection<String> excludedProfessionIds,
+            boolean enableMcaCompatibility,
+            boolean skipShopOverrideWhenSneaking,
+            java.util.Collection<String> excludedEntityTypeNamespaces,
+            java.util.Collection<String> excludedEntityTypeIds,
+            java.util.Collection<String> passthroughInteractItemIds,
+            java.util.Collection<String> passthroughInteractItemNamespaces
+    ) {
         return """
                 {
                   "cobbledollarsEmeraldRate": %d,
@@ -76,12 +127,20 @@ public final class ModConfigDefaults {
                   "useCobbleDollarsShopUi": %s,
                   "useRctTradesOverhaul": %s,
                   "useDatapackTrades": %s,
+                  "enableMcaCompatibility": %s,
+                  "skipShopOverrideWhenSneaking": %s,
                   "excludedVillagerProfessionNamespaces": %s,
                   "excludedVillagerProfessionIds": %s,
+                  "excludedEntityTypeNamespaces": %s,
+                  "excludedEntityTypeIds": %s,
+                  "passthroughInteractItemIds": %s,
+                  "passthroughInteractItemNamespaces": %s,
                   "_comment_emeraldRate": "CobbleDollars per emerald (literal). Used for villager trades. Example: 250 = 250 CD.",
                   "_comment_syncBank": "Legacy field; villager rate always uses cobbledollarsEmeraldRate. Match that to bank.json emerald price if desired.",
                   "_comment_freeMinimum": "freeMinimumEmeraldTrade: 1-emerald trades (e.g. after curing) cost 0 CD when true.",
                   "_comment_excluded": "Excluded villagers keep their mod's native UI (not the CobbleDollars shop on right-click).",
+                  "_comment_interact": "skipShopOverrideWhenSneaking matches vanilla (sneak does not trade). Passthrough item namespaces keep lassos/backpacks/catchers from opening the shop.",
+                  "_comment_mca": "enableMcaCompatibility: right-click stays with MCA's GUI; Trade or shift-click opens this shop.",
                   "_comment_customCurrency": "Relic coins etc.: edit custom_currency.json in this folder."
                 }
                 """.formatted(
@@ -92,8 +151,14 @@ public final class ModConfigDefaults {
                 useCobbleDollarsShopUi,
                 useRctTradesOverhaul,
                 useDatapackTrades,
-                excludedNsJson,
-                excludedIdsJson
+                enableMcaCompatibility,
+                skipShopOverrideWhenSneaking,
+                jsonStringArray(excludedNamespaces),
+                jsonStringArray(excludedProfessionIds),
+                jsonStringArray(excludedEntityTypeNamespaces),
+                jsonStringArray(excludedEntityTypeIds),
+                jsonStringArray(passthroughInteractItemIds),
+                jsonStringArray(passthroughInteractItemNamespaces)
         );
     }
 

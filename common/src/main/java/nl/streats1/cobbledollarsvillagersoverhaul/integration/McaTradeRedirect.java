@@ -18,7 +18,7 @@ public final class McaTradeRedirect {
     }
 
     public static boolean tryOpenCobbleDollarsShop(AbstractVillager villager, Player player) {
-        if (!McaVillagerCompat.isModLoaded() || !McaVillagerCompat.isMcaVillager(villager)) {
+        if (!McaVillagerCompat.isCompatibilityEnabled() || !McaVillagerCompat.isMcaVillager(villager)) {
             return false;
         }
         if (!Config.USE_COBBLEDOLLARS_SHOP_UI || !CobbleDollarsIntegration.isAvailable()) {

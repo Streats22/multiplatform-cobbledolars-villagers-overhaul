@@ -110,6 +110,28 @@ public class ModMenuIntegration implements ModMenuApi {
                 .setSaveConsumer(Config::setUseDatapackTrades)
                 .build());
 
+        ConfigCategory compatibility = builder.getOrCreateCategory(Component.translatable("config.cobbledollars_villagers_overhaul_rca.category.compatibility"));
+
+        compatibility.addEntry(entryBuilder.startBooleanToggle(
+                        Component.translatable("config.cobbledollars_villagers_overhaul_rca.enableMcaCompatibility"),
+                        Config.ENABLE_MCA_COMPATIBILITY)
+                .setDefaultValue(true)
+                .setTooltip(Component.translatable("config.cobbledollars_villagers_overhaul_rca.enableMcaCompatibility.tooltip"))
+                .setSaveConsumer(Config::setEnableMcaCompatibility)
+                .build());
+
+        compatibility.addEntry(entryBuilder.startBooleanToggle(
+                        Component.translatable("config.cobbledollars_villagers_overhaul_rca.skipShopOverrideWhenSneaking"),
+                        Config.SKIP_SHOP_OVERRIDE_WHEN_SNEAKING)
+                .setDefaultValue(true)
+                .setTooltip(Component.translatable("config.cobbledollars_villagers_overhaul_rca.skipShopOverrideWhenSneaking.tooltip"))
+                .setSaveConsumer(Config::setSkipShopOverrideWhenSneaking)
+                .build());
+
+        compatibility.addEntry(entryBuilder.startTextDescription(
+                        Component.translatable("config.cobbledollars_villagers_overhaul_rca.interactPassthroughHint"))
+                .build());
+
         general.addEntry(entryBuilder.startTextDescription(
                         Component.translatable("config.cobbledollars_villagers_overhaul_rca.customCurrencyHint"))
                 .build());

@@ -99,7 +99,8 @@ public class CobbleDollarsVillagersOverhaulFabric implements ModInitializer {
                     return InteractionResult.FAIL;
                 }
 
-                boolean handledClient = mod.onEntityInteract(entity, true, player.isShiftKeyDown(), () -> {});
+                boolean handledClient = mod.onEntityInteract(entity, true, player.isShiftKeyDown(),
+                        player.getItemInHand(hand), () -> {});
                 if (!handledClient) {
                     CobbleDollarsVillagersOverhaulRca.LOGGER.debug(
                             "[shop] Fabric client use-entity: not handled (PASS), entity={} id={}",
@@ -114,7 +115,8 @@ public class CobbleDollarsVillagersOverhaulFabric implements ModInitializer {
                 PlatformNetwork.sendToServer(new CobbleDollarsShopPayloads.RequestShopData(entity.getId()));
                 return InteractionResult.CONSUME;
             }
-            boolean handledServer = mod.onEntityInteract(entity, false, player.isShiftKeyDown(), () -> {});
+            boolean handledServer = mod.onEntityInteract(entity, false, player.isShiftKeyDown(),
+                    player.getItemInHand(hand), () -> {});
             if (!handledServer) {
                 CobbleDollarsVillagersOverhaulRca.LOGGER.debug(
                         "[shop] Fabric server use-entity: not handled (PASS), entity={} id={}",

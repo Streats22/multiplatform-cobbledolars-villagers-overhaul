@@ -23,6 +23,35 @@ public class Config {
      * Use this when only some professions from a mod have their own UI, so others can use our shop.
      */
     public static List<String> EXCLUDED_VILLAGER_PROFESSION_IDS = new ArrayList<>(List.of("casinorocket:casino_worker"));
+    /**
+     * When true and MCA is loaded, normal right-click stays with MCA's interaction GUI.
+     * Trade / shift-trade still redirect into the CobbleDollars shop.
+     */
+    public static boolean ENABLE_MCA_COMPATIBILITY = true;
+    /**
+     * When true, sneak-right-click does not open the shop (vanilla villager behaviour).
+     * Lets Carry On, Sophisticated Backpacks pickup, leads, Easy Villagers, etc. run.
+     */
+    public static boolean SKIP_SHOP_OVERRIDE_WHEN_SNEAKING = true;
+    /**
+     * Extra entity-type namespaces that keep their own interact (not the CobbleDollars shop).
+     */
+    public static List<String> EXCLUDED_ENTITY_TYPE_NAMESPACES = new ArrayList<>();
+    /**
+     * Extra entity-type ids ({@code namespace:path}) that keep their own interact.
+     */
+    public static List<String> EXCLUDED_ENTITY_TYPE_IDS = new ArrayList<>();
+    /**
+     * Held-item ids that must not open the shop (capture tools, etc.). Spawn eggs and named
+     * name tags always pass through even if omitted here.
+     */
+    public static List<String> PASSTHROUGH_INTERACT_ITEM_IDS = new ArrayList<>(
+            nl.streats1.cobbledollarsvillagersoverhaul.integration.ModConfigDefaults.DEFAULT_PASSTHROUGH_INTERACT_ITEM_IDS);
+    /**
+     * Held-item namespaces that must not open the shop (optional companion mods).
+     */
+    public static List<String> PASSTHROUGH_INTERACT_ITEM_NAMESPACES = new ArrayList<>(
+            nl.streats1.cobbledollarsvillagersoverhaul.integration.ModConfigDefaults.DEFAULT_PASSTHROUGH_INTERACT_ITEM_NAMESPACES);
     public static int DATAPACK_ITEM_PRICE_RARITY_COMMON = 1;
     public static int DATAPACK_ITEM_PRICE_RARITY_UNCOMMON = 5;
     public static int DATAPACK_ITEM_PRICE_RARITY_RARE = 20;
@@ -68,6 +97,30 @@ public class Config {
 
     public static void setExcludedVillagerProfessionIds(List<String> list) {
         EXCLUDED_VILLAGER_PROFESSION_IDS = list != null ? new ArrayList<>(list) : new ArrayList<>();
+    }
+
+    public static void setEnableMcaCompatibility(boolean value) {
+        ENABLE_MCA_COMPATIBILITY = value;
+    }
+
+    public static void setSkipShopOverrideWhenSneaking(boolean value) {
+        SKIP_SHOP_OVERRIDE_WHEN_SNEAKING = value;
+    }
+
+    public static void setExcludedEntityTypeNamespaces(List<String> list) {
+        EXCLUDED_ENTITY_TYPE_NAMESPACES = list != null ? new ArrayList<>(list) : new ArrayList<>();
+    }
+
+    public static void setExcludedEntityTypeIds(List<String> list) {
+        EXCLUDED_ENTITY_TYPE_IDS = list != null ? new ArrayList<>(list) : new ArrayList<>();
+    }
+
+    public static void setPassthroughInteractItemIds(List<String> list) {
+        PASSTHROUGH_INTERACT_ITEM_IDS = list != null ? new ArrayList<>(list) : new ArrayList<>();
+    }
+
+    public static void setPassthroughInteractItemNamespaces(List<String> list) {
+        PASSTHROUGH_INTERACT_ITEM_NAMESPACES = list != null ? new ArrayList<>(list) : new ArrayList<>();
     }
 
     /**

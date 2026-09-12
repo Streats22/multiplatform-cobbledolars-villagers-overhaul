@@ -4,6 +4,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.item.trading.Merchant;
+import nl.streats1.cobbledollarsvillagersoverhaul.Config;
 
 import java.util.Set;
 
@@ -11,7 +12,9 @@ import java.util.Set;
  * Utility to detect Minecraft Comes Alive (MCA) villager entities.
  *
  * <p>MCA adds {@code male_villager} / {@code female_villager} (plus zombie variants).
- * MCA is optional — detection uses registry paths and lightweight reflection when MCA is loaded.
+ * <p>MCA is optional — detection uses registry paths and lightweight reflection when MCA is loaded.
+ * Toggle with {@code Config.ENABLE_MCA_COMPATIBILITY} (default on): right-click stays with MCA's GUI;
+ * Trade / shift-trade redirect into the CobbleDollars shop. No MCA JAR at compile time.
  */
 public final class McaVillagerCompat {
     private static final String MCA_MOD_ID = "mca";
@@ -48,6 +51,22 @@ public final class McaVillagerCompat {
             mcaCobblemonLoaded = detectModLoaded(MCA_COBBLEMON_MOD_ID);
         }
         return mcaCobblemonLoaded;
+    }
+
+    /**
+     * MCA is loaded and the optional compatibility toggle is on.
+     * When this is false, MCA villagers are treated like vanilla merchants on right-click.
+     */
+    public static boolean isCompatibilityEnabled() {
+        return Config.ENABLE_MCA_COMPATIBILITY && isModLoaded();
+    }
+
+    /**
+     * Normal right-click should stay with MCA's interaction GUI (Talk, Family, …).
+     * Shop opens from Trade / shift-trade via {@link McaTradeRedirect}.
+     */
+    public static boolean shouldDeferNormalRightClick(Entity entity) {
+        return isCompatibilityEnabled() && isMcaVillager(entity);
     }
 
     private static boolean detectModLoaded(String modId) {

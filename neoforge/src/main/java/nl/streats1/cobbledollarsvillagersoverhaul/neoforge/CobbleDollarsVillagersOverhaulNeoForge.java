@@ -7,6 +7,7 @@ import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.npc.Villager;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.IEventBus;
@@ -108,6 +109,7 @@ public class CobbleDollarsVillagersOverhaulNeoForge {
             event.getTarget(),
             event.getLevel().isClientSide(),
             event.getEntity().isShiftKeyDown(),
+            event.getItemStack(),
             () -> {
                 event.setCanceled(true);
                 event.setCancellationResult(InteractionResult.SUCCESS);
@@ -167,6 +169,7 @@ public class CobbleDollarsVillagersOverhaulNeoForge {
             event.getTarget(),
             event.getLevel().isClientSide(),
             event.getEntity().isShiftKeyDown(),
+            event.getItemStack(),
             () -> {
                 event.setCanceled(true);
                 event.setCancellationResult(InteractionResult.SUCCESS);
@@ -174,8 +177,9 @@ public class CobbleDollarsVillagersOverhaulNeoForge {
         );
     }
 
-    private void handleVillagerShopInteract(Entity target, boolean isClientSide, boolean isSneaking, Runnable cancelAction) {
-        boolean handled = common.onEntityInteract(target, isClientSide, isSneaking, cancelAction);
+    private void handleVillagerShopInteract(Entity target, boolean isClientSide, boolean isSneaking,
+                                            ItemStack heldItem, Runnable cancelAction) {
+        boolean handled = common.onEntityInteract(target, isClientSide, isSneaking, heldItem, cancelAction);
         if (handled && isClientSide) {
             PacketDistributor.sendToServer(new CobbleDollarsShopPayloads.RequestShopData(target.getId()));
         }
