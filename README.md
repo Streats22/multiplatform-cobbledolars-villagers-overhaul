@@ -24,15 +24,17 @@ enhanced trading experience with RCT series support.
 ## Requirements
 
 - Minecraft 1.21.1
-- CobbleDollars mod (core currency system)
+- Cobblemon **1.7.1+** (including **1.8.0**)
+- CobbleDollars **Beta-5.1+** (including **Beta-6.1**) — core currency system
 - (Optional) Radical Cobblemon Trainers mod - for series-based trades
+- (Optional) Minecraft Comes Alive **7.7.x** — soft coexistence (see below)
 - Fabric or NeoForge mod loader
 
 **Trade cycling** (C key to refresh villager offers): The cycle button and keybind only appear when [Trade Cycling](https://modrinth.com/mod/trade-cycling) or [Easy Villagers](https://modrinth.com/mod/easy-villagers) is installed.
 
 **Casino Rocket** (Fabric): Fully compatible. Casino Worker villagers keep their native casino UI; other villagers use the CobbleDollars shop. Add Casino Rocket to your mods folder alongside this mod.
 
-**Minecraft Comes Alive (MCA)** (optional): Right-click opens MCA's interaction GUI (Talk, Interact, Family, etc.). Use
+**Minecraft Comes Alive (MCA)** (optional, including **7.7.36**): Right-click opens MCA's interaction GUI (Talk, Interact, Family, etc.). Use
 the **Trade** button in that GUI or **shift-click** a tradable MCA villager to open the CobbleDollars shop. Compatible
 with **MCA: Cobblemon** — Pokémon dialogue and gifts work normally; only trading uses CobbleDollars. Toggle with
 `enableMcaCompatibility` (default on).

@@ -14,11 +14,11 @@ import java.math.BigInteger;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.CustomCurrencyConfig;
 
 /**
- * CobbleDollars Beta-5.x bank currency injection ({@code world.item.trading.shop.Bank#get}).
+ * CobbleDollars Beta-6.x bank currency injection ({@code api.bank.Bank#getOffer}).
  */
 @Pseudo
-@Mixin(targets = "fr.harmex.cobbledollars.common.world.item.trading.shop.Bank")
-public class BankMixin {
+@Mixin(targets = "fr.harmex.cobbledollars.common.api.bank.Bank")
+public class BankMixinApi {
 
     private static Constructor<?> offerCtor;
 
@@ -31,8 +31,8 @@ public class BankMixin {
         }
     }
 
-    @Inject(method = "get(Lnet/minecraft/world/item/ItemStack;)Lfr/harmex/cobbledollars/common/world/item/trading/shop/Offer;", at = @At("RETURN"), cancellable = true, remap = false)
-    private void onGet(ItemStack stack, CallbackInfoReturnable<Object> cir) {
+    @Inject(method = "getOffer(Lnet/minecraft/world/item/ItemStack;)Lfr/harmex/cobbledollars/common/api/shop/Offer;", at = @At("RETURN"), cancellable = true, remap = false)
+    private void onGetOffer(ItemStack stack, CallbackInfoReturnable<Object> cir) {
         if (cir.getReturnValue() == null && stack != null && !stack.isEmpty()) {
             int value = CustomCurrencyConfig.getCurrencyValue(stack);
             if (value > 0) {
@@ -47,7 +47,7 @@ public class BankMixin {
     private static Object createOffer(ItemStack stack, int cobbleDollarsPerItem) {
         try {
             if (offerCtor == null) {
-                Class<?> offerClass = Class.forName("fr.harmex.cobbledollars.common.world.item.trading.shop.Offer");
+                Class<?> offerClass = Class.forName("fr.harmex.cobbledollars.common.api.shop.Offer");
                 offerCtor = offerClass.getConstructor(ItemStack.class, BigInteger.class, int.class);
             }
             ItemStack single = stack.copy();
