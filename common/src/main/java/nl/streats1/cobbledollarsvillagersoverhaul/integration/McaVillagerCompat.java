@@ -1,33 +1,19 @@
 package nl.streats1.cobbledollarsvillagersoverhaul.integration;
 
-import com.mojang.logging.LogUtils;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.npc.Villager;
 import net.minecraft.world.item.trading.Merchant;
 import nl.streats1.cobbledollarsvillagersoverhaul.Config;
-import org.slf4j.Logger;
 
 import java.util.Set;
 
-/**
- * Utility to detect Minecraft Comes Alive (MCA) villager entities.
- *
- * <p>MCA adds {@code male_villager} / {@code female_villager} (plus zombie variants).
- * <p>MCA is optional — detection uses registry paths and lightweight reflection when MCA is loaded.
- * Toggle with {@code Config.ENABLE_MCA_COMPATIBILITY} (default on): right-click stays with MCA's GUI;
- * Trade / shift-trade redirect into the CobbleDollars shop. No MCA JAR at compile time.
- */
 public final class McaVillagerCompat {
-    private static final Logger LOGGER = LogUtils.getLogger();
 
     private static final String MCA_MOD_ID = "mca";
     private static final String MCA_COBBLEMON_MOD_ID = "mca_cobblemon";
 
-    /**
-     * Registry paths under {@code mca:}; MC 1.21.1 MCA 7.x.
-     */
     private static final Set<String> MCA_TRADEABLE_ENTITY_PATHS = Set.of(
             "male_villager",
             "female_villager",
@@ -35,13 +21,11 @@ public final class McaVillagerCompat {
             "female_zombie_villager"
     );
 
-    /** MCA entities that are not villager merchants (interaction / trade redirect must ignore these). */
     private static final Set<String> MCA_NON_TRADEABLE_ENTITY_PATHS = Set.of(
             "grim_reaper",
             "crib"
     );
 
-    /** Package-visible for unit tests — known 7.x trade entity paths. */
     static boolean isKnownMcaVillagerEntityPath(String path) {
         return path != null && MCA_TRADEABLE_ENTITY_PATHS.contains(path);
     }
@@ -50,7 +34,6 @@ public final class McaVillagerCompat {
         return path != null && MCA_NON_TRADEABLE_ENTITY_PATHS.contains(path);
     }
 
-    /** Forward-compat heuristic for new {@code mca:*_villager*} entity ids. */
     static boolean isMcaVillagerEntityPath(String path) {
         return path != null && path.contains("villager") && !isExcludedMcaEntityPath(path);
     }
@@ -68,9 +51,6 @@ public final class McaVillagerCompat {
         return modLoaded;
     }
 
-    /**
-     * MCA: Cobblemon (optional add-on dialogue / behaviours).
-     */
     public static boolean isMcaCobblemonLoaded() {
         if (mcaCobblemonLoaded == null) {
             mcaCobblemonLoaded = detectModLoaded(MCA_COBBLEMON_MOD_ID);
@@ -78,18 +58,10 @@ public final class McaVillagerCompat {
         return mcaCobblemonLoaded;
     }
 
-    /**
-     * MCA is loaded and the optional compatibility toggle is on.
-     * When this is false, MCA villagers are treated like vanilla merchants on right-click.
-     */
     public static boolean isCompatibilityEnabled() {
         return Config.ENABLE_MCA_COMPATIBILITY && isModLoaded();
     }
 
-    /**
-     * Normal right-click should stay with MCA's interaction GUI for any MCA entity.
-     * Shop opens from Trade / shift-trade via {@link McaTradeRedirect} for tradeable villagers only.
-     */
     public static boolean shouldDeferNormalRightClick(Entity entity) {
         return isCompatibilityEnabled() && isMcaEntity(entity);
     }
@@ -125,9 +97,6 @@ public final class McaVillagerCompat {
         return false;
     }
 
-    /**
-     * Any entity registered under the MCA namespace (used to defer interaction to MCA's GUI).
-     */
     public static boolean isMcaEntity(Entity entity) {
         if (!isModLoaded() || entity == null) {
             return false;
@@ -136,9 +105,6 @@ public final class McaVillagerCompat {
         return id != null && MCA_MOD_ID.equals(id.getNamespace());
     }
 
-    /**
-     * MCA villager that can use the CobbleDollars shop trade pipeline (Trade button / shift-trade / redirect).
-     */
     public static boolean isMcaVillager(Entity entity) {
         if (!isModLoaded() || entity == null) {
             return false;
@@ -153,7 +119,7 @@ public final class McaVillagerCompat {
             if (MCA_TRADEABLE_ENTITY_PATHS.contains(path)) {
                 return true;
             }
-            // Forward compat: new MCA villager entity ids (7.7+) that extend {@link Villager}.
+            
             if (entity instanceof Villager && path.contains("villager")) {
                 return true;
             }
@@ -166,9 +132,6 @@ public final class McaVillagerCompat {
         return className.startsWith("net.conczin.mca.entity.") && entity instanceof Villager;
     }
 
-    /**
-     * Mirrors MCA GUI {@code trader} constraint when possible; permissive fallback if reflection fails.
-     */
     public static boolean canTradeWithProfession(Entity entity) {
         if (!isMcaVillager(entity)) {
             return true;
@@ -183,7 +146,6 @@ public final class McaVillagerCompat {
                 }
             } catch (NoSuchMethodException ignored) {
             } catch (Throwable t) {
-                LOGGER.debug("[mca] canTradeWithProfession reflection failed: {}", t.toString());
                 break;
             }
         }

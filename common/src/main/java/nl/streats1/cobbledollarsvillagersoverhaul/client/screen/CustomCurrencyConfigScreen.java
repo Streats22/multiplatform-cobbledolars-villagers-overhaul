@@ -19,16 +19,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
-/**
- * GUI for editing custom currency items. Users can add items by:
- * - Holding an item and clicking "Add held item"
- * - Clicking "Browse items" to pick from all registered items
- */
 public class CustomCurrencyConfigScreen extends Screen {
 
     private final Screen parent;
     private final Consumer<List<CurrencyEntryRecord>> onSave;
-    private final boolean useFile; // Fabric: save to file. NeoForge: pass JSON to callback
+    private final boolean useFile; 
     private List<CurrencyEntryRecord> entries = new ArrayList<>();
     private CurrencyListWidget listWidget;
     private EditBox valueEdit;
@@ -43,8 +38,7 @@ public class CustomCurrencyConfigScreen extends Screen {
         this(parent, onSave, useFile, null);
     }
 
-    /** Constructor with initial entries - use when returning from picker so changes are visible. */
-    public CustomCurrencyConfigScreen(Screen parent, Consumer<List<CurrencyEntryRecord>> onSave, boolean useFile,
+        public CustomCurrencyConfigScreen(Screen parent, Consumer<List<CurrencyEntryRecord>> onSave, boolean useFile,
                                       List<CurrencyEntryRecord> initialEntries) {
         super(Component.translatable("gui.cobbledollars_villagers_overhaul_rca.custom_currencies"));
         this.parent = parent;
@@ -70,14 +64,14 @@ public class CustomCurrencyConfigScreen extends Screen {
         addRenderableWidget(listWidget);
         listWidget.refresh();
 
-        // Add held item
+        
         addRenderableWidget(Button.builder(
                         Component.translatable("gui.cobbledollars_villagers_overhaul_rca.add_held_item"),
                         b -> addHeldItem())
                 .bounds(width / 2 - 155, height - 56, 150, 20)
                 .build());
 
-        // Browse items - pass callback that adds then opens fresh screen so new items are visible
+        
         addRenderableWidget(Button.builder(
                         Component.translatable("gui.cobbledollars_villagers_overhaul_rca.browse_items"),
                         b -> minecraft.setScreen(new nl.streats1.cobbledollarsvillagersoverhaul.client.screen.ItemPickerScreen(this, (id, val) -> {
@@ -87,21 +81,21 @@ public class CustomCurrencyConfigScreen extends Screen {
                 .bounds(width / 2 - 5, height - 56, 150, 20)
                 .build());
 
-        // Back (discard changes)
+        
         addRenderableWidget(Button.builder(
                         Component.translatable("gui.back"),
                         b -> minecraft.setScreen(parent))
                 .bounds(width / 2 - 155, height - 32, 100, 20)
                 .build());
 
-        // Done (save and close)
+        
         addRenderableWidget(Button.builder(
                         Component.translatable("gui.done"),
                         b -> saveAndClose())
                 .bounds(width / 2 - 50, height - 32, 100, 20)
                 .build());
 
-        // Value editor row: [-] [EditBox] [+] - click an item above to edit its value
+        
         int valueRowY = height - 86;
         int valueCenterX = width / 2;
         minusBtn = Button.builder(Component.literal("−"), b -> adjustValue(-1))
@@ -115,7 +109,7 @@ public class CustomCurrencyConfigScreen extends Screen {
         valueEdit.setHint(Component.translatable("gui.cobbledollars_villagers_overhaul_rca.value_hint"));
         valueEdit.setVisible(true);
         valueEdit.setFilter(s -> s.isEmpty() || s.matches("\\d*"));
-        valueEdit.setResponder(s -> {}); // Don't update on every keystroke - use blur/Done
+        valueEdit.setResponder(s -> {}); 
         addRenderableWidget(valueEdit);
     }
 
@@ -223,7 +217,7 @@ public class CustomCurrencyConfigScreen extends Screen {
 
         renderBackground(guiGraphics, mouseX, mouseY, partialTick);
 
-        // Panel background
+        
         int panelLeft = PANEL_PAD;
         int panelRight = width - PANEL_PAD;
         int panelTop = 36;
@@ -251,7 +245,7 @@ public class CustomCurrencyConfigScreen extends Screen {
             super(mc, w, h, y, itemHeight);
         }
 
-        public void refresh() {
+    public void refresh() {
             clearEntries();
             entries.sort((a, b) -> {
                 boolean aEmerald = "minecraft:emerald".equalsIgnoreCase(a.itemId());
@@ -265,7 +259,7 @@ public class CustomCurrencyConfigScreen extends Screen {
             }
         }
 
-        public class Entry extends ObjectSelectionList.Entry<Entry> {
+    public class Entry extends ObjectSelectionList.Entry<Entry> {
             private final CurrencyEntryRecord record;
 
             Entry(CurrencyEntryRecord record) {

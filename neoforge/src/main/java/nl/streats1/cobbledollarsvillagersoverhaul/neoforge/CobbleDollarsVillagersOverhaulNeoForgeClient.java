@@ -128,7 +128,6 @@ public class CobbleDollarsVillagersOverhaulNeoForgeClient {
         });
     }
 
-    /** Restore local config after leaving a remote server (multiplayer sync overwrites in-memory flags). */
     @SubscribeEvent
     public static void onClientLoggingOut(ClientPlayerNetworkEvent.LoggingOut event) {
         NeoForgePendingCustomShopMerchantSuppress.clear("disconnect");

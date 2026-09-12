@@ -29,13 +29,9 @@ public final class FabricNetworking {
 
         ServerPlayNetworking.registerGlobalReceiver(CobbleDollarsShopPayloads.RequestShopData.TYPE, (payload, context) -> {
             if (!(context.player() instanceof ServerPlayer sp)) {
-                CobbleDollarsVillagersOverhaulRca.LOGGER.warn("[shop] RequestShopData: player is not ServerPlayer, ignoring");
                 return;
             }
             int vid = payload.villagerId();
-            CobbleDollarsVillagersOverhaulRca.LOGGER.debug(
-                    "[shop] RequestShopData received on server thread queue: player={} villagerEntityId={}",
-                    sp.getName().getString(), vid);
             context.server().execute(() -> CobbleDollarsShopPayloadHandlers.handleRequestShopData(sp, vid));
         });
 

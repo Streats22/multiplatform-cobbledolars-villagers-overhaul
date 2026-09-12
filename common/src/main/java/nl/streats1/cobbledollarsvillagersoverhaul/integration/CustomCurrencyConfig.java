@@ -2,14 +2,12 @@ package nl.streats1.cobbledollarsvillagersoverhaul.integration;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-import com.mojang.logging.LogUtils;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import nl.streats1.cobbledollarsvillagersoverhaul.util.ModConfig;
-import org.slf4j.Logger;
 
 import java.lang.reflect.Type;
 import java.nio.file.Files;
@@ -19,15 +17,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Configurable currency items that work like emeralds.
- * When a trade uses these items as cost or result, they are converted to/from CobbleDollars.
- * Supports: Cobblemon Relic Coins, Relic Coin Pouches/Sacks, Poketokens (All The Mons), etc.
- * - Trade "4 Apricorns → 1 Coin" → SELL tab (player sells apricorns, gets CobbleDollars)
- * - Trade "12 Coins → 1 Potion" → BUY tab (player pays CobbleDollars, gets potion)
- */
 public final class CustomCurrencyConfig {
-    private static final Logger LOGGER = LogUtils.getLogger();
     private static final String CONFIG_FILE = "custom_currency.json";
     private static final String CONFIG_SUBDIR = "cobbledollars_villagers_overhaul_rca";
 
@@ -46,13 +36,10 @@ public final class CustomCurrencyConfig {
         }
     }
 
-    /** itemId -> CobbleDollars value per 1 item */
     private static final Map<String, Integer> CURRENCY_VALUES = new HashMap<>();
     private static boolean loaded = false;
-    /** Override from mod config (JSON string) - takes precedence over file */
     private static String configOverride = null;
 
-    /** Set config directory (e.g. FabricLoader.getInstance().getConfigDir()). Null = use default. */
     public static void setConfigRoot(Path path) {
         ModConfig.setConfigRoot(path);
     }
@@ -75,7 +62,6 @@ public final class CustomCurrencyConfig {
             String content = Files.readString(file);
             loadFromJson(content);
         } catch (Exception e) {
-            LOGGER.warn("Failed to load custom currency config: {}", e.getMessage());
         }
         loaded = true;
     }
@@ -104,18 +90,15 @@ public final class CustomCurrencyConfig {
                 }
             }
         } catch (Exception e) {
-            LOGGER.warn("Failed to parse custom currency JSON: {}", e.getMessage());
         }
         loaded = true;
     }
 
-    /** Set JSON override from mod config. Pass null to use file. */
     public static void setConfigOverride(String json) {
         configOverride = json;
         loaded = false;
     }
 
-    /** Call before reading entries in UI to ensure config is loaded (e.g. from file or NeoForge). */
     public static void ensureLoadedForUi() {
         ensureLoaded();
     }
@@ -136,7 +119,6 @@ public final class CustomCurrencyConfig {
         return getCurrencyValue(stack) > 0;
     }
 
-    /** CobbleDollars value per single item. 0 if not a currency item. */
     public static int getCurrencyValue(ItemStack stack) {
         if (stack == null || stack.isEmpty()) return 0;
         if (stack.is(Items.EMERALD)) {
@@ -150,14 +132,12 @@ public final class CustomCurrencyConfig {
         return 0;
     }
 
-    /** Total CobbleDollars value for the stack (count * value per item). */
     public static long getTotalValue(ItemStack stack) {
         int perItem = getCurrencyValue(stack);
         if (perItem <= 0) return 0;
         return (long) perItem * stack.getCount();
     }
 
-    /** Get all currency entries for UI. Returns a copy. */
     public static List<CurrencyEntryRecord> getEntries() {
         ensureLoaded();
         List<CurrencyEntryRecord> out = new ArrayList<>();
@@ -167,7 +147,6 @@ public final class CustomCurrencyConfig {
         return out;
     }
 
-    /** Replace all entries and persist. Used by config UI. */
     public static void replaceEntries(List<CurrencyEntryRecord> entries) {
         CURRENCY_VALUES.clear();
         for (CurrencyEntryRecord e : entries) {
@@ -180,9 +159,8 @@ public final class CustomCurrencyConfig {
         loaded = true;
     }
 
-    /** Persist current entries to custom_currency.json. Call after replaceEntries when using file (Fabric). */
     public static void saveToFile() {
-        if (configOverride != null) return; // NeoForge uses TOML; platform handles save
+        if (configOverride != null) return; 
         try {
             Path dir = ModConfig.getConfigDirectory().resolve(CONFIG_SUBDIR);
             Files.createDirectories(dir);
@@ -200,7 +178,6 @@ public final class CustomCurrencyConfig {
         }
     }
 
-    /** Write entries to custom_currency.json. Call from GUI save so JSON stays in sync (Fabric + NeoForge). */
     public static void writeEntriesToFile(List<CurrencyEntryRecord> entries) {
         try {
             Path dir = ModConfig.getConfigDirectory().resolve(CONFIG_SUBDIR);
@@ -211,7 +188,6 @@ public final class CustomCurrencyConfig {
         }
     }
 
-    /** Convert entries to JSON string. For NeoForge TOML. */
     public static String entriesToJson(List<CurrencyEntryRecord> entries) {
         List<CurrencyEntry> list = new ArrayList<>();
         for (CurrencyEntryRecord e : entries) {

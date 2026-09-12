@@ -6,11 +6,6 @@ import net.minecraft.world.item.trading.MerchantOffers;
 
 import java.lang.reflect.Method;
 
-/**
- * Optional integration with <a href="https://modrinth.com/mod/villagerconfig">VillagerConfig</a>.
- * When a villager has a custom trade table, VC injects in {@code updateTrades}; if vanilla offers were
- * generated first, VC can add on top — we clear once when a custom table exists, then refresh.
- */
 public final class VillagerConfigCompat {
 
     private static Boolean modLoaded;
@@ -44,9 +39,6 @@ public final class VillagerConfigCompat {
         }
     }
 
-    /**
-     * Run before reading {@link Villager#getOffers()} for the shop on the server.
-     */
     public static void prepareVillagerForShop(ServerLevel level, Villager villager) {
         if (villager == null || level == null) {
             return;

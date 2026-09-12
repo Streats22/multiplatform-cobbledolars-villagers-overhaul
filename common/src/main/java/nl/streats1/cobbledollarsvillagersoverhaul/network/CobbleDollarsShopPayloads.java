@@ -27,22 +27,6 @@ public final class CobbleDollarsShopPayloads {
     private static final StreamCodec<RegistryFriendlyByteBuf, String> STRING_UTF8 = (StreamCodec) ByteBufCodecs.STRING_UTF8;
     private static final StreamCodec<RegistryFriendlyByteBuf, ItemStack> ITEM_STACK = ItemStack.STREAM_CODEC;
 
-    /**
-     * One logical shop entry.
-     * <p>
-     * For RCT trainer association trades:
-     * - {@code seriesId} is the series identifier (e.g. "bdsp", "radicalred") for server communication
-     * - {@code seriesName} is the title: a translation key, or {@code literal:...} for plain text from datapack JSON
-     * - {@code seriesTooltip} is the description, same convention as {@code seriesName}
-     * - {@code seriesDifficulty} is the difficulty rating (can be fractional for half stars, e.g. 4.5)
-     * - {@code seriesCompleted} is the number of times the player has completed this series
-     * <p>
-     * Trades tab (item-for-item): {@code result} is drawn on the left = merchant {@code getCostA()} (first input).
-     * {@code costB} is after the arrow = merchant {@code getResult()} (output). {@code itemTradeSecondary} is
-     * merchant {@code getCostB()} when the trade uses two inputs; otherwise {@link ItemStack#EMPTY}.
-     * Buy/Sell entries use {@code result}/{@code costB} with normal buy/sell meaning.
-     * {@code categoryName} is used for default/config shop buy tabs (empty for villager trades).
-     */
     public record ShopOfferEntry(ItemStack result,
                                  int emeraldCount,
                                  ItemStack costB,
@@ -54,7 +38,7 @@ public final class CobbleDollarsShopPayloads {
                                  int seriesCompleted,
                                  ItemStack itemTradeSecondary,
                                  String categoryName) {
-        public static final StreamCodec<RegistryFriendlyByteBuf, ShopOfferEntry> STREAM_CODEC =
+    public static final StreamCodec<RegistryFriendlyByteBuf, ShopOfferEntry> STREAM_CODEC =
                 new StreamCodec<>() {
                     @Override
                     public void encode(RegistryFriendlyByteBuf buf, ShopOfferEntry entry) {
@@ -119,12 +103,11 @@ public final class CobbleDollarsShopPayloads {
                     }
                 };
 
-        public boolean hasCostB() {
+    public boolean hasCostB() {
             return costB != null && !costB.isEmpty() && !costB.is(Items.AIR);
         }
 
-        /** Second merchant input for Trades-tab barters; empty for Buy/Sell. */
-        public boolean hasItemTradeSecondary() {
+                public boolean hasItemTradeSecondary() {
             return itemTradeSecondary != null && !itemTradeSecondary.isEmpty() && !itemTradeSecondary.is(Items.AIR);
         }
     }
@@ -148,25 +131,25 @@ public final class CobbleDollarsShopPayloads {
     }
 
     public record RequestShopData(int villagerId) implements CustomPacketPayload {
-        public static final CustomPacketPayload.Type<RequestShopData> TYPE =
+    public static final CustomPacketPayload.Type<RequestShopData> TYPE =
                 new CustomPacketPayload.Type<>(Objects.requireNonNull(id("request_shop_data")));
-        public static final StreamCodec<RegistryFriendlyByteBuf, RequestShopData> STREAM_CODEC =
+    public static final StreamCodec<RegistryFriendlyByteBuf, RequestShopData> STREAM_CODEC =
                 Objects.requireNonNull(StreamCodec.composite(
                         VAR_INT,
                         RequestShopData::villagerId,
                         id -> new RequestShopData(Objects.requireNonNull(id))
                 ));
 
-        @Override
-        public Type<? extends CustomPacketPayload> type() {
+    @Override
+    public Type<? extends CustomPacketPayload> type() {
             return TYPE;
         }
     }
 
     public record ShopData(int villagerId, long balance, List<ShopOfferEntry> buyOffers, List<ShopOfferEntry> sellOffers, List<ShopOfferEntry> tradesOffers, boolean buyOffersFromConfig, boolean canCycleTrades) implements CustomPacketPayload {
-        public static final CustomPacketPayload.Type<ShopData> TYPE =
+    public static final CustomPacketPayload.Type<ShopData> TYPE =
                 new CustomPacketPayload.Type<>(Objects.requireNonNull(id("shop_data")));
-        public static final StreamCodec<RegistryFriendlyByteBuf, ShopData> STREAM_CODEC =
+    public static final StreamCodec<RegistryFriendlyByteBuf, ShopData> STREAM_CODEC =
                 StreamCodec.of(
                         (buf, data) -> {
                             VAR_INT.encode(buf, data.villagerId());
@@ -187,16 +170,12 @@ public final class CobbleDollarsShopPayloads {
                                 BOOL.decode(buf))
                 );
 
-        @Override
-        public Type<? extends CustomPacketPayload> type() {
+    @Override
+    public Type<? extends CustomPacketPayload> type() {
             return TYPE;
         }
     }
 
-    /**
-     * Server → client: authoritative shop flags so multiplayer clients match the dedicated server
-     * (singleplayer already shares one config file; remote clients otherwise read local config only).
-     */
     public record ServerShopConfigSync(
             boolean useCobbleDollarsShopUi,
             boolean villagersAcceptCobbleDollars,
@@ -205,9 +184,9 @@ public final class CobbleDollarsShopPayloads {
             int emeraldRateCdPerEmerald,
             boolean syncCobbleDollarsBankRate
     ) implements CustomPacketPayload {
-        public static final CustomPacketPayload.Type<ServerShopConfigSync> TYPE =
+    public static final CustomPacketPayload.Type<ServerShopConfigSync> TYPE =
                 new CustomPacketPayload.Type<>(Objects.requireNonNull(id("server_shop_config_sync")));
-        public static final StreamCodec<RegistryFriendlyByteBuf, ServerShopConfigSync> STREAM_CODEC =
+    public static final StreamCodec<RegistryFriendlyByteBuf, ServerShopConfigSync> STREAM_CODEC =
                 StreamCodec.of(
                         (buf, data) -> {
                             BOOL.encode(buf, data.useCobbleDollarsShopUi());
@@ -226,16 +205,16 @@ public final class CobbleDollarsShopPayloads {
                                 BOOL.decode(buf))
                 );
 
-        @Override
-        public Type<? extends CustomPacketPayload> type() {
+    @Override
+    public Type<? extends CustomPacketPayload> type() {
             return TYPE;
         }
     }
 
     public record BalanceUpdate(int villagerId, long balance) implements CustomPacketPayload {
-        public static final CustomPacketPayload.Type<BalanceUpdate> TYPE =
+    public static final CustomPacketPayload.Type<BalanceUpdate> TYPE =
                 new CustomPacketPayload.Type<>(Objects.requireNonNull(id("balance_update")));
-        public static final StreamCodec<RegistryFriendlyByteBuf, BalanceUpdate> STREAM_CODEC =
+    public static final StreamCodec<RegistryFriendlyByteBuf, BalanceUpdate> STREAM_CODEC =
                 Objects.requireNonNull(StreamCodec.composite(
                         VAR_INT,
                         BalanceUpdate::villagerId,
@@ -246,16 +225,16 @@ public final class CobbleDollarsShopPayloads {
                                 Objects.requireNonNull(balance))
                 ));
 
-        @Override
-        public Type<? extends CustomPacketPayload> type() {
+    @Override
+    public Type<? extends CustomPacketPayload> type() {
             return TYPE;
         }
     }
 
     public record BuyWithCobbleDollars(int villagerId, int offerIndex, int quantity, boolean fromConfigShop, int tab, String selectedSeries) implements CustomPacketPayload {
-        public static final CustomPacketPayload.Type<BuyWithCobbleDollars> TYPE =
+    public static final CustomPacketPayload.Type<BuyWithCobbleDollars> TYPE =
                 new CustomPacketPayload.Type<>(Objects.requireNonNull(id("buy")));
-        public static final StreamCodec<RegistryFriendlyByteBuf, BuyWithCobbleDollars> STREAM_CODEC =
+    public static final StreamCodec<RegistryFriendlyByteBuf, BuyWithCobbleDollars> STREAM_CODEC =
                 Objects.requireNonNull(StreamCodec.composite(
                         VAR_INT,
                         BuyWithCobbleDollars::villagerId,
@@ -278,32 +257,32 @@ public final class CobbleDollarsShopPayloads {
                                 selectedSeries != null ? selectedSeries : "")
                 ));
 
-        @Override
-        public Type<? extends CustomPacketPayload> type() {
+    @Override
+    public Type<? extends CustomPacketPayload> type() {
             return TYPE;
         }
     }
 
     public record CycleTrades(int villagerId) implements CustomPacketPayload {
-        public static final CustomPacketPayload.Type<CycleTrades> TYPE =
+    public static final CustomPacketPayload.Type<CycleTrades> TYPE =
                 new CustomPacketPayload.Type<>(Objects.requireNonNull(id("cycle_trades")));
-        public static final StreamCodec<RegistryFriendlyByteBuf, CycleTrades> STREAM_CODEC =
+    public static final StreamCodec<RegistryFriendlyByteBuf, CycleTrades> STREAM_CODEC =
                 Objects.requireNonNull(StreamCodec.composite(
                         VAR_INT,
                         CycleTrades::villagerId,
                         CycleTrades::new
                 ));
 
-        @Override
-        public Type<? extends CustomPacketPayload> type() {
+    @Override
+    public Type<? extends CustomPacketPayload> type() {
             return TYPE;
         }
     }
 
     public record SellForCobbleDollars(int villagerId, int offerIndex, int quantity) implements CustomPacketPayload {
-        public static final CustomPacketPayload.Type<SellForCobbleDollars> TYPE =
+    public static final CustomPacketPayload.Type<SellForCobbleDollars> TYPE =
                 new CustomPacketPayload.Type<>(Objects.requireNonNull(id("sell")));
-        public static final StreamCodec<RegistryFriendlyByteBuf, SellForCobbleDollars> STREAM_CODEC =
+    public static final StreamCodec<RegistryFriendlyByteBuf, SellForCobbleDollars> STREAM_CODEC =
                 Objects.requireNonNull(StreamCodec.composite(
                         VAR_INT,
                         SellForCobbleDollars::villagerId,
@@ -318,55 +297,44 @@ public final class CobbleDollarsShopPayloads {
                         )
                 ));
 
-        @Override
-        public Type<? extends CustomPacketPayload> type() {
+    @Override
+    public Type<? extends CustomPacketPayload> type() {
             return TYPE;
         }
     }
 
-    /**
-     * Client -> Server: Player dismissed the CobbleDollars shop (Esc or close). On integrated singleplayer / LAN,
-     * we avoid {@link net.minecraft.world.entity.npc.AbstractVillager#setTradingPlayer} during trades so the GUI
-     * stays open; this clears the merchant session when the UI actually closes.
-     */
     public record ShopScreenClosed(int villagerId) implements CustomPacketPayload {
-        public static final CustomPacketPayload.Type<ShopScreenClosed> TYPE =
+    public static final CustomPacketPayload.Type<ShopScreenClosed> TYPE =
                 new CustomPacketPayload.Type<>(Objects.requireNonNull(id("shop_screen_closed")));
-        public static final StreamCodec<RegistryFriendlyByteBuf, ShopScreenClosed> STREAM_CODEC =
+    public static final StreamCodec<RegistryFriendlyByteBuf, ShopScreenClosed> STREAM_CODEC =
                 StreamCodec.composite(VAR_INT, ShopScreenClosed::villagerId, ShopScreenClosed::new);
 
-        @Override
-        public Type<? extends CustomPacketPayload> type() {
+    @Override
+    public Type<? extends CustomPacketPayload> type() {
             return TYPE;
         }
     }
 
-    /**
-     * Client -> Server: Assign config shop to villager (sent when shift+left-click in assign mode).
-     */
     public record AssignVillager(int villagerId) implements CustomPacketPayload {
-        public static final CustomPacketPayload.Type<AssignVillager> TYPE =
+    public static final CustomPacketPayload.Type<AssignVillager> TYPE =
                 new CustomPacketPayload.Type<>(Objects.requireNonNull(id("assign_villager")));
-        public static final StreamCodec<RegistryFriendlyByteBuf, AssignVillager> STREAM_CODEC =
+    public static final StreamCodec<RegistryFriendlyByteBuf, AssignVillager> STREAM_CODEC =
                 StreamCodec.composite(VAR_INT, AssignVillager::villagerId, AssignVillager::new);
 
-        @Override
-        public Type<? extends CustomPacketPayload> type() {
+    @Override
+    public Type<? extends CustomPacketPayload> type() {
             return TYPE;
         }
     }
 
-    /**
-     * Server -> Client: Sync assign mode on/off.
-     */
     public record AssignModeUpdate(boolean on) implements CustomPacketPayload {
-        public static final CustomPacketPayload.Type<AssignModeUpdate> TYPE =
+    public static final CustomPacketPayload.Type<AssignModeUpdate> TYPE =
                 new CustomPacketPayload.Type<>(Objects.requireNonNull(id("assign_mode_update")));
-        public static final StreamCodec<RegistryFriendlyByteBuf, AssignModeUpdate> STREAM_CODEC =
+    public static final StreamCodec<RegistryFriendlyByteBuf, AssignModeUpdate> STREAM_CODEC =
                 StreamCodec.composite(BOOL, AssignModeUpdate::on, AssignModeUpdate::new);
 
-        @Override
-        public Type<? extends CustomPacketPayload> type() {
+    @Override
+    public Type<? extends CustomPacketPayload> type() {
             return TYPE;
         }
     }

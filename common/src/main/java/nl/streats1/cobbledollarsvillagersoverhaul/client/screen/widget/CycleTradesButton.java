@@ -10,10 +10,6 @@ import java.util.List;
 
 import nl.streats1.cobbledollarsvillagersoverhaul.CobbleDollarsVillagersOverhaulRca;
 
-/**
- * Trade cycle button - same visual style as Trade Cycling / Easy Villagers.
- * Texture: 32x32, top half (y 0-14) = normal, bottom half (y 14-28) = hover.
- */
 public class CycleTradesButton extends Button {
 
     private static final ResourceLocation TEX_CYCLE_TRADES =

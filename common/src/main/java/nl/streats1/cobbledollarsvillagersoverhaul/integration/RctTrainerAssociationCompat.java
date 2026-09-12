@@ -4,12 +4,6 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.Entity;
 
-/**
- * Utility to detect RCT Trainer Association entities (the shop NPC).
- * 
- * TrainerAssociation is the shop entity that extends WanderingTrader.
- * TrainerMob is the battle trainer entity (NOT a shop).
- */
 public final class RctTrainerAssociationCompat {
     private RctTrainerAssociationCompat() {
     }

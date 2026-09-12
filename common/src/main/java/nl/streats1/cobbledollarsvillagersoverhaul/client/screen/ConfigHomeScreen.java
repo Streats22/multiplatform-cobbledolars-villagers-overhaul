@@ -9,10 +9,6 @@ import nl.streats1.cobbledollarsvillagersoverhaul.integration.CurrencyEntryRecor
 import java.util.List;
 import java.util.function.Consumer;
 
-/**
- * Config home: "General settings" opens Cloth Config, "Edit currency items" opens the currency GUI.
- * For NeoForge, currencySaveCallback is used; for Fabric, useFile is true and we save to file.
- */
 public class ConfigHomeScreen extends Screen {
 
     private final Screen modListParent;

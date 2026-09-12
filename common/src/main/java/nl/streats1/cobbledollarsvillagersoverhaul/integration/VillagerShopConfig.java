@@ -11,10 +11,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * Tracks which villager entities use the config shop instead of vanilla trades.
- * Persisted to villager_shops.json.
- */
 public final class VillagerShopConfig {
 
     private static final String CONFIG_FILE = "villager_shops.json";
@@ -51,7 +47,6 @@ public final class VillagerShopConfig {
                 }
             }
         } catch (Exception e) {
-            CobbleDollarsVillagersOverhaulRca.LOGGER.warn("Failed to load villager shop config: {}", e.getMessage());
         }
     }
 
@@ -67,7 +62,6 @@ public final class VillagerShopConfig {
             obj.add(KEY, arr);
             Files.writeString(file, new GsonBuilder().setPrettyPrinting().create().toJson(obj));
         } catch (Exception e) {
-            CobbleDollarsVillagersOverhaulRca.LOGGER.error("Failed to save villager shop config: {}", e.getMessage());
         }
     }
 

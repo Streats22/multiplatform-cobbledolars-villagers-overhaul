@@ -47,15 +47,6 @@ public final class NeoForgeNetworking {
                 Objects.requireNonNull(CobbleDollarsShopPayloads.ShopData.TYPE),
                 Objects.requireNonNull(CobbleDollarsShopPayloads.ShopData.STREAM_CODEC),
                 (data, context) -> context.enqueueWork(() -> {
-                        CobbleDollarsVillagersOverhaulRca.LOGGER.debug(
-                                "[shop] ShopData S2C: villagerId={} balance={} buyOffers={} sellOffers={} tradesOffers={} fromConfig={} canCycle={}",
-                                data.villagerId(),
-                                data.balance(),
-                                data.buyOffers() != null ? data.buyOffers().size() : 0,
-                                data.sellOffers() != null ? data.sellOffers().size() : 0,
-                                data.tradesOffers() != null ? data.tradesOffers().size() : 0,
-                                data.buyOffersFromConfig(),
-                                data.canCycleTrades());
                     NeoForgePendingCustomShopMerchantSuppress.onShopDataReceived(data.villagerId());
                         CobbleDollarsShopScreen.openFromPayload(
                                 data.villagerId(), data.balance(), data.buyOffers(), data.sellOffers(), data.tradesOffers(), data.buyOffersFromConfig(), data.canCycleTrades());
@@ -131,12 +122,8 @@ public final class NeoForgeNetworking {
     private static void handleRequestShopData(CobbleDollarsShopPayloads.RequestShopData data, IPayloadContext context) {
         context.enqueueWork(() -> {
             if (!(context.player() instanceof ServerPlayer serverPlayer)) {
-                CobbleDollarsVillagersOverhaulRca.LOGGER.warn("[shop] RequestShopData: player is not ServerPlayer, ignoring");
                 return;
             }
-            CobbleDollarsVillagersOverhaulRca.LOGGER.debug(
-                    "[shop] RequestShopData received (NeoForge): player={} villagerEntityId={}",
-                    serverPlayer.getName().getString(), data.villagerId());
             CobbleDollarsShopPayloadHandlers.handleRequestShopData(serverPlayer, data.villagerId());
         });
     }

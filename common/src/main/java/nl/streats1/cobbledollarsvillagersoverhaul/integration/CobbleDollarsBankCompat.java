@@ -7,11 +7,6 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.util.UUID;
 
-/**
- * Compatibility layer to open CobbleDollars' bank screen.
- * CobbleDollars uses Cobblemon's network API; OpenBankPacket(merchantUUID) is sent to server.
- * When opening from our villager shop, we pass the entity's UUID (CobbleDollars may accept it for "bank at this entity" or ignore it for player bank).
- */
 public final class CobbleDollarsBankCompat {
 
     private static final String OPEN_BANK_PACKET = "fr.harmex.cobbledollars.common.network.packets.c2s.OpenBankPacket";
@@ -22,12 +17,6 @@ public final class CobbleDollarsBankCompat {
     private CobbleDollarsBankCompat() {
     }
 
-    /**
-     * Attempt to open the CobbleDollars bank. Uses reflection to send OpenBankPacket.
-     *
-     * @param entityUuid UUID of the entity we're trading with (villager/trader). CobbleDollars may use this or a nil UUID for player bank.
-     * @return true if the packet was sent, false if CobbleDollars is not loaded or reflection failed.
-     */
     public static boolean tryOpenBank(UUID entityUuid) {
         if (!CobbleDollarsIntegration.isModLoaded()) {
             return false;
@@ -45,9 +34,6 @@ public final class CobbleDollarsBankCompat {
         }
     }
 
-    /**
-     * Open bank using the entity ID from our shop screen. Resolves entity from client level.
-     */
     public static boolean tryOpenBankFromVillagerId(int villagerId) {
         Minecraft mc = Minecraft.getInstance();
         if (mc == null || mc.level == null) return false;

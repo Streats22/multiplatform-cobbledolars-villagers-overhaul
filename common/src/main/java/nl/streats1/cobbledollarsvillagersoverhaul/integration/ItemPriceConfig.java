@@ -11,10 +11,6 @@ import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-/**
- * Load/save custom item prices for villager item-for-item trades.
- * Used by DatapackItemPricing. Format: { "minecraft:diamond": 100, "minecraft:iron_ingot": 10 }
- */
 public final class ItemPriceConfig {
     private static final String CONFIG_SUBDIR = "cobbledollars_villagers_overhaul_rca";
     private static final String ITEM_PRICES_FILE = "item_prices.json";
@@ -48,14 +44,10 @@ public final class ItemPriceConfig {
             }
             return out;
         } catch (Exception ex) {
-            CobbleDollarsVillagersOverhaulRca.LOGGER.warn("Failed to load item prices: {}", ex.getMessage());
             return new LinkedHashMap<>();
         }
     }
 
-    /**
-     * Load saved prices into DatapackItemPricing (call after config root is set).
-     */
     public static void loadAndApply() {
         Map<String, Integer> entries = loadEntries();
         if (entries.isEmpty()) return;
@@ -75,9 +67,7 @@ public final class ItemPriceConfig {
             JsonObject root = new JsonObject();
             root.add(PRICES_KEY, prices);
             Files.writeString(file, new GsonBuilder().setPrettyPrinting().create().toJson(root));
-            CobbleDollarsVillagersOverhaulRca.LOGGER.info("Saved item prices to {}", file);
         } catch (Exception ex) {
-            CobbleDollarsVillagersOverhaulRca.LOGGER.error("Failed to save item prices: {}", ex.getMessage());
         }
     }
 }

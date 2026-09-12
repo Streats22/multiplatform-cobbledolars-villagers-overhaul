@@ -7,20 +7,11 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.item.ItemStack;
 import nl.streats1.cobbledollarsvillagersoverhaul.Config;
 
-/**
- * Minecraft-facing wrapper around {@link MerchantInteractPolicy}.
- *
- * <p>Keeps {@code CobbleDollarsVillagersOverhaulRca} thin: extract registry ids here, apply
- * optional-mod / vanilla passthrough rules, never hard-crash if an optional mod is absent.
- */
 public final class MerchantInteractCompat {
 
     private MerchantInteractCompat() {
     }
 
-    /**
-     * @return {@code true} if this interact must be left to vanilla or another mod (do not open shop).
-     */
     public static boolean shouldDeferShopOverride(Entity target, boolean sneaking, ItemStack heldItem) {
         if (target == null) {
             return false;

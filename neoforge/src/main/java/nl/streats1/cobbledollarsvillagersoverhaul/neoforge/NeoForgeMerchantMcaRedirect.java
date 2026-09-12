@@ -11,13 +11,10 @@ import net.minecraft.world.inventory.MerchantMenu;
 import net.minecraft.world.item.trading.Merchant;
 import nl.streats1.cobbledollarsvillagersoverhaul.Config;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.CobbleDollarsIntegration;
-import nl.streats1.cobbledollarsvillagersoverhaul.integration.McaVillagerCompat;
+import nl.streats1.cobbledollarsvillagersoverhaul.integration.McaIntegration;
 import nl.streats1.cobbledollarsvillagersoverhaul.network.CobbleDollarsShopPayloads;
 import nl.streats1.cobbledollarsvillagersoverhaul.platform.PlatformNetwork;
 
-/**
- * Same role as Fabric {@link nl.streats1.cobbledollarsvillagersoverhaul.fabric.FabricMerchantMcaRedirect}.
- */
 public final class NeoForgeMerchantMcaRedirect {
 
     private NeoForgeMerchantMcaRedirect() {
@@ -30,7 +27,7 @@ public final class NeoForgeMerchantMcaRedirect {
         if (!Config.USE_COBBLEDOLLARS_SHOP_UI || !CobbleDollarsIntegration.isModLoaded()) {
             return false;
         }
-        if (!McaVillagerCompat.isCompatibilityEnabled()) {
+        if (!McaIntegration.isEnabled()) {
             return false;
         }
         Minecraft mc = Minecraft.getInstance();
@@ -42,10 +39,10 @@ public final class NeoForgeMerchantMcaRedirect {
         if (!(trader instanceof Entity entity)) {
             return false;
         }
-        if (!McaVillagerCompat.isMcaVillager(entity)) {
+        if (!McaIntegration.isVillager(entity)) {
             return false;
         }
-        if (!McaVillagerCompat.canTradeWithProfession(entity)) {
+        if (!McaIntegration.canTrade(entity)) {
             return false;
         }
         if (entity instanceof Villager villagerEntity) {

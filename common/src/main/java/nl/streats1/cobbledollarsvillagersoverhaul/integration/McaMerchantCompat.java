@@ -1,28 +1,16 @@
 package nl.streats1.cobbledollarsvillagersoverhaul.integration;
 
-import com.mojang.logging.LogUtils;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.npc.Villager;
 import net.minecraft.world.item.trading.MerchantOffers;
-import org.slf4j.Logger;
 
 import java.lang.reflect.Method;
 
-/**
- * Ensures MCA Reborn villagers have merchant offers populated before the CobbleDollars shop reads them.
- * <p>
- * MCA 7.7+ may lazy-generate trades; vanilla {@code startTrading} is cancelled by our mixin, so we must
- * refresh trades explicitly (not only when the offer list is empty).
- */
 public final class McaMerchantCompat {
-    private static final Logger LOGGER = LogUtils.getLogger();
 
     private McaMerchantCompat() {
     }
 
-    /**
-     * Refresh MCA villager trades before building shop offer lists.
-     */
     public static void prepareForShop(ServerLevel level, Villager villager) {
         if (level == null || villager == null || !McaVillagerCompat.isMcaVillager(villager)) {
             return;
@@ -32,12 +20,6 @@ public final class McaMerchantCompat {
         if (offers == null || offers.isEmpty()) {
             invokeRestock(villager);
             refreshTrades(level, villager);
-            offers = villager.getOffers();
-            if (offers == null || offers.isEmpty()) {
-                LOGGER.debug("[mca] villager {} ({}) still has no offers after refresh (profession={})",
-                        villager.getUUID(), villager.getType().getDescriptionId(),
-                        villager.getVillagerData().getProfession());
-            }
         }
     }
 
@@ -52,8 +34,7 @@ public final class McaMerchantCompat {
             if (noArgs != null) {
                 noArgs.invoke(villager);
             }
-        } catch (Exception e) {
-            LOGGER.debug("[mca] updateTrades failed for {}: {}", villager.getUUID(), e.toString());
+        } catch (Exception ignored) {
         }
     }
 
@@ -66,7 +47,6 @@ public final class McaMerchantCompat {
                 return;
             } catch (NoSuchMethodException ignored) {
             } catch (Exception e) {
-                LOGGER.debug("[mca] restock failed for {}: {}", villager.getUUID(), e.toString());
                 return;
             }
         }

@@ -8,9 +8,6 @@ import net.minecraft.world.inventory.MerchantMenu;
 import net.minecraft.world.item.trading.Merchant;
 import nl.streats1.cobbledollarsvillagersoverhaul.CobbleDollarsVillagersOverhaulRca;
 
-/**
- * Suppress stray {@link MerchantScreen} opening while CobbleDollars shop packets are pending (MCA merchant redirect path).
- */
 public final class NeoForgePendingCustomShopMerchantSuppress {
 
     private static final int TICKS_TO_LIVE = 45;
@@ -37,7 +34,6 @@ public final class NeoForgePendingCustomShopMerchantSuppress {
         if (pendingEntityId != Integer.MIN_VALUE) {
             pendingEntityId = Integer.MIN_VALUE;
             ticksLeft = 0;
-            CobbleDollarsVillagersOverhaulRca.LOGGER.debug("[shop] NeoForge pending shop merchant-suppress cleared ({})", reason);
         }
     }
 

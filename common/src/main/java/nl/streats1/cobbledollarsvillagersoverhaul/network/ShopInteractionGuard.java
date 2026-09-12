@@ -14,35 +14,22 @@ import java.util.Collection;
 import java.util.OptionalInt;
 import java.util.OptionalLong;
 
-/**
- * Central server-side validation for CobbleDollars shop C2S packets.
- * <p>
- * Keeps quantity, reach, permission, profession, stock, and config-shop derivation
- * in one place so Fabric and NeoForge stay aligned (handlers live in {@code common}).
- */
 public final class ShopInteractionGuard {
     private ShopInteractionGuard() {
     }
 
-    /** Matches client UI stack slider; also bounds notifyTrade / XP loops. */
     public static final int MAX_TRADE_QUANTITY = 64;
 
-    /** Caps C2S {@code selectedSeries} to limit memory pressure from crafted packets. */
     public static final int MAX_SERIES_ID_LENGTH = 128;
 
-    /** Same reach used by assign-villager; vanilla interact is ~5–6 blocks. */
     public static final double MAX_INTERACT_DISTANCE = 6.0;
 
-    /** Matches {@code /cvm open shop|bank} Brigadier requirement. */
     public static final int VIRTUAL_SHOP_PERMISSION_LEVEL = 2;
 
     public static boolean isValidQuantity(int quantity) {
         return quantity >= 1 && quantity <= MAX_TRADE_QUANTITY;
     }
 
-    /**
-     * Overflow-safe {@code a * b} for non-negative ints. Empty on overflow or if either factor is negative.
-     */
     public static OptionalInt safeMultiplyExact(int a, int b) {
         if (a < 0 || b < 0) {
             return OptionalInt.empty();
@@ -54,9 +41,6 @@ public final class ShopInteractionGuard {
         }
     }
 
-    /**
-     * Overflow-safe {@code a * b} for non-negative longs. Empty on overflow or if either factor is negative.
-     */
     public static OptionalLong safeMultiplyLong(long a, long b) {
         if (a < 0 || b < 0) {
             return OptionalLong.empty();
@@ -72,9 +56,6 @@ public final class ShopInteractionGuard {
         return player != null && player.hasPermissions(VIRTUAL_SHOP_PERMISSION_LEVEL);
     }
 
-    /**
-     * Virtual shop/bank packets must match command permission; real entities use interact checks instead.
-     */
     public static boolean allowVirtualShopAccess(ServerPlayer player, int villagerId) {
         if (!VirtualShopIds.isVirtual(villagerId)) {
             return true;
@@ -100,9 +81,6 @@ public final class ShopInteractionGuard {
         return Config.isVillagerProfessionExcluded(profId);
     }
 
-    /**
-     * Server-authoritative config-shop routing. Never trust the client {@code fromConfigShop} flag alone.
-     */
     public static boolean isConfigShopBuy(int villagerId, Entity entity) {
         if (VirtualShopIds.isVirtualShop(villagerId)) {
             return true;
@@ -113,10 +91,6 @@ public final class ShopInteractionGuard {
         return false;
     }
 
-    /**
-     * Empty-offer fallback used when opening the shop: only for real merchants with no offers,
-     * matching {@link CobbleDollarsShopPayloadHandlers} request behavior.
-     */
     public static boolean isEmptyOfferConfigFallback(Entity entity, boolean configBuyOffersAvailable) {
         if (!configBuyOffersAvailable || entity == null) {
             return false;
@@ -154,9 +128,6 @@ public final class ShopInteractionGuard {
         return selectedSeries.substring(0, MAX_SERIES_ID_LENGTH);
     }
 
-    /**
-     * Empty series means "identify from offer". Non-empty must appear in the player's available series ids.
-     */
     public static boolean isSeriesAllowed(String seriesId, Collection<String> availableIds) {
         if (seriesId == null || seriesId.isEmpty()) {
             return true;

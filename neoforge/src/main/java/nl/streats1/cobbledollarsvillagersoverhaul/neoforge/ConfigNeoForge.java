@@ -80,7 +80,6 @@ public class ConfigNeoForge {
 
     static final ModConfigSpec SPEC = BUILDER.build();
     
-    /** Called when config screen is saved - applies current values to Config and CustomCurrencyConfig. */
     public static void saveFromScreen() {
         loadConfig(SPEC);
     }

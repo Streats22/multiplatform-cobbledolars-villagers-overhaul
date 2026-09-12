@@ -5,9 +5,6 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * Pure registry-path policy for MCA Reborn detection (no Minecraft runtime).
- */
 class McaVillagerCompatTest {
 
     @Test

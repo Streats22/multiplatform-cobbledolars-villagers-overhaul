@@ -12,7 +12,7 @@ import java.util.Objects;
 public final class VillagerCobbleDollarsHandler {
 
     public static void register() {
-        // Platform-specific event registration will be handled here
+        
     }
 
     public static void onTradeWithVillager(Player player, MerchantOffer offer) {

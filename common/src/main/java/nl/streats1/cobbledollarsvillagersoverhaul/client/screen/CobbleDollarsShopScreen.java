@@ -35,9 +35,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * CobbleDollars-style shop screen: layout aligned with CobbleDollars (balance, category tabs, offer list, quantity, Buy/Sell).
- */
 public class CobbleDollarsShopScreen extends Screen {
 
     private static final int WINDOW_WIDTH = 252;
@@ -69,9 +66,6 @@ public class CobbleDollarsShopScreen extends Screen {
     private static final int LEFT_PANEL_BTN_SIZE = 9;
     private static final int LEFT_PANEL_BUY_W = 31;
     private static final int LEFT_PANEL_BUY_H = 14;
-    /**
-     * Buy/Sell use full size; "Trade" is longer and uses a smaller label on the same texture.
-     */
     private static final float TRADE_ACTION_BUTTON_TEXT_SCALE = 0.82f;
     private static final int LEFT_PANEL_QTY_BTN_UP_X = 64;
     private static final int LEFT_PANEL_QTY_BTN_GAP = 2;
@@ -92,7 +86,6 @@ public class CobbleDollarsShopScreen extends Screen {
     private static final int LIST_ITEM_ICON_SIZE = Math.round(16 * LIST_ICON_SCALE);
     private static final int BALANCE_BG_X = 72;
     private static final int BALANCE_BG_Y = 181;
-    /** Bank button: left of GUI, text with "Bank" label. Three states: normal, hover, disabled. */
     private static final int BANK_BUTTON_X = 8;
     private static final int BANK_BUTTON_Y = BALANCE_BG_Y;
     private static final int BALANCE_TEXT_X_OFFSET = 6;
@@ -107,9 +100,6 @@ public class CobbleDollarsShopScreen extends Screen {
     private static final int LIST_ICON_OFFSET_Y = -1;
     private static final int LIST_PRICE_BADGE_OFFSET_X = -3;
     private static final int LIST_PRICE_BADGE_OFFSET_Y = -3;
-    /**
-     * Trades tab only: nudge the "→" between emerald price and cost item (GUI px, before row text scale).
-     */
     private static final int LIST_TRADES_ARROW_OFFSET_X = -7;
     private static final int LIST_TRADES_ARROW_OFFSET_Y = 2;
     private static final int PRICE_TEXT_OFFSET_Y = 4;
@@ -173,18 +163,8 @@ public class CobbleDollarsShopScreen extends Screen {
     private final List<CobbleDollarsShopPayloads.ShopOfferEntry> tradesOffers;
     private final boolean buyOffersFromConfig;
     private final boolean canCycleTrades;
-    /**
-     * Tab names (e.g. "Buy", "Sell", "Trades" or custom category names when buyOffersFromConfig).
-     * Rebuilt when shop data refreshes so Buy appears after e.g. currency list changes.
-     */
     private List<String> tabNames = List.of();
-    /**
-     * Offers per tab (same list references as {@link #buyOffers} / sell / trades where applicable).
-     */
     private List<List<CobbleDollarsShopPayloads.ShopOfferEntry>> tabOffers = List.of();
-    /**
-     * Number of buy tabs: always at least one logical Buy row for villager/datapack shops, or N category tabs from config.
-     */
     private int buyTabCount;
 
     private enum TabSection {
@@ -225,9 +205,6 @@ public class CobbleDollarsShopScreen extends Screen {
         selectFirstNonEmptyTab();
     }
 
-    /**
-     * Recompute category tabs from current buy/sell/trades lists (call after server refresh).
-     */
     private void rebuildTabs() {
         List<String> names = new ArrayList<>();
         List<List<CobbleDollarsShopPayloads.ShopOfferEntry>> offers = new ArrayList<>();
@@ -244,7 +221,7 @@ public class CobbleDollarsShopScreen extends Screen {
                 buyTabs++;
             }
         } else {
-            // Always show a Buy tab (may be empty) for villager/trader shops and empty config shops.
+            
             names.add(Component.translatable("gui.cobbledollars_villagers_overhaul_rca.buy").getString());
             offers.add(buyOffers);
             buyTabs = 1;
@@ -316,7 +293,6 @@ public class CobbleDollarsShopScreen extends Screen {
         }
     }
 
-    /** Entity id for the villager / trader this shop session targets (used by Fabric client recovery). */
     public int shopTargetEntityId() {
         return villagerId;
     }
@@ -334,9 +310,6 @@ public class CobbleDollarsShopScreen extends Screen {
         return selectedTab == buyTabCount + 1;
     }
 
-    /**
-     * For buy tabs: global index in buyOffers for server. For sell/trades: same as selectedIndex.
-     */
     private int serverOfferIndex() {
         if (selectedTab < buyTabCount) {
             int base = 0;
@@ -354,29 +327,15 @@ public class CobbleDollarsShopScreen extends Screen {
                                        boolean canCycleTrades) {
         Minecraft mc = Minecraft.getInstance();
         if (mc.level == null) {
-            CobbleDollarsVillagersOverhaulRca.LOGGER.warn("[shop] openFromPayload: mc.level is null, cannot open UI (villagerId={})", villagerId);
             return;
         }
         if (mc.screen instanceof CobbleDollarsShopScreen screen && screen.villagerId == villagerId) {
-            CobbleDollarsVillagersOverhaulRca.LOGGER.debug("[shop] openFromPayload: updating existing shop screen villagerId={}", villagerId);
             updateOffersFromServer(screen, villagerId, balance, buyOffers, sellOffers, tradesOffers, buyOffersFromConfig, canCycleTrades);
             return;
         }
-        CobbleDollarsVillagersOverhaulRca.LOGGER.debug(
-                "[shop] openFromPayload: new CobbleDollarsShopScreen villagerId={} currentScreen={}",
-                villagerId,
-                mc.screen != null ? mc.screen.getClass().getSimpleName() : "null");
         mc.setScreen(new CobbleDollarsShopScreen(villagerId, balance, buyOffers, sellOffers, tradesOffers, buyOffersFromConfig, canCycleTrades));
     }
 
-    /**
-     * Updates an existing shop screen with new offer data (e.g. after cycling trades or a full {@code ShopData} resync).
-     * <p>
-     * Villager-style layout (single Buy tab + Sell + Trades) stores each tab’s rows in {@link #buyOffers} / sell / trades
-     * and {@link #tabOffers} holds direct references to those lists — we can replace list contents in place with no
-     * {@link #rebuildTabs()} / {@link #applyTabAfterDataRefresh}, so the UI does not “reset” or jump. Config shops with
-     * multiple buy categories use separate lists per tab, so we still rebuild tab wiring when that applies.
-     */
     private static void updateOffersFromServer(CobbleDollarsShopScreen screen, int villagerId, long balance,
                                                List<CobbleDollarsShopPayloads.ShopOfferEntry> buyOffers,
                                                List<CobbleDollarsShopPayloads.ShopOfferEntry> sellOffers,
@@ -498,7 +457,6 @@ public class CobbleDollarsShopScreen extends Screen {
         minecraft.setScreen(new DefaultShopEditorScreen(this, null, onSave));
     }
 
-    /** Called when cycle key (C) is pressed - same keybind as Trade Cycling / Easy Villagers. */
     public void onCycleTrades() {
         if (!canCycleTrades) return;
         PlatformNetwork.sendToServer(new CobbleDollarsShopPayloads.CycleTrades(villagerId));
@@ -524,10 +482,10 @@ public class CobbleDollarsShopScreen extends Screen {
         } else {
             long total = (long) qty * price;
             if (balance < total || !hasRequiredIngredientsForBuyOrTrade(entry, qty)) return;
-            // For trades tab, include the selected series
+            
             String seriesToSend = isTradesTab() ? selectedSeries : "";
             int serverIdx = selectedTab < buyTabCount ? serverOfferIndex() : selectedIndex;
-            // Server expects tab: 0=buy, 1=sell (handled elsewhere), 2=trades
+            
             int logicalTab = isTradesTab() ? 2 : 0;
             PlatformNetwork.sendToServer(new CobbleDollarsShopPayloads.BuyWithCobbleDollars(villagerId, serverIdx, qty, buyOffersFromConfig, logicalTab, seriesToSend));
             applyBalanceDelta(-price * qty, 100);
@@ -568,7 +526,7 @@ public class CobbleDollarsShopScreen extends Screen {
 
     @Override
     public void renderBackground(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
-        // No dark overlay.
+        
     }
 
     @Override
@@ -626,14 +584,14 @@ public class CobbleDollarsShopScreen extends Screen {
         Component professionLabel = getProfessionLabel();
         int headerLeft = left + 8;
         if (!professionLabel.getString().isEmpty()) {
-            int headerWidth = 140; // Maximum width for profession label
-            int maxLabelWidth = headerWidth - 4; // Leave small margin
+            int headerWidth = 140; 
+            int maxLabelWidth = headerWidth - 4; 
             
             String labelText = professionLabel.getString();
             int textWidth = font.width(professionLabel);
             
             if (textWidth > maxLabelWidth) {
-                // Text is too long, need to wrap or truncate
+                
                 List<String> lines = new ArrayList<>();
                 StringBuilder currentLine = new StringBuilder();
                 String[] words = labelText.split(" ");
@@ -645,7 +603,7 @@ public class CobbleDollarsShopScreen extends Screen {
                             lines.add(currentLine.toString());
                             currentLine = new StringBuilder(word);
                         } else {
-                            // Single word is too long, truncate it
+                            
                             lines.add(word.substring(0, Math.min(word.length(), 15)) + "...");
                         }
                     } else {
@@ -656,14 +614,14 @@ public class CobbleDollarsShopScreen extends Screen {
                     lines.add(currentLine.toString());
                 }
                 
-                // Draw wrapped text (max 2 lines)
+                
                 int lineY = top + RIGHT_PANEL_HEADER_Y;
                 for (int i = 0; i < Math.min(lines.size(), 2); i++) {
                     guiGraphics.drawString(font, Component.literal(lines.get(i)), headerLeft, lineY, 0xFFE0E0E0, false);
                     lineY += font.lineHeight;
                 }
             } else {
-                // Text fits normally
+                
                 guiGraphics.drawString(font, professionLabel, headerLeft, top + RIGHT_PANEL_HEADER_Y, 0xFFE0E0E0, false);
             }
         }
@@ -706,7 +664,7 @@ public class CobbleDollarsShopScreen extends Screen {
             
             boolean hasCostB = !isSellTab() && entry.hasCostB();
             
-            // Only show price for buy/sell tabs, not trades tab (trades are item-to-item)
+            
             if (!isTradesTab()) {
                 int badgeX = priceX + LIST_PRICE_BADGE_OFFSET_X;
                 int badgeY = priceY + LIST_PRICE_BADGE_OFFSET_Y - (TEX_COBBLEDOLLARS_LOGO_H - font.lineHeight) / 2;
@@ -720,62 +678,62 @@ public class CobbleDollarsShopScreen extends Screen {
                 guiGraphics.drawString(font, priceStr, priceDrawX, priceDrawY, priceColor, false);
                 guiGraphics.pose().popPose();
             }
-            // For trades tab, show tooltip on hover with series info
+            
             if (isTradesTab() && !entry.seriesName().isEmpty()) {
-                // Check if mouse is hovering over where the series would be displayed (use price area)
-                // Show tooltip on hover
+                
+                
                 if (mouseX >= priceX && mouseX <= priceX + 60 && mouseY >= priceY - font.lineHeight && mouseY <= priceY + font.lineHeight) {
-                    // Build enhanced tooltip matching RCT style:
-                    // - Title (yellow)
-                    // - Description (light purple)
-                    // - Important message (from translation)
-                    // - Difficulty stars
-                    // - Series continue notice
+                    
+                    
+                    
+                    
+                    
+                    
                     java.util.List<net.minecraft.network.chat.Component> tooltipComponents = new java.util.ArrayList<>();
 
-                    // Title in yellow
+                    
                     tooltipComponents.add(seriesStoredTextToComponent(entry.seriesName())
                             .withStyle(net.minecraft.ChatFormatting.YELLOW));
 
-                    // Description in light purple/italic
+                    
                     if (entry.seriesTooltip() != null && !entry.seriesTooltip().isEmpty()) {
                         tooltipComponents.add(seriesStoredTextToComponent(entry.seriesTooltip())
                                 .withStyle(net.minecraft.ChatFormatting.LIGHT_PURPLE, net.minecraft.ChatFormatting.ITALIC));
                     }
 
-                    // Empty line
+                    
                     tooltipComponents.add(net.minecraft.network.chat.Component.literal(""));
 
-                    // Important label (red)
+                    
                     tooltipComponents.add(net.minecraft.network.chat.Component.translatable("gui.rctmod.trainer_association.important")
                             .withStyle(net.minecraft.ChatFormatting.RED, net.minecraft.ChatFormatting.BOLD));
 
-                    // Series reset warning (italic RED) - split into 2 lines
+                    
                     tooltipComponents.add(net.minecraft.network.chat.Component.translatable("gui.cobbledollars_villagers_overhaul_rca.series_reset_1")
                             .withStyle(ChatFormatting.RED, net.minecraft.ChatFormatting.ITALIC));
                     tooltipComponents.add(net.minecraft.network.chat.Component.translatable("gui.cobbledollars_villagers_overhaul_rca.series_reset_2")
                             .withStyle(ChatFormatting.RED, net.minecraft.ChatFormatting.ITALIC));
 
-                    // Difficulty with stars (like RCT does: ★★★☆☆ or ★★☆)
-                    // Difficulty is 1-10, but we display 5 stars max, so divide by 2
-                    // Half stars supported: difficulty 5 = 2.5 stars
+                    
+                    
+                    
                     float difficulty = entry.seriesDifficulty();
                     int maxStars = 5;
                     StringBuilder stars = new StringBuilder();
                     for (int star = 0; star < maxStars; star++) {
                         if (difficulty / 2f >= star + 1) {
-                            stars.append("\u2605"); // ★ Full star
+                            stars.append("\u2605"); 
                         } else if (difficulty / 2f >= star + 0.5f) {
-                            stars.append("\u2b50"); // ⯪ Half star
+                            stars.append("\u2b50"); 
                         } else {
-                            stars.append("\u2606"); // ☆ Empty star
+                            stars.append("\u2606"); 
                         }
                     }
                     String difficultyText = net.minecraft.network.chat.Component.translatable("gui.rctmod.trainer_association.difficulty").getString() + ": " + stars;
                     tooltipComponents.add(net.minecraft.network.chat.Component.literal(difficultyText)
                             .withStyle(net.minecraft.ChatFormatting.GOLD));
 
-                    // Convert to FormattedCharSequence list for renderTooltip
+                    
                     List<FormattedCharSequence> tooltipLines = new ArrayList<>();
                     for (net.minecraft.network.chat.Component c : tooltipComponents) {
                         tooltipLines.add(c.getVisualOrderText());
@@ -786,10 +744,10 @@ public class CobbleDollarsShopScreen extends Screen {
             if (!isSellTab()) {
                 ItemStack costB = costBStackFrom(entry);
                 if (!costB.isEmpty()) {
-                    // Use same scale for both items on trades tab
+                    
                     float costBScale = isTradesTab() ? LIST_ICON_SCALE : LIST_COSTB_SCALE;
 
-                    int costBX = priceX + Math.round(font.width(priceStr) * LIST_TEXT_SCALE) + (selectedTab < buyTabCount ? 2 : 4); // Less spacing for buy tab
+                    int costBX = priceX + Math.round(font.width(priceStr) * LIST_TEXT_SCALE) + (selectedTab < buyTabCount ? 2 : 4); 
                     int costBY = isTradesTab() ? iconY : iconY + 3;
                     guiGraphics.pose().pushPose();
                     float plusScale = hasCostB ? LIST_COSTB_PLUS_SCALE : LIST_TEXT_SCALE;
@@ -798,7 +756,7 @@ public class CobbleDollarsShopScreen extends Screen {
                     int plusDrawY = Math.round((textY + PRICE_TEXT_OFFSET_Y) / plusScale);
 
                     if (isTradesTab()) {
-                        // Use arrow character for trades tab instead of text - more like vanilla GUI
+                        
                         guiGraphics.pose().popPose();
                         guiGraphics.pose().pushPose();
                         float arrowScale = hasCostB ? LIST_COSTB_PLUS_SCALE : LIST_TEXT_SCALE;
@@ -809,7 +767,7 @@ public class CobbleDollarsShopScreen extends Screen {
                         int arrowDrawY = Math.round(arrowBaseY / arrowScale);
                         guiGraphics.drawString(font, "→", arrowDrawX, arrowDrawY, 0xFFAAAAAA, false);
                     } else {
-                        // Use "+" for buy/sell tabs
+                        
                         guiGraphics.drawString(font, "+", plusDrawX, plusDrawY, 0xFFAAAAAA, false);
                     }
                     guiGraphics.pose().popPose();
@@ -840,7 +798,7 @@ public class CobbleDollarsShopScreen extends Screen {
             }
         }
 
-        // Close icon
+        
         int closeX = left + WINDOW_WIDTH - CLOSE_BUTTON_SIZE - CLOSE_BUTTON_MARGIN;
         int closeY = top + 2;
         guiGraphics.drawString(font, Component.literal("×"), closeX + 4, closeY + 3, 0xFFE0E0E0, false);
@@ -913,7 +871,7 @@ public class CobbleDollarsShopScreen extends Screen {
             CobbleDollarsShopPayloads.ShopOfferEntry entry = offers.get(selectedIndex);
             int detailX = left + LEFT_PANEL_X + LEFT_PANEL_DETAIL_OFFSET_X;
             int detailY = top + LEFT_PANEL_DETAIL_Y + LEFT_PANEL_DETAIL_OFFSET_Y;
-            // Trades tab: large icon shows what you receive (merchant result = payload costB).
+            
             ItemStack result = isTradesTab() ? costBStackFrom(entry) : resultStackFrom(entry);
             if (!result.isEmpty()) {
                 guiGraphics.pose().pushPose();
@@ -936,7 +894,7 @@ public class CobbleDollarsShopScreen extends Screen {
 
         super.render(guiGraphics, mouseX, mouseY, partialTick);
 
-        // Draw bank button last so nothing draws over it
+        
         if (bankButton != null) {
             int bankX = bankButton.getX();
             int bankY = bankButton.getY();
@@ -964,11 +922,11 @@ public class CobbleDollarsShopScreen extends Screen {
         }
 
         int listTop = top + LIST_TOP_OFFSET;
-        int rowL = left + LIST_LEFT_OFFSET - 10;  // Match render loop for correct tooltip hit areas
+        int rowL = left + LIST_LEFT_OFFSET - 10;  
         int rowR = rowL + LIST_WIDTH;
         var offers = currentOffers();
 
-        // Check shop list items for tooltips
+        
         for (int i = 0; i < listVisibleRows; i++) {
             int idx = scrollOffset + i;
             if (idx >= offers.size()) break;
@@ -977,11 +935,11 @@ public class CobbleDollarsShopScreen extends Screen {
             if (mouseX >= rowL && mouseX < rowR && mouseY >= y && mouseY < y + listItemHeight) {
                 CobbleDollarsShopPayloads.ShopOfferEntry entry = offers.get(idx);
                 
-                // Calculate icon position once for use in both tooltip checks
+                
                 int iconX = rowL + OFFER_ROW_PADDING_LEFT + LIST_ICON_OFFSET_X;
                 int iconY = y + (listItemHeight - LIST_ITEM_ICON_SIZE) / 2 + LIST_ICON_OFFSET_Y;
                 
-                // Check main item tooltip
+                
                 ItemStack result = resultStackFrom(entry);
                 if (!result.isEmpty()) {
                     int iconSize = Math.round(LIST_ITEM_ICON_SIZE * LIST_ICON_SCALE);
@@ -992,38 +950,38 @@ public class CobbleDollarsShopScreen extends Screen {
                     }
                 }
                 
-                // Check costB item tooltip
+                
                 if (!isSellTab() && entry.hasCostB()) {
                     ItemStack costB = costBStackFrom(entry);
                     if (!costB.isEmpty()) {
                         int priceX = iconX + LIST_ITEM_ICON_SIZE + OFFER_ROW_GAP_AFTER_ICON;
                         int priceW = Math.round(font.width(formatPrice(priceForDisplay(entry))) * LIST_TEXT_SCALE);
-                        int costBX = priceX + priceW + (selectedTab < buyTabCount ? 2 : 4);  // Match render loop spacing
+                        int costBX = priceX + priceW + (selectedTab < buyTabCount ? 2 : 4);  
                         int costBY = isTradesTab() ? iconY : y + (listItemHeight - LIST_ITEM_ICON_SIZE) / 2 + LIST_ICON_OFFSET_Y + 3;
                         float costBScale = isTradesTab() ? LIST_ICON_SCALE : LIST_COSTB_SCALE;
                         int costBSize = Math.round(LIST_ITEM_ICON_SIZE * costBScale);
                         
                         if (mouseX >= costBX && mouseX < costBX + costBSize &&
                             mouseY >= costBY && mouseY < costBY + costBSize) {
-                            // For trades tab, use translatable keys for series tooltip
+                            
                             if (isTradesTab() && entry.seriesName() != null && !entry.seriesName().isEmpty()) {
                                 List<FormattedCharSequence> tooltipLines = new ArrayList<>();
-                                // Title in yellow
+                                
                                 tooltipLines.add(seriesStoredTextToComponent(entry.seriesName()).withStyle(net.minecraft.ChatFormatting.YELLOW).getVisualOrderText());
-                                // Description in light purple italic
+                                
                                 if (entry.seriesTooltip() != null && !entry.seriesTooltip().isEmpty()) {
                                     tooltipLines.add(seriesStoredTextToComponent(entry.seriesTooltip()).withStyle(net.minecraft.ChatFormatting.LIGHT_PURPLE, net.minecraft.ChatFormatting.ITALIC).getVisualOrderText());
                                 }
-                                // Empty line
+                                
                                 tooltipLines.add(net.minecraft.network.chat.Component.literal("").getVisualOrderText());
-                                // Important label (red)
+                                
                                 tooltipLines.add(net.minecraft.network.chat.Component.translatable("gui.rctmod.trainer_association.important").withStyle(net.minecraft.ChatFormatting.RED, net.minecraft.ChatFormatting.BOLD).getVisualOrderText());
-                                // Series reset warning (italic gray) - split into 2 lines
+                                
                                 tooltipLines.add(net.minecraft.network.chat.Component.translatable("gui.cobbledollars_villagers_overhaul_rca.series_reset_1").withStyle(net.minecraft.ChatFormatting.GRAY, net.minecraft.ChatFormatting.ITALIC).getVisualOrderText());
                                 tooltipLines.add(net.minecraft.network.chat.Component.translatable("gui.cobbledollars_villagers_overhaul_rca.series_reset_2").withStyle(net.minecraft.ChatFormatting.GRAY, net.minecraft.ChatFormatting.ITALIC).getVisualOrderText());
                                 guiGraphics.renderTooltip(font, tooltipLines, mouseX, mouseY);
                             } else {
-                                // Fallback: vanilla tooltip for the costB item.
+                                
                                 guiGraphics.renderTooltip(font, costB, mouseX, mouseY);
                             }
                         }
@@ -1040,11 +998,11 @@ public class CobbleDollarsShopScreen extends Screen {
                         }
                     }
                 }
-                break; // Only show tooltip for topmost item
+                break; 
             }
         }
         
-        // Check detail panel item tooltip
+        
         boolean hasSelection = selectedIndex >= 0 && selectedIndex < offers.size();
         if (hasSelection) {
             CobbleDollarsShopPayloads.ShopOfferEntry entry = offers.get(selectedIndex);
@@ -1096,9 +1054,6 @@ public class CobbleDollarsShopScreen extends Screen {
         }
     }
 
-    /**
-     * Server sends a translation key or {@code literal:...} for datapack-defined text.
-     */
     private static MutableComponent seriesStoredTextToComponent(String stored) {
         if (stored == null || stored.isEmpty()) {
             return Component.literal("");
@@ -1123,7 +1078,6 @@ public class CobbleDollarsShopScreen extends Screen {
         return stack.copy();
     }
 
-    /** Merchant second input for Trades-tab barters (datapack two-ingredient trades). */
     private static ItemStack itemTradeSecondaryFrom(CobbleDollarsShopPayloads.ShopOfferEntry entry) {
         if (entry == null || !entry.hasItemTradeSecondary() || entry.itemTradeSecondary() == null) {
             return ItemStack.EMPTY;
@@ -1162,7 +1116,6 @@ public class CobbleDollarsShopScreen extends Screen {
         return true;
     }
 
-    /** Buy tab: checks emerald-line second ingredient. Trades tab: both barter inputs when present. */
     private boolean hasRequiredIngredientsForBuyOrTrade(CobbleDollarsShopPayloads.ShopOfferEntry entry, int qty) {
         if (isTradesTab()) {
             return hasRequiredTradeTabItems(entry, qty);
@@ -1175,32 +1128,32 @@ public class CobbleDollarsShopScreen extends Screen {
         var entity = minecraft.level.getEntity(villagerId);
         if (entity == null) return Component.empty();
         
-        // Custom name (name tag) takes precedence
+        
         if (entity.hasCustomName()) {
             return entity.getCustomName();
         }
         
-        // Use entity.getDisplayName() - properly resolves modded villager professions and datapack names.
-        // Minecraft resolves this via the entity type and profession translation keys that mods register.
+        
+        
         Component displayName = entity.getDisplayName();
         if (displayName != null && !displayName.getString().isEmpty()) {
             String s = displayName.getString();
-            // Only use if it looks like a real name (not an untranslated key like "entity.minecraft.villager.xxx")
+            
             if (!s.startsWith("entity.") || s.contains(" ")) {
                 return displayName;
             }
         }
         
-        // Fallback for Villager: try profession translation with full registry key (supports modded namespaces)
+        
         if (entity instanceof Villager villager) {
             var key = BuiltInRegistries.VILLAGER_PROFESSION.getKey(villager.getVillagerData().getProfession());
             if (key != null) {
-                // Try entity.<namespace>.<path> first (e.g. entity.allthemons.pokemart_trader)
+                
                 Component modded = Component.translatable("entity." + key.getNamespace() + "." + key.getPath());
                 if (!modded.getString().equals("entity." + key.getNamespace() + "." + key.getPath())) {
                     return modded;
                 }
-                // Try vanilla convention for backward compatibility
+                
                 Component vanilla = Component.translatable("entity.minecraft.villager." + key.getPath());
                 if (!vanilla.getString().equals("entity.minecraft.villager." + key.getPath())) {
                     return vanilla;
@@ -1253,7 +1206,7 @@ public class CobbleDollarsShopScreen extends Screen {
     }
 
     private long priceForDisplay(CobbleDollarsShopPayloads.ShopOfferEntry entry) {
-        // directPrice: emeraldCount already holds CD value, do not multiply by rate
+        
         if (entry.directPrice()) return entry.emeraldCount();
         if (Config.FREE_MINIMUM_EMERALD_TRADE && entry.emeraldCount() == 1 && !isSellTab()) return 0;
         if (isSellTab()) return (long) entry.emeraldCount() * getRate();

@@ -6,27 +6,12 @@ import com.google.gson.GsonBuilder;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Single source of truth for auto-generated config files under
- * {@code config/cobbledollars_villagers_overhaul_rca/}.
- */
 public final class ModConfigDefaults {
 
-    /**
-     * Default CobbleDollars per emerald in {@code cobbledollarsEmeraldRate} / {@code Config#COBBLEDOLLARS_EMERALD_RATE}.
-     */
     public static final int DEFAULT_EMERALD_RATE_CD = 750;
 
-    /**
-     * Optional-mod item ids that must not open the shop. Spawn eggs and named name tags are always
-     * passed through in {@link MerchantInteractPolicy} even if omitted here.
-     */
     public static final List<String> DEFAULT_PASSTHROUGH_INTERACT_ITEM_IDS = List.of();
 
-    /**
-     * Optional companion-mod namespaces whose held items must not open the shop (lassos, backpacks,
-     * villager items, catchers). Unknown namespaces are ignored when the mod is absent.
-     */
     public static final List<String> DEFAULT_PASSTHROUGH_INTERACT_ITEM_NAMESPACES = List.of(
             "sophisticatedbackpacks",
             "easyvillagers",
@@ -44,10 +29,6 @@ public final class ModConfigDefaults {
     private ModConfigDefaults() {
     }
 
-    /**
-     * {@code config/cobbledollars_villagers_overhaul_rca/config.json} (Fabric).
-     * {@code cobbledollarsEmeraldRate} is literal CD per emerald (250 = 250 CD).
-     */
     public static String fabricMainConfigJson() {
         return fabricMainConfigJson(
                 DEFAULT_EMERALD_RATE_CD,
@@ -68,9 +49,6 @@ public final class ModConfigDefaults {
         );
     }
 
-    /**
-     * Same as {@link #fabricMainConfigJson()} but with current values (Mod Menu save).
-     */
     public static String fabricMainConfigJson(
             int cobbledollarsEmeraldRate,
             boolean syncCobbleDollarsBankRate,

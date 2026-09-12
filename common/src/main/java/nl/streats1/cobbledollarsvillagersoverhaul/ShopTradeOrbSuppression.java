@@ -1,9 +1,5 @@
 package nl.streats1.cobbledollarsvillagersoverhaul;
 
-/**
- * While set, {@code AbstractVillager.rewardTradeXp} is coerced to skip spawning experience orbs.
- * Our shop grants the same trade XP directly via {@link net.minecraft.server.level.ServerPlayer#giveExperiencePoints(int)}.
- */
 public final class ShopTradeOrbSuppression {
     private static final ThreadLocal<Integer> DEPTH = ThreadLocal.withInitial(() -> 0);
 

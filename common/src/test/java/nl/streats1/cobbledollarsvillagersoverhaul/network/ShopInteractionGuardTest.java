@@ -10,9 +10,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * Pure policy tests for shop C2S validation (no Minecraft runtime).
- */
 class ShopInteractionGuardTest {
 
     @Test
@@ -26,7 +23,7 @@ class ShopInteractionGuardTest {
 
     @Test
     void multiplyExactRejectsOverflowThatWouldEnableFreeBuys() {
-        // Historical exploit: count=64, quantity=33_554_432 wraps int emeraldCost negative
+        
         OptionalInt overflow = ShopInteractionGuard.safeMultiplyExact(64, 33_554_432);
         assertTrue(overflow.isEmpty());
 

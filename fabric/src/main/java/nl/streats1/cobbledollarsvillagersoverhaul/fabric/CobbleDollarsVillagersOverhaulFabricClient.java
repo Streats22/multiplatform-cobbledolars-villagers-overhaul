@@ -53,15 +53,6 @@ public class CobbleDollarsVillagersOverhaulFabricClient implements ClientModInit
             (payload, context) -> {
                 context.client().execute(() -> {
                     FabricPendingCustomShopScreen.onShopDataReceived(payload.villagerId());
-                    CobbleDollarsVillagersOverhaulRca.LOGGER.debug(
-                            "[shop] ShopData S2C: villagerId={} balance={} buyOffers={} sellOffers={} tradesOffers={} fromConfig={} canCycle={}",
-                            payload.villagerId(),
-                            payload.balance(),
-                            payload.buyOffers() != null ? payload.buyOffers().size() : 0,
-                            payload.sellOffers() != null ? payload.sellOffers().size() : 0,
-                            payload.tradesOffers() != null ? payload.tradesOffers().size() : 0,
-                            payload.buyOffersFromConfig(),
-                            payload.canCycleTrades());
                     var client = context.client();
                     boolean shopAlreadyOpen = client.screen instanceof CobbleDollarsShopScreen s
                             && s.shopTargetEntityId() == payload.villagerId();
@@ -80,9 +71,6 @@ public class CobbleDollarsVillagersOverhaulFabricClient implements ClientModInit
                     if (!shopAlreadyOpen) {
                         FabricMerchantScreenOverlapGuard.scheduleDeferredRecheck(client);
                     }
-                    CobbleDollarsVillagersOverhaulRca.LOGGER.debug(
-                            "[shop] ShopData handler: after openFromPayload screen={}",
-                            client.screen != null ? client.screen.getClass().getSimpleName() : "null");
                 });
             });
             
