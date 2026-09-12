@@ -15,9 +15,6 @@ import nl.streats1.cobbledollarsvillagersoverhaul.integration.McaVillagerCompat;
 import nl.streats1.cobbledollarsvillagersoverhaul.network.CobbleDollarsShopPayloads;
 import nl.streats1.cobbledollarsvillagersoverhaul.platform.PlatformNetwork;
 
-/**
- * Same role as Fabric {@link nl.streats1.cobbledollarsvillagersoverhaul.fabric.FabricMerchantMcaRedirect}.
- */
 public final class NeoForgeMerchantMcaRedirect {
 
     private NeoForgeMerchantMcaRedirect() {

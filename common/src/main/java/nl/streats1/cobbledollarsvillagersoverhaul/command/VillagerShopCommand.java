@@ -16,14 +16,10 @@ import nl.streats1.cobbledollarsvillagersoverhaul.network.CobbleDollarsShopPaylo
 import java.util.Comparator;
 import java.util.List;
 
-/**
- * Command similar to CobbleDollars' /cobblemerchant edit.
- * Run while looking at a villager, wandering trader, or RCT Trainer Association to open the shop.
- */
 public final class VillagerShopCommand {
 
     private static final double REACH_DISTANCE = 5.0;
-    private static final double LOOK_ANGLE_THRESHOLD = 0.95; // Dot product; entity must be roughly in look direction
+    private static final double LOOK_ANGLE_THRESHOLD = 0.95; 
 
     private VillagerShopCommand() {
     }
@@ -55,10 +51,7 @@ public final class VillagerShopCommand {
         return 1;
     }
 
-    /**
-     * Find the villager, wandering trader, or RCT Trainer Association the player is looking at.
-     */
-    private static Entity findLookedAtMerchant(net.minecraft.world.entity.player.Player player) {
+        private static Entity findLookedAtMerchant(net.minecraft.world.entity.player.Player player) {
         Vec3 eyePos = player.getEyePosition(1.0f);
         Vec3 lookVec = player.getViewVector(1.0f);
         Vec3 end = eyePos.add(lookVec.scale(REACH_DISTANCE));

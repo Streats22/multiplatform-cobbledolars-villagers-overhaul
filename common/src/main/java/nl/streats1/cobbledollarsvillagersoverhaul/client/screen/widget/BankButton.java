@@ -7,15 +7,9 @@ import net.minecraft.network.chat.Component;
 
 import java.util.List;
 
-/**
- * Bank button - opens CobbleDollars bank when available.
- * Texture and text are drawn by CobbleDollarsShopScreen after super.render() so nothing draws over it.
- * This widget is invisible (click detection only).
- */
 public class BankButton extends Button {
 
-    /** Texture is 90x48, 3 rows of 16px. Draw 40x14 to match Buy button size. */
-    public static final int WIDTH = 40;
+        public static final int WIDTH = 40;
     public static final int HEIGHT = 14;
 
     public BankButton(int x, int y, OnPress onPress) {
@@ -24,7 +18,7 @@ public class BankButton extends Button {
 
     @Override
     protected void renderWidget(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
-        // Drawn by CobbleDollarsShopScreen after super.render() - nothing here
+        
     }
 
     public void renderTooltipIfHovered(GuiGraphics guiGraphics, int mouseX, int mouseY) {

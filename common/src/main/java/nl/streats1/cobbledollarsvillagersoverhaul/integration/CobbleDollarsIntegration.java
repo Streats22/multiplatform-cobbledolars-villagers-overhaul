@@ -35,7 +35,7 @@ public final class CobbleDollarsIntegration {
     }
 
     private static boolean detectModLoaded() {
-        // NeoForge / Forge
+        
         try {
             Class<?> modListClass = Class.forName("net.neoforged.fml.ModList");
             Object modList = modListClass.getMethod("get").invoke(null);
@@ -55,7 +55,7 @@ public final class CobbleDollarsIntegration {
         } catch (Throwable ignored) {
         }
 
-        // Fabric
+        
         try {
             Class<?> fabricLoaderClass = Class.forName("net.fabricmc.loader.api.FabricLoader");
             Object loader = fabricLoaderClass.getMethod("getInstance").invoke(null);
@@ -94,7 +94,7 @@ public final class CobbleDollarsIntegration {
                         String name = m.getName();
                         Class<?>[] params = m.getParameterTypes();
                         
-                        // Look for getBalance/getCobbleDollars
+                        
                         if ((name.equals("getCobbleDollars") || name.equals("getBalance") || name.equals("get")) && params.length == 1) {
                             if (Player.class.isAssignableFrom(params[0]) &&
                                 (m.getReturnType() == long.class || m.getReturnType() == int.class || m.getReturnType() == bigIntegerClass)) {
@@ -137,7 +137,6 @@ public final class CobbleDollarsIntegration {
         }
 
         if (getBalanceHandle == null || setBalanceHandle == null) {
-            CobbleDollarsVillagersOverhaulRca.LOGGER.error("CobbleDollars mod is loaded but balance API could not be resolved! Villager CobbleDollars payment will be disabled.");
         }
     }
 
@@ -175,11 +174,7 @@ public final class CobbleDollarsIntegration {
         }
     }
 
-    /**
-     * Add (or remove if negative) balance from player.
-     * Tries to use dedicated add/remove methods first, falls back to get+set.
-     */
-    public static boolean addBalance(Player player, long amount) {
+        public static boolean addBalance(Player player, long amount) {
         if (!isModLoaded()) {
             return false;
         }
@@ -192,7 +187,7 @@ public final class CobbleDollarsIntegration {
         boolean success = false;
 
         if (amount == Long.MIN_VALUE) {
-            // Math.abs(Long.MIN_VALUE) overflows; reject crafted packets
+            
             return false;
         }
 
@@ -214,7 +209,7 @@ public final class CobbleDollarsIntegration {
             }
         } else if (amount < 0 && removeBalanceHandle != null) {
             long absAmount = Math.abs(amount);
-            // remove* APIs do not always verify funds — check before calling
+            
             long balance = getBalance(player);
             if (balance < 0 || balance < absAmount) {
                 return false;

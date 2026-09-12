@@ -7,9 +7,6 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * Guards issue #51: shop override must not swallow sneak / capture-item / excluded-entity interacts.
- */
 class MerchantInteractPolicyTest {
 
     @Test

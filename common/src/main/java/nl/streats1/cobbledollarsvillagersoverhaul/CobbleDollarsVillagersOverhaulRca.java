@@ -1,6 +1,5 @@
 package nl.streats1.cobbledollarsvillagersoverhaul;
 
-import com.mojang.logging.LogUtils;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.Entity;
@@ -14,11 +13,9 @@ import nl.streats1.cobbledollarsvillagersoverhaul.integration.MerchantInteractCo
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.RctTrainerAssociationCompat;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.VillagerCobbleDollarsHandler;
 import nl.streats1.cobbledollarsvillagersoverhaul.network.CobbleDollarsShopPayloadHandlers;
-import org.slf4j.Logger;
 
 public class CobbleDollarsVillagersOverhaulRca {
     public static final String MOD_ID = "cobbledollars_villagers_overhaul_rca";
-    public static final Logger LOGGER = LogUtils.getLogger();
 
     public CobbleDollarsVillagersOverhaulRca() {
         CobbleDollarsShopPayloadHandlers.registerPayloads();
@@ -36,10 +33,8 @@ public class CobbleDollarsVillagersOverhaulRca {
             return false;
         }
 
-        // Optional-mod / vanilla item / sneak passthrough (issue #51: lasso, backpacks, Carry On).
+        
         if (MerchantInteractCompat.shouldDeferShopOverride(target, isSneaking, heldItem)) {
-            LOGGER.debug("[shop] deferring shop override (sneak/item/entity exclusion), entity={} sneak={}",
-                    target.getType().getDescriptionId(), isSneaking);
             return false;
         }
 
@@ -58,8 +53,8 @@ public class CobbleDollarsVillagersOverhaulRca {
             return false;
         }
 
-        // When MCA compat is on, let MCA handle normal right-click for all MCA entities.
-        // CobbleDollars shop opens from Trade/shift-trade via startTrading redirect mixin.
+        
+        
         if (McaVillagerCompat.shouldDeferNormalRightClick(target)) {
             return false;
         }

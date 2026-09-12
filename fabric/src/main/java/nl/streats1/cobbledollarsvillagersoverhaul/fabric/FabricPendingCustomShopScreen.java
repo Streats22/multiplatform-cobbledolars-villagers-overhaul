@@ -8,17 +8,8 @@ import net.minecraft.world.inventory.MerchantMenu;
 import net.minecraft.world.item.trading.Merchant;
 import nl.streats1.cobbledollarsvillagersoverhaul.CobbleDollarsVillagersOverhaulRca;
 
-/**
- * After the client sends {@link nl.streats1.cobbledollarsvillagersoverhaul.network.CobbleDollarsShopPayloads.RequestShopData},
- * vanilla may still open {@link MerchantScreen} briefly on dedicated servers before {@code ShopData} arrives.
- * Suppress that merchant GUI for the same entity until the custom shop opens or the window expires.
- * Integrated singleplayer is skipped: packets are synchronous there and suppression tends to cause flicker instead.
- */
 public final class FabricPendingCustomShopScreen {
-    /**
-     * ~2s at 20 TPS — enough for laggy servers; then allow vanilla if nothing arrived.
-     */
-    private static final int TICKS_TO_LIVE = 45;
+        private static final int TICKS_TO_LIVE = 45;
 
     private static int pendingEntityId = Integer.MIN_VALUE;
     private static int ticksLeft;
@@ -30,10 +21,7 @@ public final class FabricPendingCustomShopScreen {
         beginAwaitingShopData(villagerEntityId, false);
     }
 
-    /**
-     * @param bypassSingleplayerGate when true (e.g. MCA merchant screen redirect), arms suppress on integrated singleplayer too.
-     */
-    public static void beginAwaitingShopData(int villagerEntityId, boolean bypassSingleplayerGate) {
+        public static void beginAwaitingShopData(int villagerEntityId, boolean bypassSingleplayerGate) {
         Minecraft mc = Minecraft.getInstance();
         if (!bypassSingleplayerGate && mc.getSingleplayerServer() != null) {
             return;
@@ -46,7 +34,6 @@ public final class FabricPendingCustomShopScreen {
         if (pendingEntityId != Integer.MIN_VALUE) {
             pendingEntityId = Integer.MIN_VALUE;
             ticksLeft = 0;
-            CobbleDollarsVillagersOverhaulRca.LOGGER.debug("[shop] Fabric pending shop: cleared ({})", reason);
         }
     }
 
@@ -59,19 +46,13 @@ public final class FabricPendingCustomShopScreen {
         }
     }
 
-    /**
-     * Called when {@code ShopData} is applied so the next frame is not blocked.
-     */
-    public static void onShopDataReceived(int villagerId) {
+        public static void onShopDataReceived(int villagerId) {
         if (pendingEntityId == villagerId) {
             clear("shop-data-received");
         }
     }
 
-    /**
-     * {@link MerchantMenu}'s merchant field name differs by Minecraft version / mappings; avoid accessor mixins.
-     */
-    private static Merchant findMerchantForMenu(MerchantMenu menu) {
+        private static Merchant findMerchantForMenu(MerchantMenu menu) {
         if (menu == null) {
             return null;
         }

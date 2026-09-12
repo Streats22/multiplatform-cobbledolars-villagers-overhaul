@@ -13,10 +13,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Read/write CobbleDollars bank.json for the bank editor.
- * Format: { "bank": [ { "item": "id", "price": X }, ... ] }
- */
 public final class BankConfig {
     private static final String COBBLEDOLLARS_CONFIG_SUBDIR = "cobbledollars";
     private static final String BANK_FILE = "bank.json";
@@ -49,7 +45,6 @@ public final class BankConfig {
             }
             return out;
         } catch (Exception ex) {
-            CobbleDollarsVillagersOverhaulRca.LOGGER.warn("Failed to load bank config: {}", ex.getMessage());
             return new ArrayList<>();
         }
     }
@@ -68,9 +63,7 @@ public final class BankConfig {
             JsonObject root = new JsonObject();
             root.add("bank", bank);
             Files.writeString(file, new com.google.gson.GsonBuilder().setPrettyPrinting().create().toJson(root));
-            CobbleDollarsVillagersOverhaulRca.LOGGER.info("Saved bank config to {}", file);
         } catch (Exception ex) {
-            CobbleDollarsVillagersOverhaulRca.LOGGER.error("Failed to save bank config: {}", ex.getMessage());
         }
     }
 }

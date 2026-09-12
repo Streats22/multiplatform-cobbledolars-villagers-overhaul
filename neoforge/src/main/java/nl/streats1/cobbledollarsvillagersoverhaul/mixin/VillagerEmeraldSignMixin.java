@@ -21,15 +21,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import nl.streats1.cobbledollarsvillagersoverhaul.ModItems;
 
-/**
- * When a {@link Villager} is rendered holding an emerald, replaces that
- * emerald with the custom {@code cobbledollar_sign} coin item so the villager
- * visually displays the CobbleDollar icon instead.
- *
- * <p>Injects at HEAD of the {@code LivingEntity} render overload, cancels when
- * a Villager holds an emerald, and manually replicates the layer's transform +
- * renderItem call using the coin {@link ItemStack} instead.</p>
- */
 @Mixin(CrossedArmsItemLayer.class)
 public class VillagerEmeraldSignMixin {
 

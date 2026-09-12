@@ -12,10 +12,6 @@ import nl.streats1.cobbledollarsvillagersoverhaul.network.CobbleDollarsShopPaylo
 import nl.streats1.cobbledollarsvillagersoverhaul.network.CobbleDollarsShopPayloads;
 import nl.streats1.cobbledollarsvillagersoverhaul.platform.PlatformNetwork;
 
-/**
- * CobbleDollars-style /cvm commands: open shop, open bank, assign/unassign villager.
- * Requires op (permission 2).
- */
 public final class CvmCommand {
 
     private CvmCommand() {

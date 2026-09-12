@@ -12,45 +12,16 @@ public class Config {
     public static boolean USE_COBBLEDOLLARS_SHOP_UI = true;
     public static boolean USE_RCT_TRADES_OVERHAUL = true;
     public static boolean USE_DATAPACK_TRADES = true;
-    /** When true, trades that cost 1 emerald (minimum after curing/discounts) are free - no CobbleDollars charged. */
-    public static boolean FREE_MINIMUM_EMERALD_TRADE = false;
-    /**
-     * Mod namespaces to exclude from CobbleDollars shop (e.g. cobbledollars for CobbleMerchant).
-     */
-    public static List<String> EXCLUDED_VILLAGER_PROFESSION_NAMESPACES = new ArrayList<>(List.of("cobbledollars"));
-    /**
-     * Specific profession IDs to exclude (e.g. casinorocket:casino_worker for Casino Worker with Chip Table).
-     * Use this when only some professions from a mod have their own UI, so others can use our shop.
-     */
-    public static List<String> EXCLUDED_VILLAGER_PROFESSION_IDS = new ArrayList<>(List.of("casinorocket:casino_worker"));
-    /**
-     * When true and MCA is loaded, normal right-click stays with MCA's interaction GUI.
-     * Trade / shift-trade still redirect into the CobbleDollars shop.
-     */
-    public static boolean ENABLE_MCA_COMPATIBILITY = true;
-    /**
-     * When true, sneak-right-click does not open the shop (vanilla villager behaviour).
-     * Lets Carry On, Sophisticated Backpacks pickup, leads, Easy Villagers, etc. run.
-     */
-    public static boolean SKIP_SHOP_OVERRIDE_WHEN_SNEAKING = true;
-    /**
-     * Extra entity-type namespaces that keep their own interact (not the CobbleDollars shop).
-     */
-    public static List<String> EXCLUDED_ENTITY_TYPE_NAMESPACES = new ArrayList<>();
-    /**
-     * Extra entity-type ids ({@code namespace:path}) that keep their own interact.
-     */
-    public static List<String> EXCLUDED_ENTITY_TYPE_IDS = new ArrayList<>();
-    /**
-     * Held-item ids that must not open the shop (capture tools, etc.). Spawn eggs and named
-     * name tags always pass through even if omitted here.
-     */
-    public static List<String> PASSTHROUGH_INTERACT_ITEM_IDS = new ArrayList<>(
+        public static boolean FREE_MINIMUM_EMERALD_TRADE = false;
+        public static List<String> EXCLUDED_VILLAGER_PROFESSION_NAMESPACES = new ArrayList<>(List.of("cobbledollars"));
+        public static List<String> EXCLUDED_VILLAGER_PROFESSION_IDS = new ArrayList<>(List.of("casinorocket:casino_worker"));
+        public static boolean ENABLE_MCA_COMPATIBILITY = true;
+        public static boolean SKIP_SHOP_OVERRIDE_WHEN_SNEAKING = true;
+        public static List<String> EXCLUDED_ENTITY_TYPE_NAMESPACES = new ArrayList<>();
+        public static List<String> EXCLUDED_ENTITY_TYPE_IDS = new ArrayList<>();
+        public static List<String> PASSTHROUGH_INTERACT_ITEM_IDS = new ArrayList<>(
             nl.streats1.cobbledollarsvillagersoverhaul.integration.ModConfigDefaults.DEFAULT_PASSTHROUGH_INTERACT_ITEM_IDS);
-    /**
-     * Held-item namespaces that must not open the shop (optional companion mods).
-     */
-    public static List<String> PASSTHROUGH_INTERACT_ITEM_NAMESPACES = new ArrayList<>(
+        public static List<String> PASSTHROUGH_INTERACT_ITEM_NAMESPACES = new ArrayList<>(
             nl.streats1.cobbledollarsvillagersoverhaul.integration.ModConfigDefaults.DEFAULT_PASSTHROUGH_INTERACT_ITEM_NAMESPACES);
     public static int DATAPACK_ITEM_PRICE_RARITY_COMMON = 1;
     public static int DATAPACK_ITEM_PRICE_RARITY_UNCOMMON = 5;
@@ -123,11 +94,7 @@ public class Config {
         PASSTHROUGH_INTERACT_ITEM_NAMESPACES = list != null ? new ArrayList<>(list) : new ArrayList<>();
     }
 
-    /**
-     * Applies shop-related booleans from the server (multiplayer). Client local config files are not used
-     * for the authoritative server when connected; this keeps client behavior aligned with the dedicated server.
-     */
-    public static void applyServerShopRuntimeConfig(boolean useCobbleDollarsShopUi, boolean villagersAcceptCobbleDollars,
+        public static void applyServerShopRuntimeConfig(boolean useCobbleDollarsShopUi, boolean villagersAcceptCobbleDollars,
                                                     boolean useDatapackTrades, boolean useRctTradesOverhaul) {
         applyServerShopRuntimeConfig(useCobbleDollarsShopUi, villagersAcceptCobbleDollars, useDatapackTrades,
                 useRctTradesOverhaul, COBBLEDOLLARS_EMERALD_RATE, SYNC_COBBLEDOLLARS_BANK_RATE);
@@ -144,14 +111,12 @@ public class Config {
         SYNC_COBBLEDOLLARS_BANK_RATE = syncCobbleDollarsBankRate;
     }
 
-    /** Check by namespace (all professions from that mod). */
-    public static boolean isVillagerProfessionExcluded(String namespace) {
+        public static boolean isVillagerProfessionExcluded(String namespace) {
         return namespace != null && !EXCLUDED_VILLAGER_PROFESSION_NAMESPACES.isEmpty()
                 && EXCLUDED_VILLAGER_PROFESSION_NAMESPACES.stream().anyMatch(ns -> ns != null && ns.equalsIgnoreCase(namespace));
     }
 
-    /** Check by full profession ID (e.g. casinorocket:casino_worker) or namespace. */
-    public static boolean isVillagerProfessionExcluded(ResourceLocation profId) {
+        public static boolean isVillagerProfessionExcluded(ResourceLocation profId) {
         if (profId == null) return false;
         String fullId = profId.getNamespace() + ":" + profId.getPath();
         if (!EXCLUDED_VILLAGER_PROFESSION_IDS.isEmpty()

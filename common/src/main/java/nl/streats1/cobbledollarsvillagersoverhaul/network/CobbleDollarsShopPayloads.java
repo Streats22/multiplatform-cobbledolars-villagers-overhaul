@@ -27,23 +27,7 @@ public final class CobbleDollarsShopPayloads {
     private static final StreamCodec<RegistryFriendlyByteBuf, String> STRING_UTF8 = (StreamCodec) ByteBufCodecs.STRING_UTF8;
     private static final StreamCodec<RegistryFriendlyByteBuf, ItemStack> ITEM_STACK = ItemStack.STREAM_CODEC;
 
-    /**
-     * One logical shop entry.
-     * <p>
-     * For RCT trainer association trades:
-     * - {@code seriesId} is the series identifier (e.g. "bdsp", "radicalred") for server communication
-     * - {@code seriesName} is the title: a translation key, or {@code literal:...} for plain text from datapack JSON
-     * - {@code seriesTooltip} is the description, same convention as {@code seriesName}
-     * - {@code seriesDifficulty} is the difficulty rating (can be fractional for half stars, e.g. 4.5)
-     * - {@code seriesCompleted} is the number of times the player has completed this series
-     * <p>
-     * Trades tab (item-for-item): {@code result} is drawn on the left = merchant {@code getCostA()} (first input).
-     * {@code costB} is after the arrow = merchant {@code getResult()} (output). {@code itemTradeSecondary} is
-     * merchant {@code getCostB()} when the trade uses two inputs; otherwise {@link ItemStack#EMPTY}.
-     * Buy/Sell entries use {@code result}/{@code costB} with normal buy/sell meaning.
-     * {@code categoryName} is used for default/config shop buy tabs (empty for villager trades).
-     */
-    public record ShopOfferEntry(ItemStack result,
+        public record ShopOfferEntry(ItemStack result,
                                  int emeraldCount,
                                  ItemStack costB,
                                  boolean directPrice,
@@ -123,8 +107,7 @@ public final class CobbleDollarsShopPayloads {
             return costB != null && !costB.isEmpty() && !costB.is(Items.AIR);
         }
 
-        /** Second merchant input for Trades-tab barters; empty for Buy/Sell. */
-        public boolean hasItemTradeSecondary() {
+                public boolean hasItemTradeSecondary() {
             return itemTradeSecondary != null && !itemTradeSecondary.isEmpty() && !itemTradeSecondary.is(Items.AIR);
         }
     }
@@ -193,11 +176,7 @@ public final class CobbleDollarsShopPayloads {
         }
     }
 
-    /**
-     * Server → client: authoritative shop flags so multiplayer clients match the dedicated server
-     * (singleplayer already shares one config file; remote clients otherwise read local config only).
-     */
-    public record ServerShopConfigSync(
+        public record ServerShopConfigSync(
             boolean useCobbleDollarsShopUi,
             boolean villagersAcceptCobbleDollars,
             boolean useDatapackTrades,
@@ -324,12 +303,7 @@ public final class CobbleDollarsShopPayloads {
         }
     }
 
-    /**
-     * Client -> Server: Player dismissed the CobbleDollars shop (Esc or close). On integrated singleplayer / LAN,
-     * we avoid {@link net.minecraft.world.entity.npc.AbstractVillager#setTradingPlayer} during trades so the GUI
-     * stays open; this clears the merchant session when the UI actually closes.
-     */
-    public record ShopScreenClosed(int villagerId) implements CustomPacketPayload {
+        public record ShopScreenClosed(int villagerId) implements CustomPacketPayload {
         public static final CustomPacketPayload.Type<ShopScreenClosed> TYPE =
                 new CustomPacketPayload.Type<>(Objects.requireNonNull(id("shop_screen_closed")));
         public static final StreamCodec<RegistryFriendlyByteBuf, ShopScreenClosed> STREAM_CODEC =
@@ -341,10 +315,7 @@ public final class CobbleDollarsShopPayloads {
         }
     }
 
-    /**
-     * Client -> Server: Assign config shop to villager (sent when shift+left-click in assign mode).
-     */
-    public record AssignVillager(int villagerId) implements CustomPacketPayload {
+        public record AssignVillager(int villagerId) implements CustomPacketPayload {
         public static final CustomPacketPayload.Type<AssignVillager> TYPE =
                 new CustomPacketPayload.Type<>(Objects.requireNonNull(id("assign_villager")));
         public static final StreamCodec<RegistryFriendlyByteBuf, AssignVillager> STREAM_CODEC =
@@ -356,10 +327,7 @@ public final class CobbleDollarsShopPayloads {
         }
     }
 
-    /**
-     * Server -> Client: Sync assign mode on/off.
-     */
-    public record AssignModeUpdate(boolean on) implements CustomPacketPayload {
+        public record AssignModeUpdate(boolean on) implements CustomPacketPayload {
         public static final CustomPacketPayload.Type<AssignModeUpdate> TYPE =
                 new CustomPacketPayload.Type<>(Objects.requireNonNull(id("assign_mode_update")));
         public static final StreamCodec<RegistryFriendlyByteBuf, AssignModeUpdate> STREAM_CODEC =

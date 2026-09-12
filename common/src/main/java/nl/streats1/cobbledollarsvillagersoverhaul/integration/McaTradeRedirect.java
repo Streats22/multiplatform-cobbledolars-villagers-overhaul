@@ -9,9 +9,6 @@ import net.minecraft.world.entity.player.Player;
 import nl.streats1.cobbledollarsvillagersoverhaul.Config;
 import nl.streats1.cobbledollarsvillagersoverhaul.network.CobbleDollarsShopPayloadHandlers;
 
-/**
- * Redirects MCA {@link AbstractVillager#startTrading} into the CobbleDollars shop pipeline.
- */
 public final class McaTradeRedirect {
 
     private McaTradeRedirect() {

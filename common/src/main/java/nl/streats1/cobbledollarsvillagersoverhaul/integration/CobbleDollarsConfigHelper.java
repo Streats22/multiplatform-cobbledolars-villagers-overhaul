@@ -24,11 +24,7 @@ public final class CobbleDollarsConfigHelper {
 
     private static final String COBBLEDOLLARS_CONFIG_SUBDIR = "cobbledollars";
 
-    /**
-     * Set config root (e.g. FabricLoader.getConfigDir()). Null = use default.
-     * Delegates to {@link ModConfig#setConfigRoot(Path)}.
-     */
-    public static void setConfigRoot(Path path) {
+        public static void setConfigRoot(Path path) {
         ModConfig.setConfigRoot(path);
     }
     private static final String BANK_FILE = "bank.json";
@@ -138,13 +134,7 @@ public final class CobbleDollarsConfigHelper {
         }
     }
 
-    /**
-     * Get bank sell offers from CobbleDollars bank.json.
-     * Each entry: player sells item for price (CobbleDollars).
-     * Format: { "bank": [ { "item": "id", "price": X }, ... ] }
-     * ShopOfferEntry for sell: result = item player sells, emeraldCount = CD they receive.
-     */
-    public static List<CobbleDollarsShopPayloads.ShopOfferEntry> getBankSellOffers() {
+        public static List<CobbleDollarsShopPayloads.ShopOfferEntry> getBankSellOffers() {
         Path configDir = getConfigDirectory();
         Path bankFile = configDir.resolve(COBBLEDOLLARS_CONFIG_SUBDIR).resolve(BANK_FILE);
         if (!Files.isRegularFile(bankFile)) return List.of();
@@ -167,7 +157,7 @@ public final class CobbleDollarsConfigHelper {
                 if (id == null) continue;
                 var item = BuiltInRegistries.ITEM.get(id);
                 if (item == null || item == Items.AIR) continue;
-                // Sell offer: result = item player gives, emeraldCount = CD they receive (directPrice=true)
+                
                 out.add(ShopOfferEntryFactory.sellDirect(new ItemStack(item, 1), price));
             }
             return out;
@@ -176,29 +166,15 @@ public final class CobbleDollarsConfigHelper {
         }
     }
 
-    /**
-     * CobbleDollars charged per emerald in villager (and similar) trades.
-     * <p>
-     * This mod's config value ({@link Config#COBBLEDOLLARS_EMERALD_RATE}) — from Mod Menu, NeoForge config, or
-     * Fabric {@code config.json} — is always authoritative so editing it updates trade prices immediately.
-     * {@link Config#SYNC_COBBLEDOLLARS_BANK_RATE} remains for forwards compatibility but no longer overrides this
-     * rate; align {@code cobbledollarsEmeraldRate} with {@code bank.json}'s emerald price yourself if desired.
-     */
-    public static int getEffectiveEmeraldRate() {
+        public static int getEffectiveEmeraldRate() {
         return Math.max(1, Config.COBBLEDOLLARS_EMERALD_RATE);
     }
 
-    /**
-     * Call after config or bank.json changes so sync picks up a new emerald price.
-     */
-    public static void invalidateBankEmeraldPriceCache() {
+        public static void invalidateBankEmeraldPriceCache() {
         cachedBankEmeraldPrice = -1;
     }
 
-    /**
-     * Config root (e.g. .minecraft/config). Used by CobbleDollars config files.
-     */
-    public static Path getConfigDirectory() {
+        public static Path getConfigDirectory() {
         return ModConfig.getConfigDirectory();
     }
 }

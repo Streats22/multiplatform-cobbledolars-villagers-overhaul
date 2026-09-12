@@ -8,10 +8,6 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 
-/**
- * Villager / wandering trader trades normally spawn XP orbs. Our custom shop awards scaled XP directly
- * ({@code offer.getXp() * quantity}) and must not drop orbs.
- */
 @Mixin({Villager.class, WanderingTrader.class})
 public class MerchantTradeOrbSuppressionMixin {
 

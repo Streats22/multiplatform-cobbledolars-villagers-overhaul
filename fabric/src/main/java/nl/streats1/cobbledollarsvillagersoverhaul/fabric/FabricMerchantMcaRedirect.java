@@ -15,18 +15,12 @@ import nl.streats1.cobbledollarsvillagersoverhaul.integration.McaVillagerCompat;
 import nl.streats1.cobbledollarsvillagersoverhaul.network.CobbleDollarsShopPayloads;
 import nl.streats1.cobbledollarsvillagersoverhaul.platform.PlatformNetwork;
 
-/**
- * If vanilla opens {@link MerchantScreen} because of an MCA villager trader, reroute into the CobbleDollars shop.
- */
 public final class FabricMerchantMcaRedirect {
 
     private FabricMerchantMcaRedirect() {
     }
 
-    /**
-     * @return {@code true} if the incoming screen must not apply (merchant opening was suppressed).
-     */
-    public static boolean suppressIncomingMerchantScreen(Screen screen) {
+        public static boolean suppressIncomingMerchantScreen(Screen screen) {
         if (!(screen instanceof MerchantScreen merchantScreen)) {
             return false;
         }

@@ -1,10 +1,7 @@
 package nl.streats1.cobbledollarsvillagersoverhaul.mixin;
 
-import com.mojang.logging.LogUtils;
-
 import net.minecraft.world.item.ItemStack;
 
-import org.slf4j.Logger;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -15,14 +12,9 @@ import java.math.BigInteger;
 
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.CustomCurrencyConfig;
 
-/**
- * Injects our custom currency items into CobbleDollars' bank so they can be deposited.
- * NeoForge version - uses mojmap method descriptors.
- */
 @Mixin(targets = "fr.harmex.cobbledollars.common.world.item.trading.shop.Bank")
 public class BankMixin {
 
-    private static final Logger LOGGER = LogUtils.getLogger();
     private static Constructor<?> offerCtor;
 
     @Inject(method = "contains(Lnet/minecraft/world/item/ItemStack;)Z", at = @At("RETURN"), cancellable = true, remap = false)
@@ -57,7 +49,6 @@ public class BankMixin {
             single.setCount(1);
             return offerCtor.newInstance(single, BigInteger.valueOf(cobbleDollarsPerItem), 0);
         } catch (Throwable t) {
-            LOGGER.warn("Failed to create CobbleDollars Offer for custom currency: {}", t.getMessage());
             return null;
         }
     }

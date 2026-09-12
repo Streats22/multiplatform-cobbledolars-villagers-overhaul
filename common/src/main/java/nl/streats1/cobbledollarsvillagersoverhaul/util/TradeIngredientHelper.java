@@ -8,20 +8,12 @@ import net.minecraft.world.item.trading.MerchantOffer;
 
 import java.util.Optional;
 
-/**
- * Matches merchant secondary ingredients (compass, paper, etc.) the way vanilla trading does,
- * and counts items in the player inventory plus the cursor stack.
- */
 public final class TradeIngredientHelper {
 
     private TradeIngredientHelper() {
     }
 
-    /**
-     * Secondary input for a merchant offer (e.g. compass on explorer-map trades).
-     * Strips data components so clients compare by item type, not exact stack NBT.
-     */
-    public static ItemStack secondaryIngredient(MerchantOffer offer) {
+        public static ItemStack secondaryIngredient(MerchantOffer offer) {
         if (offer == null) {
             return ItemStack.EMPTY;
         }
@@ -37,10 +29,7 @@ public final class TradeIngredientHelper {
         return new ItemStack(costB.getItem(), costB.getCount());
     }
 
-    /**
-     * Normalize a stack for ingredient matching (item type + count only).
-     */
-    public static ItemStack normalizeIngredient(ItemStack stack) {
+        public static ItemStack normalizeIngredient(ItemStack stack) {
         if (stack == null || stack.isEmpty()) {
             return ItemStack.EMPTY;
         }

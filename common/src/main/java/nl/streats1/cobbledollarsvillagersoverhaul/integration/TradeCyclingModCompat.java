@@ -1,9 +1,5 @@
 package nl.streats1.cobbledollarsvillagersoverhaul.integration;
 
-/**
- * Detects if Trade Cycling or Easy Villagers mod is loaded.
- * The cycle button is only shown when one of these mods is present.
- */
 public final class TradeCyclingModCompat {
 
     private static final String[] TRADE_CYCLING_MOD_IDS = {"trade_cycling", "trade-cycling", "tradecycling"};
@@ -14,10 +10,7 @@ public final class TradeCyclingModCompat {
     private TradeCyclingModCompat() {
     }
 
-    /**
-     * Returns true if Trade Cycling or Easy Villagers mod is loaded.
-     */
-    public static boolean isTradeCyclingModLoaded() {
+        public static boolean isTradeCyclingModLoaded() {
         if (modLoaded == null) {
             modLoaded = detectModLoaded();
         }
@@ -25,7 +18,7 @@ public final class TradeCyclingModCompat {
     }
 
     private static boolean detectModLoaded() {
-        // NeoForge / Forge
+        
         try {
             Class<?> modListClass = Class.forName("net.neoforged.fml.ModList");
             Object modList = modListClass.getMethod("get").invoke(null);
@@ -53,7 +46,7 @@ public final class TradeCyclingModCompat {
         } catch (Throwable ignored) {
         }
 
-        // Fabric
+        
         try {
             Class<?> fabricLoaderClass = Class.forName("net.fabricmc.loader.api.FabricLoader");
             Object loader = fabricLoaderClass.getMethod("getInstance").invoke(null);

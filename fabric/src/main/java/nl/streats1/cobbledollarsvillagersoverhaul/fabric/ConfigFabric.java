@@ -17,10 +17,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Fabric config loader. Creates config/cobbledollars_villagers_overhaul_rca/config.json
- * with defaults if missing. Custom currencies load from custom_currency.json (auto-created by CustomCurrencyConfig).
- */
 public final class ConfigFabric {
     private static final String CONFIG_FILE = "config.json";
     private static final String CONFIG_SUBDIR = "cobbledollars_villagers_overhaul_rca";
@@ -103,7 +99,6 @@ public final class ConfigFabric {
             CustomCurrencyConfig.loadFromFile();
             ItemPriceConfig.loadAndApply();
         } catch (Exception e) {
-            CobbleDollarsVillagersOverhaulRca.LOGGER.warn("Failed to load Fabric config: {}", e.getMessage());
         }
     }
 
@@ -111,8 +106,7 @@ public final class ConfigFabric {
         return nl.streats1.cobbledollarsvillagersoverhaul.integration.ModConfigDefaults.fabricMainConfigJson();
     }
 
-    /** @return the list when {@code key} is a JSON array; {@code null} when the key is missing/invalid. */
-    private static List<String> readStringArray(JsonObject root, String key) {
+        private static List<String> readStringArray(JsonObject root, String key) {
         if (!root.has(key) || !root.get(key).isJsonArray()) {
             return null;
         }

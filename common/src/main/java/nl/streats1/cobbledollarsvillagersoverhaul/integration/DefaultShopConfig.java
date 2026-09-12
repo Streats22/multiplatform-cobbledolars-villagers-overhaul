@@ -13,11 +13,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Read/write CobbleDollars default_shop.json for the shop editor.
- * Supports multiple categories (CobbleDollars format).
- * Format: { "defaultShop": [ { "Category Name": [ { "item": "id", "price": X }, ... ] }, ... ] }
- */
 public final class DefaultShopConfig {
     private static final String COBBLEDOLLARS_CONFIG_SUBDIR = "cobbledollars";
     private static final String DEFAULT_SHOP_FILE = "default_shop.json";
@@ -31,10 +26,7 @@ public final class DefaultShopConfig {
         return CobbleDollarsConfigHelper.getConfigDirectory().resolve(COBBLEDOLLARS_CONFIG_SUBDIR).resolve(DEFAULT_SHOP_FILE);
     }
 
-    /**
-     * Load all categories with their offers. Preserves order.
-     */
-    public static Map<String, List<ShopEntryRecord>> loadCategories() {
+        public static Map<String, List<ShopEntryRecord>> loadCategories() {
         Path file = getShopFile();
         Map<String, List<ShopEntryRecord>> out = new LinkedHashMap<>();
         if (!Files.isRegularFile(file)) {
@@ -76,16 +68,12 @@ public final class DefaultShopConfig {
             }
             if (out.isEmpty()) out.put(DEFAULT_CATEGORY, new ArrayList<>());
         } catch (Exception ex) {
-            CobbleDollarsVillagersOverhaulRca.LOGGER.warn("Failed to load default shop config: {}", ex.getMessage());
             out.put(DEFAULT_CATEGORY, new ArrayList<>());
         }
         return out;
     }
 
-    /**
-     * @deprecated Use loadCategories()
-     */
-    public static List<ShopEntryRecord> loadEntries() {
+        public static List<ShopEntryRecord> loadEntries() {
         Map<String, List<ShopEntryRecord>> cats = loadCategories();
         List<ShopEntryRecord> out = new ArrayList<>();
         for (List<ShopEntryRecord> list : cats.values()) out.addAll(list);
@@ -116,10 +104,7 @@ public final class DefaultShopConfig {
         return 0;
     }
 
-    /**
-     * Save categories with their offers. CobbleDollars format.
-     */
-    public static void saveCategories(Map<String, List<ShopEntryRecord>> categories) {
+        public static void saveCategories(Map<String, List<ShopEntryRecord>> categories) {
         Path file = getShopFile();
         try {
             Files.createDirectories(file.getParent());
@@ -141,16 +126,11 @@ public final class DefaultShopConfig {
             JsonObject root = new JsonObject();
             root.add(DEFAULT_SHOP_KEY, defaultShop);
             Files.writeString(file, new com.google.gson.GsonBuilder().setPrettyPrinting().create().toJson(root));
-            CobbleDollarsVillagersOverhaulRca.LOGGER.info("Saved default shop config to {}", file);
         } catch (Exception ex) {
-            CobbleDollarsVillagersOverhaulRca.LOGGER.error("Failed to save default shop config: {}", ex.getMessage());
         }
     }
 
-    /**
-     * @deprecated Use saveCategories()
-     */
-    public static void saveEntries(List<ShopEntryRecord> entries) {
+        public static void saveEntries(List<ShopEntryRecord> entries) {
         Map<String, List<ShopEntryRecord>> cats = new LinkedHashMap<>();
         cats.put(DEFAULT_CATEGORY, new ArrayList<>(entries));
         saveCategories(cats);

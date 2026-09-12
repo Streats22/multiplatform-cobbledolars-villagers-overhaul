@@ -15,9 +15,6 @@ import nl.streats1.cobbledollarsvillagersoverhaul.integration.ModConfigDefaults;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-/**
- * Mod Menu integration: Config button in Mods list opens our in-game config screen.
- */
 public class ModMenuIntegration implements ModMenuApi {
 
     @Override

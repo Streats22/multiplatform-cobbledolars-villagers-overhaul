@@ -18,11 +18,6 @@ import nl.streats1.cobbledollarsvillagersoverhaul.integration.ItemPriceConfig;
 
 import java.util.*;
 
-/**
- * GUI for editing custom item prices used in villager item-for-item trades.
- * Affects trades where players give items (e.g. diamonds) to receive other items.
- * Items without a custom price use the emerald rate (1 item = 1 emerald value).
- */
 public class ItemPriceEditorScreen extends Screen {
 
     private final Screen parent;
@@ -132,7 +127,7 @@ public class ItemPriceEditorScreen extends Screen {
     private void saveAndClose() {
         applyValueFromEdit();
         ItemPriceConfig.saveEntries(entries);
-        // Reload into DatapackItemPricing
+        
         DatapackItemPricing.loadCustomPrices(buildJsonFromEntries());
         minecraft.setScreen(parent);
     }

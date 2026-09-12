@@ -12,10 +12,7 @@ public class TextureOnlyButton extends Button {
         super(x, y, width, height, message, onPress, DEFAULT_NARRATION);
     }
 
-    /**
-     * 1 = default font size; use &lt; 1 to shrink label (e.g. long translations).
-     */
-    public void setTextScale(float scale) {
+        public void setTextScale(float scale) {
         this.textScale = Math.max(0.35f, Math.min(1.5f, scale));
     }
 

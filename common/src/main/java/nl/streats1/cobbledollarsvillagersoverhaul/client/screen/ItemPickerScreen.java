@@ -16,10 +16,6 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
-/**
- * Shared item picker: scrollable list of all items, search, click to add.
- * Used by CustomCurrencyConfigScreen and BankEditorScreen.
- */
 public class ItemPickerScreen extends Screen {
 
     private final Screen parent;

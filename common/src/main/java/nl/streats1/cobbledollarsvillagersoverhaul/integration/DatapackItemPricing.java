@@ -2,31 +2,20 @@ package nl.streats1.cobbledollarsvillagersoverhaul.integration;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-import com.mojang.logging.LogUtils;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import org.slf4j.Logger;
 
 import java.lang.reflect.Type;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * Simple pricing system for CobbleDollars shop
- * Uses override prices for all items - much simpler and more maintainable
- */
 public class DatapackItemPricing {
-    private static final Logger LOGGER = LogUtils.getLogger();
     private static final Map<String, Integer> customPrices = new HashMap<>();
     private static boolean pricesLoaded = false;
 
-    /**
-     * Initialize the pricing system with custom prices from config
-     * @param jsonConfig JSON string containing custom item prices in format: {"minecraft:diamond": 100, "minecraft:iron_ingot": 10}
-     */
-    public static void loadCustomPrices(String jsonConfig) {
+        public static void loadCustomPrices(String jsonConfig) {
         if (jsonConfig == null || jsonConfig.isEmpty()) {
             pricesLoaded = false;
             return;
@@ -44,48 +33,30 @@ public class DatapackItemPricing {
                 pricesLoaded = true;
             }
         } catch (Exception e) {
-            LOGGER.error("Failed to parse custom item prices: {}", e.getMessage());
         }
     }
 
-    /**
-     * CobbleDollars total for this stack only when the item has an explicit entry in the custom price map.
-     * Unlike {@link #getPrice(ItemStack)}, does <strong>not</strong> fall back to emerald-rate × count, so
-     * unlisted items return 0. Used to tell true barter (Trades tab) from CD-priced buy offers.
-     */
-    public static int getOverridePrice(ItemStack itemStack) {
+        public static int getOverridePrice(ItemStack itemStack) {
         if (itemStack == null || itemStack.isEmpty()) return 0;
         if (!pricesLoaded || customPrices.isEmpty()) return 0;
         int perItem = resolveCustomPrice(itemStack.getItem());
         return perItem > 0 ? perItem * itemStack.getCount() : 0;
     }
 
-    /**
-     * Get the CobbleDollars value for an item stack.
-     * Priority: custom price map first, then emerald-rate × count as fallback.
-     */
-    public static int getPrice(ItemStack itemStack) {
+        public static int getPrice(ItemStack itemStack) {
         if (itemStack == null || itemStack.isEmpty()) return 0;
         int perItem = resolveCustomPrice(itemStack.getItem());
         if (perItem > 0) return perItem * itemStack.getCount();
         return CobbleDollarsConfigHelper.getEffectiveEmeraldRate() * itemStack.getCount();
     }
 
-    /**
-     * Get price for a single item (not multiplied by count).
-     * Used for configuration UI and price overrides.
-     */
-    public static int getSingleItemPrice(Item item) {
+        public static int getSingleItemPrice(Item item) {
         if (item == null) return 0;
         int perItem = resolveCustomPrice(item);
         return perItem > 0 ? perItem : CobbleDollarsConfigHelper.getEffectiveEmeraldRate();
     }
 
-    /**
-     * Looks up {@code item} in the custom price map, trying the short path key first then the full
-     * {@code namespace:path} key. Returns 0 if not found.
-     */
-    private static int resolveCustomPrice(Item item) {
+        private static int resolveCustomPrice(Item item) {
         if (item == null) return 0;
         String path = getItemId(item);
         Integer byPath = customPrices.get(path);
@@ -96,33 +67,21 @@ public class DatapackItemPricing {
         return byFull != null ? byFull : 0;
     }
 
-    /**
-     * Get the simple item ID (just the path, not the namespace)
-     */
-    private static String getItemId(Item item) {
+        private static String getItemId(Item item) {
         ResourceLocation registryName = BuiltInRegistries.ITEM.getKey(item);
         return registryName != null ? registryName.getPath() : "";
     }
 
-    /**
-     * Add a custom price for an item
-     */
-    public static void addCustomPrice(String itemId, int price) {
+        public static void addCustomPrice(String itemId, int price) {
         customPrices.put(itemId.toLowerCase(), price);
         pricesLoaded = true;
     }
 
-    /**
-     * Check if custom prices are loaded
-     */
-    public static boolean hasCustomPrices() {
+        public static boolean hasCustomPrices() {
         return pricesLoaded;
     }
 
-    /**
-     * Get all custom prices
-     */
-    public static Map<String, Integer> getCustomPrices() {
+        public static Map<String, Integer> getCustomPrices() {
         return new HashMap<>(customPrices);
     }
 }

@@ -11,6 +11,6 @@ public class InvisibleButton extends Button {
 
     @Override
     protected void renderWidget(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
-        // Draw nothing; the screen renders textures under this button.
+        
     }
 }

@@ -17,11 +17,6 @@ import nl.streats1.cobbledollarsvillagersoverhaul.integration.ShopEntryRecord;
 
 import java.util.*;
 
-/**
- * GUI for editing default shop buy offers (CobbleDollars default_shop.json).
- * Supports categories: add, remove, rename. Items per category.
- * When opened from the shop UI, an optional onSaveCallback can refresh the shop after save.
- */
 public class DefaultShopEditorScreen extends Screen {
 
     private final Screen parent;
@@ -50,11 +45,7 @@ public class DefaultShopEditorScreen extends Screen {
         this(parent, initialCategories, null);
     }
 
-    /**
-     * @param onSaveCallback When non-null, called after save instead of returning to parent.
-     *                       Used when opened from the shop UI to refresh and re-open the shop.
-     */
-    public DefaultShopEditorScreen(Screen parent, Map<String, List<ShopEntryRecord>> initialCategories, Runnable onSaveCallback) {
+        public DefaultShopEditorScreen(Screen parent, Map<String, List<ShopEntryRecord>> initialCategories, Runnable onSaveCallback) {
         super(Component.translatable("gui.cobbledollars_villagers_overhaul_rca.edit_shop_title"));
         this.parent = parent;
         this.onSaveCallback = onSaveCallback;
@@ -213,7 +204,7 @@ public class DefaultShopEditorScreen extends Screen {
 
     private void saveAndClose() {
         applyValueFromEdit();
-        renameSelectedCategory(); // apply any pending rename
+        renameSelectedCategory(); 
         DefaultShopConfig.saveCategories(categories);
         if (onSaveCallback != null) {
             onSaveCallback.run();

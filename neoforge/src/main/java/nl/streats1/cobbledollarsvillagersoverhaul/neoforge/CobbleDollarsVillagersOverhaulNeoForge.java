@@ -82,8 +82,7 @@ public class CobbleDollarsVillagersOverhaulNeoForge {
         }
     }
 
-    /** When CobbleDollars shop UI is enabled, right-clicking a villager opens our shop screen instead of vanilla trading. */
-    @SubscribeEvent(priority = EventPriority.HIGHEST)
+        @SubscribeEvent(priority = EventPriority.HIGHEST)
     public void onEntityInteract(PlayerInteractEvent.EntityInteract event) {
         if (event.getLevel().isClientSide()) {
             if (nl.streats1.cobbledollarsvillagersoverhaul.client.ClientAssignMode.isInMode()
@@ -123,27 +122,21 @@ public class CobbleDollarsVillagersOverhaulNeoForge {
         CvmCommand.register(event.getDispatcher());
     }
 
-    /** Align client shop flags with dedicated server config (multiplayer); singleplayer receives the same values. */
-    @SubscribeEvent
+        @SubscribeEvent
     public void onPlayerLoggedIn(PlayerEvent.PlayerLoggedInEvent event) {
         if (event.getEntity() instanceof ServerPlayer sp) {
             CobbleDollarsShopPayloadHandlers.sendServerShopConfigTo(sp);
         }
     }
 
-    /**
-     * Custom shop keeps {@code AbstractVillager.tradingPlayer} set without a {@code MerchantMenu}; hard
-     * disconnects never send {@code ShopScreenClosed}, so release merchants here.
-     */
-    @SubscribeEvent
+        @SubscribeEvent
     public void onPlayerLoggedOut(PlayerEvent.PlayerLoggedOutEvent event) {
         if (event.getEntity() instanceof ServerPlayer sp) {
             CobbleDollarsShopPayloadHandlers.handlePlayerDisconnect(sp);
         }
     }
 
-    /** Fires before EntityInteract; needed so we cancel before vanilla opens the merchant GUI. */
-    @SubscribeEvent(priority = EventPriority.HIGHEST)
+        @SubscribeEvent(priority = EventPriority.HIGHEST)
     public void onEntityInteractSpecific(PlayerInteractEvent.EntityInteractSpecific event) {
         if (event.getLevel().isClientSide()) {
             if (nl.streats1.cobbledollarsvillagersoverhaul.client.ClientAssignMode.isInMode()
@@ -185,11 +178,7 @@ public class CobbleDollarsVillagersOverhaulNeoForge {
         }
     }
 
-    /**
-     * RCT Trainer Association NPC uses wandering trader-like AI but its own trade UI.
-     * Do not replace it with the CobbleDollars shop screen.
-     */
-    @SuppressWarnings({"unused", "null"})
+        @SuppressWarnings({"unused", "null"})
     private static boolean isRadicalTrainerAssociation(Entity entity) {
         ResourceLocation id = BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType());
         return "rctmod".equals(id.getNamespace()) && "trainer_association".equals(id.getPath());

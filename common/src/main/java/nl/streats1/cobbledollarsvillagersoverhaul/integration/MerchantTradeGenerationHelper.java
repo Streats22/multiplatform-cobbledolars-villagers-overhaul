@@ -6,13 +6,6 @@ import net.minecraft.world.item.trading.MerchantOffers;
 
 import java.lang.reflect.Method;
 
-/**
- * Ensures {@link AbstractVillager} merchant offers are generated before the CobbleDollars shop reads them.
- * <p>
- * <a href="https://modrinth.com/mod/villagerconfig">VillagerConfig</a> injects datapack trades from
- * {@code updateTrades(ServerLevel)}; if that has not run yet, {@link AbstractVillager#getOffers()} can be empty
- * when the shop opens without the vanilla merchant menu flow.
- */
 public final class MerchantTradeGenerationHelper {
 
     private MerchantTradeGenerationHelper() {
@@ -45,10 +38,7 @@ public final class MerchantTradeGenerationHelper {
         return null;
     }
 
-    /**
-     * If the merchant has no offers yet, invokes {@code updateTrades} so mods like VillagerConfig can populate trades.
-     */
-    public static void ensureMerchantOffersReady(ServerLevel level, AbstractVillager merchant) {
+        public static void ensureMerchantOffersReady(ServerLevel level, AbstractVillager merchant) {
         if (merchant == null || level == null) {
             return;
         }

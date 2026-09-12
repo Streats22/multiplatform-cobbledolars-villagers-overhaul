@@ -19,10 +19,6 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
-/**
- * GUI for editing bank sell offers (CobbleDollars bank.json).
- * Items players can sell for CobbleDollars.
- */
 public class BankEditorScreen extends Screen {
 
     private final Screen parent;
