@@ -20,6 +20,7 @@
 
 ### Fixed
 
+- **MCA Trade opened vanilla merchant UI** — `VillagerStartTradingMixin` targeted `AbstractVillager`, but `startTrading` only exists on `Villager` (MCA Trade / AT). Retarget so MCA Trade opens the CobbleDollars shop.
 - **Villagers not restocking after shop trades** — Successful buy/sell left `tradingPlayer` set; screen swaps (bank/editor) only called `removed()`, not `onClose()`, so villagers stayed “trading” and never worked/restocked. Clear trading player after each trade and release the merchant from `removed()` as well.
 - **MCA trade offers not loading in CobbleDollars shop** — Refresh MCA villager trades (`updateTrades` / `restock`) before reading offers; MCA 7.7+ lazy generation no longer falls through to empty/config shop when `startTrading` is redirected.
 - **Broader MCA entity detection** — Defer right-click to MCA for all `mca:` entities; forward-compat villager entity paths; improved `canTradeWithProfession` reflection.
