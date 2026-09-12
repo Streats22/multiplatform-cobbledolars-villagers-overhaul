@@ -10,8 +10,9 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
- * MCA Trade calls {@link Villager#startTrading(Player)} (not {@link AbstractVillager}).
- * Redirect that path to the CobbleDollars shop before the vanilla merchant menu opens.
+ * MCA / shift-trade path via {@link Villager#startTrading(Player)}.
+ * Fabric Trade-button reliability is covered by {@link McaTradeCommandMixin}; do not also inject
+ * intermediary {@code method_19191} here (would double-fire the same method via refmap).
  */
 @Mixin(Villager.class)
 public class VillagerStartTradingMixin {

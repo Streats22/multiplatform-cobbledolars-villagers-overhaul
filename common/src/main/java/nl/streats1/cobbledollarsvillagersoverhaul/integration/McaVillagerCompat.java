@@ -4,7 +4,6 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.npc.Villager;
-import net.minecraft.world.item.trading.Merchant;
 import nl.streats1.cobbledollarsvillagersoverhaul.Config;
 
 import java.util.Set;
@@ -150,14 +149,8 @@ public final class McaVillagerCompat {
             }
         }
 
-        try {
-            if (entity instanceof Merchant merchant) {
-                var offers = merchant.getOffers();
-                return offers != null && !offers.isEmpty();
-            }
-        } catch (Throwable ignored) {
-        }
-
-        return true;
+        // Do not require non-empty offers (MCA may generate lazily). If MCA's method is missing,
+        // only block unemployed / nitwit villagers.
+        return McaTradeCommandCompat.fallbackCanTrade(entity);
     }
 }

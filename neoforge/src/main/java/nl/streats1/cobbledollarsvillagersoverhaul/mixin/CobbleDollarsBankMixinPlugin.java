@@ -8,13 +8,11 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Applies only the CobbleDollars Bank mixin that matches the installed API layout:
- * Beta-5.x {@code world.item.trading.shop.Bank} vs Beta-6.x {@code api.bank.Bank}.
+ * Bank mixins use {@code @Pseudo} so missing CobbleDollars targets are skipped.
+ * Always apply both candidates — early {@code Class.forName} against the mixin classloader
+ * often misses CobbleDollars even when it is installed (false negatives).
  */
 public class CobbleDollarsBankMixinPlugin implements IMixinConfigPlugin {
-
-    private static final String LEGACY_BANK = "fr.harmex.cobbledollars.common.world.item.trading.shop.Bank";
-    private static final String API_BANK = "fr.harmex.cobbledollars.common.api.bank.Bank";
 
     @Override
     public void onLoad(String mixinPackage) {
@@ -27,22 +25,7 @@ public class CobbleDollarsBankMixinPlugin implements IMixinConfigPlugin {
 
     @Override
     public boolean shouldApplyMixin(String targetClassName, String mixinClassName) {
-        if (mixinClassName.endsWith(".BankMixin")) {
-            return classPresent(LEGACY_BANK);
-        }
-        if (mixinClassName.endsWith(".BankMixinApi")) {
-            return classPresent(API_BANK);
-        }
         return true;
-    }
-
-    private static boolean classPresent(String name) {
-        try {
-            Class.forName(name, false, CobbleDollarsBankMixinPlugin.class.getClassLoader());
-            return true;
-        } catch (ClassNotFoundException | NoClassDefFoundError e) {
-            return false;
-        }
     }
 
     @Override

@@ -4,11 +4,13 @@
   "package": "nl.streats1.cobbledollarsvillagersoverhaul.mixin",
   "compatibilityLevel": "JAVA_21",
   "plugin": "nl.streats1.cobbledollarsvillagersoverhaul.mixin.CobbleDollarsBankMixinPlugin",
+  "refmap": "mixins.fabric.refmap.json",
   "mixins": [
     "BankMixin",
     "BankMixinApi",
     "MerchantTradeOrbSuppressionMixin",
-    "VillagerStartTradingMixin"
+    "VillagerStartTradingMixin",
+    "McaTradeCommandMixin"
   ],
   "client": [
     "MinecraftMerchantSuppressMixin",
@@ -17,5 +19,6 @@
   "server": [
   ],
   "injectors": {
+    "defaultRequire": 0
   }
 }
