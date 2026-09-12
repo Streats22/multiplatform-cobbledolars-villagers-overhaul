@@ -192,6 +192,7 @@ public final class CobbleDollarsShopPayloadHandlers {
                         buyOffersFromConfig = true;
                     }
                 } else {
+                    MerchantOfferDedupe.removeIdenticalDuplicates(villager.getOffers());
                     allOffers = villager.getOffers();
                     buildOfferLists(allOffers, buyOffers, sellOffers);
                     if (Config.USE_DATAPACK_TRADES) {

@@ -21,7 +21,9 @@
 ### Fixed
 
 - **MCA Trade opened vanilla merchant UI** — `VillagerStartTradingMixin` targeted `AbstractVillager`, but `startTrading` only exists on `Villager` (MCA Trade / AT). Retarget so MCA Trade opens the CobbleDollars shop.
-- **Fabric MCA Trade still opened vanilla UI** — Intermediary remap of private `startTrading` was unreliable on Fabric. Intercept MCA `VillagerCommandHandler.handle("trade")` via soft reflection (entity + `stopInteracting`); rely on `@Pseudo` Bank mixins without early `Class.forName` gating; avoid dual inject on the same Villager method.
+- **Fabric MCA Trade still opened vanilla UI** — Intermediary remap of private `startTrading` was unreliable on Fabric. Intercept MCA `VillagerCommandHandler.handle("trade")` via soft reflection (entity + clear interacting player); rely on `@Pseudo` Bank mixins without early `Class.forName` gating; avoid dual inject on the same Villager method.
+- **NeoForge MCA Trade closed instantly** — Do not call MCA `stopInteracting()` after opening the CobbleDollars shop; it runs `ServerPlayer.closeContainer()` and wipes the new screen. Clear `interactingPlayer` only.
+- **Duplicate identical villager trades in shop** — `updateTrades` appends; past opens could stack the same bread listing. Dedupe identical offers when preparing/opening the shop (keeps first, removes later copies).
 - **Villagers not restocking after shop trades** — Successful buy/sell left `tradingPlayer` set; screen swaps (bank/editor) only called `removed()`, not `onClose()`, so villagers stayed “trading” and never worked/restocked. Clear trading player after each trade and release the merchant from `removed()` as well.
 - **MCA trade offers not loading in CobbleDollars shop** — Refresh MCA villager trades (`updateTrades` / `restock`) before reading offers; MCA 7.7+ lazy generation no longer falls through to empty/config shop when `startTrading` is redirected.
 - **Broader MCA entity detection** — Defer right-click to MCA for all `mca:` entities; forward-compat villager entity paths; improved `canTradeWithProfession` reflection.

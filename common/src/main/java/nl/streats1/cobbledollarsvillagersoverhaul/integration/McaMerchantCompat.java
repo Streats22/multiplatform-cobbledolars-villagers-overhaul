@@ -6,21 +6,37 @@ import net.minecraft.world.item.trading.MerchantOffers;
 
 import java.lang.reflect.Method;
 
+/**
+ * MCA villagers may lazily generate trades. Only call {@code updateTrades}/{@code restock}
+ * when the offer list is empty — vanilla {@code updateTrades} <em>appends</em> level listings
+ * and will duplicate offers if invoked on every shop open.
+ */
 public final class McaMerchantCompat {
 
     private McaMerchantCompat() {
+    }
+
+    public static boolean shouldGenerateMissingTrades(boolean offersMissingOrEmpty) {
+        return offersMissingOrEmpty;
     }
 
     public static void prepareForShop(ServerLevel level, Villager villager) {
         if (level == null || villager == null || !McaVillagerCompat.isMcaVillager(villager)) {
             return;
         }
-        refreshTrades(level, villager);
         MerchantOffers offers = villager.getOffers();
-        if (offers == null || offers.isEmpty()) {
+        if (!shouldGenerateMissingTrades(offers == null || offers.isEmpty())) {
+            MerchantOfferDedupe.removeIdenticalDuplicates(offers);
+            return;
+        }
+        refreshTrades(level, villager);
+        offers = villager.getOffers();
+        if (shouldGenerateMissingTrades(offers == null || offers.isEmpty())) {
             invokeRestock(villager);
             refreshTrades(level, villager);
+            offers = villager.getOffers();
         }
+        MerchantOfferDedupe.removeIdenticalDuplicates(offers);
     }
 
     private static void refreshTrades(ServerLevel level, Villager villager) {

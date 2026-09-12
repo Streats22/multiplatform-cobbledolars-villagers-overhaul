@@ -22,10 +22,10 @@ public final class McaTradeCommandCompat {
     }
 
     /**
-     * Redirect MCA Trade to the CobbleDollars shop. On success, stops MCA interaction UI.
-     *
-     * @param commandHandler MCA {@code VillagerCommandHandler} instance ({@code this} from mixin)
-     * @return true if the trade command was handled (caller should cancel MCA handle)
+     * Redirect MCA Trade to the CobbleDollars shop.
+     * Clears MCA's interacting-player flag without {@code stopInteracting()} —
+     * that method calls {@code ServerPlayer.closeContainer()} and immediately closes
+     * the CobbleDollars shop screen on NeoForge (and can race the same way on Fabric).
      */
     public static boolean tryRedirectTrade(Object commandHandler, ServerPlayer player, String command) {
         if (!isTradeCommand(command) || commandHandler == null || player == null) {
@@ -38,7 +38,7 @@ public final class McaTradeCommandCompat {
         if (!McaTradeRedirect.tryOpenCobbleDollarsShop(villager, player)) {
             return false;
         }
-        stopInteracting(commandHandler);
+        clearInteractingPlayerOnly(commandHandler);
         return true;
     }
 
@@ -80,6 +80,29 @@ public final class McaTradeCommandCompat {
             } catch (NoSuchMethodException ignored) {
             } catch (Throwable ignored) {
                 return;
+            }
+        }
+    }
+
+    /**
+     * Drop MCA interaction tracking without {@code closeContainer()} (see {@link #tryRedirectTrade}).
+     */
+    static void clearInteractingPlayerOnly(Object commandHandler) {
+        if (commandHandler == null) {
+            return;
+        }
+        for (Class<?> c = commandHandler.getClass(); c != null && c != Object.class; c = c.getSuperclass()) {
+            for (Field field : c.getDeclaredFields()) {
+                if (!"interactingPlayer".equals(field.getName())) {
+                    continue;
+                }
+                try {
+                    field.setAccessible(true);
+                    field.set(commandHandler, null);
+                    return;
+                } catch (Throwable ignored) {
+                    return;
+                }
             }
         }
     }

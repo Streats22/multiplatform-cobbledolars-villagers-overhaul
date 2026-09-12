@@ -43,12 +43,23 @@ class McaTradeCommandCompatTest {
         FakeHandler handler = new FakeHandler(new Object());
         assertFalse(McaTradeCommandCompat.tryRedirectTrade(handler, null, "inventory"));
         assertFalse(handler.stopInteractingCalled);
+        assertTrue(handler.interactingPlayerStillSet());
+    }
+
+    @Test
+    void clearInteractingPlayerOnlyDoesNotCallStopInteracting() {
+        FakeHandler handler = new FakeHandler(new Object());
+        handler.interactingPlayer = new Object();
+        McaTradeCommandCompat.clearInteractingPlayerOnly(handler);
+        assertFalse(handler.stopInteractingCalled);
+        assertNull(handler.interactingPlayer);
     }
 
     /** Minimal stand-in for MCA EntityCommandHandler shape. */
     @SuppressWarnings("unused")
     private static final class FakeHandler {
         protected final Object entity;
+        protected Object interactingPlayer = new Object();
         boolean stopInteractingCalled;
 
         FakeHandler(Object entity) {
@@ -57,6 +68,11 @@ class McaTradeCommandCompatTest {
 
         public void stopInteracting() {
             stopInteractingCalled = true;
+            interactingPlayer = null;
+        }
+
+        boolean interactingPlayerStillSet() {
+            return interactingPlayer != null;
         }
     }
 }
