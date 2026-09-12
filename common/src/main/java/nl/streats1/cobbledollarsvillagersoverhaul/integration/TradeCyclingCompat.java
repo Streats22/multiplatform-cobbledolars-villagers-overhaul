@@ -54,7 +54,7 @@ public final class TradeCyclingCompat {
         }
     }
 
-        public static boolean canCycleTrades(Villager villager) {
+    public static boolean canCycleTrades(Villager villager) {
         if (villager == null) return false;
         if (villager.getVillagerData().getLevel() > 1) return false;
         if (villager.getVillagerData().getProfession() == VillagerProfession.NONE
@@ -66,11 +66,11 @@ public final class TradeCyclingCompat {
         return true;
     }
 
-        static boolean shouldRestoreOffersAfterCycle(boolean regenerationProducedOffers) {
+    static boolean shouldRestoreOffersAfterCycle(boolean regenerationProducedOffers) {
         return !regenerationProducedOffers;
     }
 
-        static MerchantOffers snapshotOffers(MerchantOffers source) {
+    static MerchantOffers snapshotOffers(MerchantOffers source) {
         MerchantOffers copy = new MerchantOffers();
         if (source == null || source.isEmpty()) {
             return copy;
@@ -83,7 +83,7 @@ public final class TradeCyclingCompat {
         return copy;
     }
 
-        public static boolean cycleTrades(Villager villager, ServerPlayer player, Runnable onSuccess) {
+    public static boolean cycleTrades(Villager villager, ServerPlayer player, Runnable onSuccess) {
         if (villager == null) return false;
         if (villager.getVillagerData().getLevel() > 1) {
             return false;

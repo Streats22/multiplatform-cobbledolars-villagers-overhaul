@@ -106,7 +106,7 @@ public final class ConfigFabric {
         return nl.streats1.cobbledollarsvillagersoverhaul.integration.ModConfigDefaults.fabricMainConfigJson();
     }
 
-        private static List<String> readStringArray(JsonObject root, String key) {
+    private static List<String> readStringArray(JsonObject root, String key) {
         if (!root.has(key) || !root.get(key).isJsonArray()) {
             return null;
         }

@@ -128,7 +128,7 @@ public class CobbleDollarsVillagersOverhaulNeoForgeClient {
         });
     }
 
-        @SubscribeEvent
+    @SubscribeEvent
     public static void onClientLoggingOut(ClientPlayerNetworkEvent.LoggingOut event) {
         NeoForgePendingCustomShopMerchantSuppress.clear("disconnect");
         ConfigNeoForge.loadConfig(ConfigNeoForge.SPEC);

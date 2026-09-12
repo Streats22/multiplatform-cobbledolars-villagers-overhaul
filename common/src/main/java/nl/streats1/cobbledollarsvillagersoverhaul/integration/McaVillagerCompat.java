@@ -14,19 +14,19 @@ public final class McaVillagerCompat {
     private static final String MCA_MOD_ID = "mca";
     private static final String MCA_COBBLEMON_MOD_ID = "mca_cobblemon";
 
-        private static final Set<String> MCA_TRADEABLE_ENTITY_PATHS = Set.of(
+    private static final Set<String> MCA_TRADEABLE_ENTITY_PATHS = Set.of(
             "male_villager",
             "female_villager",
             "male_zombie_villager",
             "female_zombie_villager"
     );
 
-        private static final Set<String> MCA_NON_TRADEABLE_ENTITY_PATHS = Set.of(
+    private static final Set<String> MCA_NON_TRADEABLE_ENTITY_PATHS = Set.of(
             "grim_reaper",
             "crib"
     );
 
-        static boolean isKnownMcaVillagerEntityPath(String path) {
+    static boolean isKnownMcaVillagerEntityPath(String path) {
         return path != null && MCA_TRADEABLE_ENTITY_PATHS.contains(path);
     }
 
@@ -34,7 +34,7 @@ public final class McaVillagerCompat {
         return path != null && MCA_NON_TRADEABLE_ENTITY_PATHS.contains(path);
     }
 
-        static boolean isMcaVillagerEntityPath(String path) {
+    static boolean isMcaVillagerEntityPath(String path) {
         return path != null && path.contains("villager") && !isExcludedMcaEntityPath(path);
     }
 
@@ -51,18 +51,18 @@ public final class McaVillagerCompat {
         return modLoaded;
     }
 
-        public static boolean isMcaCobblemonLoaded() {
+    public static boolean isMcaCobblemonLoaded() {
         if (mcaCobblemonLoaded == null) {
             mcaCobblemonLoaded = detectModLoaded(MCA_COBBLEMON_MOD_ID);
         }
         return mcaCobblemonLoaded;
     }
 
-        public static boolean isCompatibilityEnabled() {
+    public static boolean isCompatibilityEnabled() {
         return Config.ENABLE_MCA_COMPATIBILITY && isModLoaded();
     }
 
-        public static boolean shouldDeferNormalRightClick(Entity entity) {
+    public static boolean shouldDeferNormalRightClick(Entity entity) {
         return isCompatibilityEnabled() && isMcaEntity(entity);
     }
 
@@ -97,7 +97,7 @@ public final class McaVillagerCompat {
         return false;
     }
 
-        public static boolean isMcaEntity(Entity entity) {
+    public static boolean isMcaEntity(Entity entity) {
         if (!isModLoaded() || entity == null) {
             return false;
         }
@@ -105,7 +105,7 @@ public final class McaVillagerCompat {
         return id != null && MCA_MOD_ID.equals(id.getNamespace());
     }
 
-        public static boolean isMcaVillager(Entity entity) {
+    public static boolean isMcaVillager(Entity entity) {
         if (!isModLoaded() || entity == null) {
             return false;
         }
@@ -132,7 +132,7 @@ public final class McaVillagerCompat {
         return className.startsWith("net.conczin.mca.entity.") && entity instanceof Villager;
     }
 
-        public static boolean canTradeWithProfession(Entity entity) {
+    public static boolean canTradeWithProfession(Entity entity) {
         if (!isMcaVillager(entity)) {
             return true;
         }

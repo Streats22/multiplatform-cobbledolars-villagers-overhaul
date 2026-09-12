@@ -9,7 +9,7 @@ import net.minecraft.world.item.trading.Merchant;
 import nl.streats1.cobbledollarsvillagersoverhaul.CobbleDollarsVillagersOverhaulRca;
 
 public final class FabricPendingCustomShopScreen {
-        private static final int TICKS_TO_LIVE = 45;
+    private static final int TICKS_TO_LIVE = 45;
 
     private static int pendingEntityId = Integer.MIN_VALUE;
     private static int ticksLeft;
@@ -21,7 +21,7 @@ public final class FabricPendingCustomShopScreen {
         beginAwaitingShopData(villagerEntityId, false);
     }
 
-        public static void beginAwaitingShopData(int villagerEntityId, boolean bypassSingleplayerGate) {
+    public static void beginAwaitingShopData(int villagerEntityId, boolean bypassSingleplayerGate) {
         Minecraft mc = Minecraft.getInstance();
         if (!bypassSingleplayerGate && mc.getSingleplayerServer() != null) {
             return;
@@ -46,13 +46,13 @@ public final class FabricPendingCustomShopScreen {
         }
     }
 
-        public static void onShopDataReceived(int villagerId) {
+    public static void onShopDataReceived(int villagerId) {
         if (pendingEntityId == villagerId) {
             clear("shop-data-received");
         }
     }
 
-        private static Merchant findMerchantForMenu(MerchantMenu menu) {
+    private static Merchant findMerchantForMenu(MerchantMenu menu) {
         if (menu == null) {
             return null;
         }

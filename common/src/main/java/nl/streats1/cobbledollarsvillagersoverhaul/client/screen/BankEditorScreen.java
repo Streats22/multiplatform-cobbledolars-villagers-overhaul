@@ -211,7 +211,7 @@ public class BankEditorScreen extends Screen {
             super(mc, w, h, y, itemHeight);
         }
 
-        public void refresh() {
+    public void refresh() {
             clearEntries();
             entries.sort(Comparator.comparing(e -> e.itemId().toLowerCase()));
             for (BankEntryRecord e : entries) {
@@ -219,7 +219,7 @@ public class BankEditorScreen extends Screen {
             }
         }
 
-        public class Entry extends ObjectSelectionList.Entry<Entry> {
+    public class Entry extends ObjectSelectionList.Entry<Entry> {
             private final BankEntryRecord record;
 
             Entry(BankEntryRecord record) {

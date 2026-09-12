@@ -24,7 +24,7 @@ public final class CobbleDollarsConfigHelper {
 
     private static final String COBBLEDOLLARS_CONFIG_SUBDIR = "cobbledollars";
 
-        public static void setConfigRoot(Path path) {
+    public static void setConfigRoot(Path path) {
         ModConfig.setConfigRoot(path);
     }
     private static final String BANK_FILE = "bank.json";
@@ -134,7 +134,7 @@ public final class CobbleDollarsConfigHelper {
         }
     }
 
-        public static List<CobbleDollarsShopPayloads.ShopOfferEntry> getBankSellOffers() {
+    public static List<CobbleDollarsShopPayloads.ShopOfferEntry> getBankSellOffers() {
         Path configDir = getConfigDirectory();
         Path bankFile = configDir.resolve(COBBLEDOLLARS_CONFIG_SUBDIR).resolve(BANK_FILE);
         if (!Files.isRegularFile(bankFile)) return List.of();
@@ -166,15 +166,15 @@ public final class CobbleDollarsConfigHelper {
         }
     }
 
-        public static int getEffectiveEmeraldRate() {
+    public static int getEffectiveEmeraldRate() {
         return Math.max(1, Config.COBBLEDOLLARS_EMERALD_RATE);
     }
 
-        public static void invalidateBankEmeraldPriceCache() {
+    public static void invalidateBankEmeraldPriceCache() {
         cachedBankEmeraldPrice = -1;
     }
 
-        public static Path getConfigDirectory() {
+    public static Path getConfigDirectory() {
         return ModConfig.getConfigDirectory();
     }
 }

@@ -39,7 +39,7 @@ public final class VillagerConfigCompat {
         }
     }
 
-        public static void prepareVillagerForShop(ServerLevel level, Villager villager) {
+    public static void prepareVillagerForShop(ServerLevel level, Villager villager) {
         if (villager == null || level == null) {
             return;
         }

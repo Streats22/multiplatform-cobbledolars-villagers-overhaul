@@ -43,15 +43,13 @@ public final class PlatformNetwork {
         ClientToServerSender sender = clientToServerSender;
         if (sender != null) {
             sender.send(payload);
-        } else {
-        }
+        } 
     }
 
     public static void sendToPlayer(ServerPlayer player, CustomPacketPayload payload) {
         ServerToClientSender sender = serverToClientSender;
         if (sender != null) {
             sender.send(player, payload);
-        } else {
-        }
+        } 
     }
 }

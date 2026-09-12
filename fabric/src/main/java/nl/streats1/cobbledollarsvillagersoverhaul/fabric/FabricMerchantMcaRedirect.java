@@ -11,7 +11,7 @@ import net.minecraft.world.inventory.MerchantMenu;
 import net.minecraft.world.item.trading.Merchant;
 import nl.streats1.cobbledollarsvillagersoverhaul.Config;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.CobbleDollarsIntegration;
-import nl.streats1.cobbledollarsvillagersoverhaul.integration.McaVillagerCompat;
+import nl.streats1.cobbledollarsvillagersoverhaul.integration.McaIntegration;
 import nl.streats1.cobbledollarsvillagersoverhaul.network.CobbleDollarsShopPayloads;
 import nl.streats1.cobbledollarsvillagersoverhaul.platform.PlatformNetwork;
 
@@ -20,14 +20,14 @@ public final class FabricMerchantMcaRedirect {
     private FabricMerchantMcaRedirect() {
     }
 
-        public static boolean suppressIncomingMerchantScreen(Screen screen) {
+    public static boolean suppressIncomingMerchantScreen(Screen screen) {
         if (!(screen instanceof MerchantScreen merchantScreen)) {
             return false;
         }
         if (!Config.USE_COBBLEDOLLARS_SHOP_UI || !CobbleDollarsIntegration.isModLoaded()) {
             return false;
         }
-        if (!McaVillagerCompat.isCompatibilityEnabled()) {
+        if (!McaIntegration.isEnabled()) {
             return false;
         }
         Minecraft mc = Minecraft.getInstance();
@@ -39,10 +39,10 @@ public final class FabricMerchantMcaRedirect {
         if (!(trader instanceof Entity entity)) {
             return false;
         }
-        if (!McaVillagerCompat.isMcaVillager(entity)) {
+        if (!McaIntegration.isVillager(entity)) {
             return false;
         }
-        if (!McaVillagerCompat.canTradeWithProfession(entity)) {
+        if (!McaIntegration.canTrade(entity)) {
             return false;
         }
         if (entity instanceof Villager villagerEntity) {

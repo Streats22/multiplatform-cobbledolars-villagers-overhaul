@@ -136,8 +136,6 @@ public final class CobbleDollarsIntegration {
             }
         }
 
-        if (getBalanceHandle == null || setBalanceHandle == null) {
-        }
     }
 
     public static long getBalance(Player player) {
@@ -174,7 +172,7 @@ public final class CobbleDollarsIntegration {
         }
     }
 
-        public static boolean addBalance(Player player, long amount) {
+    public static boolean addBalance(Player player, long amount) {
         if (!isModLoaded()) {
             return false;
         }

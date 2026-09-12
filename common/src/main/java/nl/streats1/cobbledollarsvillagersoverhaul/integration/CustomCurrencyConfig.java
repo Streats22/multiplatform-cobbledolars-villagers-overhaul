@@ -36,11 +36,11 @@ public final class CustomCurrencyConfig {
         }
     }
 
-        private static final Map<String, Integer> CURRENCY_VALUES = new HashMap<>();
+    private static final Map<String, Integer> CURRENCY_VALUES = new HashMap<>();
     private static boolean loaded = false;
-        private static String configOverride = null;
+    private static String configOverride = null;
 
-        public static void setConfigRoot(Path path) {
+    public static void setConfigRoot(Path path) {
         ModConfig.setConfigRoot(path);
     }
 
@@ -94,12 +94,12 @@ public final class CustomCurrencyConfig {
         loaded = true;
     }
 
-        public static void setConfigOverride(String json) {
+    public static void setConfigOverride(String json) {
         configOverride = json;
         loaded = false;
     }
 
-        public static void ensureLoadedForUi() {
+    public static void ensureLoadedForUi() {
         ensureLoaded();
     }
 
@@ -119,7 +119,7 @@ public final class CustomCurrencyConfig {
         return getCurrencyValue(stack) > 0;
     }
 
-        public static int getCurrencyValue(ItemStack stack) {
+    public static int getCurrencyValue(ItemStack stack) {
         if (stack == null || stack.isEmpty()) return 0;
         if (stack.is(Items.EMERALD)) {
             return CobbleDollarsConfigHelper.getEffectiveEmeraldRate();
@@ -132,13 +132,13 @@ public final class CustomCurrencyConfig {
         return 0;
     }
 
-        public static long getTotalValue(ItemStack stack) {
+    public static long getTotalValue(ItemStack stack) {
         int perItem = getCurrencyValue(stack);
         if (perItem <= 0) return 0;
         return (long) perItem * stack.getCount();
     }
 
-        public static List<CurrencyEntryRecord> getEntries() {
+    public static List<CurrencyEntryRecord> getEntries() {
         ensureLoaded();
         List<CurrencyEntryRecord> out = new ArrayList<>();
         for (Map.Entry<String, Integer> e : CURRENCY_VALUES.entrySet()) {
@@ -147,7 +147,7 @@ public final class CustomCurrencyConfig {
         return out;
     }
 
-        public static void replaceEntries(List<CurrencyEntryRecord> entries) {
+    public static void replaceEntries(List<CurrencyEntryRecord> entries) {
         CURRENCY_VALUES.clear();
         for (CurrencyEntryRecord e : entries) {
             if (e != null && e.itemId() != null && !e.itemId().isEmpty()) {
@@ -159,7 +159,7 @@ public final class CustomCurrencyConfig {
         loaded = true;
     }
 
-        public static void saveToFile() {
+    public static void saveToFile() {
         if (configOverride != null) return; 
         try {
             Path dir = ModConfig.getConfigDirectory().resolve(CONFIG_SUBDIR);
@@ -178,7 +178,7 @@ public final class CustomCurrencyConfig {
         }
     }
 
-        public static void writeEntriesToFile(List<CurrencyEntryRecord> entries) {
+    public static void writeEntriesToFile(List<CurrencyEntryRecord> entries) {
         try {
             Path dir = ModConfig.getConfigDirectory().resolve(CONFIG_SUBDIR);
             Files.createDirectories(dir);
@@ -188,7 +188,7 @@ public final class CustomCurrencyConfig {
         }
     }
 
-        public static String entriesToJson(List<CurrencyEntryRecord> entries) {
+    public static String entriesToJson(List<CurrencyEntryRecord> entries) {
         List<CurrencyEntry> list = new ArrayList<>();
         for (CurrencyEntryRecord e : entries) {
             if (e != null && e.itemId() != null && !e.itemId().isEmpty()) {

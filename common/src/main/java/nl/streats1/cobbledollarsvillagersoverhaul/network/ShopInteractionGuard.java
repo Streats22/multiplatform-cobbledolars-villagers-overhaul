@@ -18,19 +18,19 @@ public final class ShopInteractionGuard {
     private ShopInteractionGuard() {
     }
 
-        public static final int MAX_TRADE_QUANTITY = 64;
+    public static final int MAX_TRADE_QUANTITY = 64;
 
-        public static final int MAX_SERIES_ID_LENGTH = 128;
+    public static final int MAX_SERIES_ID_LENGTH = 128;
 
-        public static final double MAX_INTERACT_DISTANCE = 6.0;
+    public static final double MAX_INTERACT_DISTANCE = 6.0;
 
-        public static final int VIRTUAL_SHOP_PERMISSION_LEVEL = 2;
+    public static final int VIRTUAL_SHOP_PERMISSION_LEVEL = 2;
 
     public static boolean isValidQuantity(int quantity) {
         return quantity >= 1 && quantity <= MAX_TRADE_QUANTITY;
     }
 
-        public static OptionalInt safeMultiplyExact(int a, int b) {
+    public static OptionalInt safeMultiplyExact(int a, int b) {
         if (a < 0 || b < 0) {
             return OptionalInt.empty();
         }
@@ -41,7 +41,7 @@ public final class ShopInteractionGuard {
         }
     }
 
-        public static OptionalLong safeMultiplyLong(long a, long b) {
+    public static OptionalLong safeMultiplyLong(long a, long b) {
         if (a < 0 || b < 0) {
             return OptionalLong.empty();
         }
@@ -56,7 +56,7 @@ public final class ShopInteractionGuard {
         return player != null && player.hasPermissions(VIRTUAL_SHOP_PERMISSION_LEVEL);
     }
 
-        public static boolean allowVirtualShopAccess(ServerPlayer player, int villagerId) {
+    public static boolean allowVirtualShopAccess(ServerPlayer player, int villagerId) {
         if (!VirtualShopIds.isVirtual(villagerId)) {
             return true;
         }
@@ -81,7 +81,7 @@ public final class ShopInteractionGuard {
         return Config.isVillagerProfessionExcluded(profId);
     }
 
-        public static boolean isConfigShopBuy(int villagerId, Entity entity) {
+    public static boolean isConfigShopBuy(int villagerId, Entity entity) {
         if (VirtualShopIds.isVirtualShop(villagerId)) {
             return true;
         }
@@ -91,7 +91,7 @@ public final class ShopInteractionGuard {
         return false;
     }
 
-        public static boolean isEmptyOfferConfigFallback(Entity entity, boolean configBuyOffersAvailable) {
+    public static boolean isEmptyOfferConfigFallback(Entity entity, boolean configBuyOffersAvailable) {
         if (!configBuyOffersAvailable || entity == null) {
             return false;
         }
@@ -128,7 +128,7 @@ public final class ShopInteractionGuard {
         return selectedSeries.substring(0, MAX_SERIES_ID_LENGTH);
     }
 
-        public static boolean isSeriesAllowed(String seriesId, Collection<String> availableIds) {
+    public static boolean isSeriesAllowed(String seriesId, Collection<String> availableIds) {
         if (seriesId == null || seriesId.isEmpty()) {
             return true;
         }

@@ -12,7 +12,7 @@ public final class MerchantInteractCompat {
     private MerchantInteractCompat() {
     }
 
-        public static boolean shouldDeferShopOverride(Entity target, boolean sneaking, ItemStack heldItem) {
+    public static boolean shouldDeferShopOverride(Entity target, boolean sneaking, ItemStack heldItem) {
         if (target == null) {
             return false;
         }

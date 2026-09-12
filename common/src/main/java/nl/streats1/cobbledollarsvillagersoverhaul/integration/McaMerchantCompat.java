@@ -11,7 +11,7 @@ public final class McaMerchantCompat {
     private McaMerchantCompat() {
     }
 
-        public static void prepareForShop(ServerLevel level, Villager villager) {
+    public static void prepareForShop(ServerLevel level, Villager villager) {
         if (level == null || villager == null || !McaVillagerCompat.isMcaVillager(villager)) {
             return;
         }
@@ -20,9 +20,6 @@ public final class McaMerchantCompat {
         if (offers == null || offers.isEmpty()) {
             invokeRestock(villager);
             refreshTrades(level, villager);
-            offers = villager.getOffers();
-            if (offers == null || offers.isEmpty()) {
-            }
         }
     }
 
@@ -37,7 +34,7 @@ public final class McaMerchantCompat {
             if (noArgs != null) {
                 noArgs.invoke(villager);
             }
-        } catch (Exception e) {
+        } catch (Exception ignored) {
         }
     }
 

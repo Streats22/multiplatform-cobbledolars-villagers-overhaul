@@ -17,7 +17,7 @@ public final class CobbleDollarsBankCompat {
     private CobbleDollarsBankCompat() {
     }
 
-        public static boolean tryOpenBank(UUID entityUuid) {
+    public static boolean tryOpenBank(UUID entityUuid) {
         if (!CobbleDollarsIntegration.isModLoaded()) {
             return false;
         }
@@ -34,7 +34,7 @@ public final class CobbleDollarsBankCompat {
         }
     }
 
-        public static boolean tryOpenBankFromVillagerId(int villagerId) {
+    public static boolean tryOpenBankFromVillagerId(int villagerId) {
         Minecraft mc = Minecraft.getInstance();
         if (mc == null || mc.level == null) return false;
         Entity entity = mc.level.getEntity(villagerId);

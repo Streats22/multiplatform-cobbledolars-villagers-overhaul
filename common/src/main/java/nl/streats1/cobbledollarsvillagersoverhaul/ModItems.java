@@ -11,7 +11,7 @@ public final class ModItems {
 
     private static Item cachedSign = null;
 
-        public static Item getCobbleDollarSign() {
+    public static Item getCobbleDollarSign() {
         if (cachedSign == null) {
             cachedSign = BuiltInRegistries.ITEM.getOptional(
                     ResourceLocation.fromNamespaceAndPath(

@@ -48,7 +48,7 @@ public final class ItemPriceConfig {
         }
     }
 
-        public static void loadAndApply() {
+    public static void loadAndApply() {
         Map<String, Integer> entries = loadEntries();
         if (entries.isEmpty()) return;
         DatapackItemPricing.loadCustomPrices(new Gson().toJson(entries));

@@ -213,7 +213,7 @@ public class ItemPriceEditorScreen extends Screen {
             super(mc, w, h, y, itemHeight);
         }
 
-        public void refresh() {
+    public void refresh() {
             clearEntries();
             List<Map.Entry<String, Integer>> sorted = new ArrayList<>(entries.entrySet());
             sorted.sort(Comparator.comparing(e -> e.getKey().toLowerCase()));
@@ -222,7 +222,7 @@ public class ItemPriceEditorScreen extends Screen {
             }
         }
 
-        public class Entry extends ObjectSelectionList.Entry<Entry> {
+    public class Entry extends ObjectSelectionList.Entry<Entry> {
             private final String itemId;
             private final int price;
 

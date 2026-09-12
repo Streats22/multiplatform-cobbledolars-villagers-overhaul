@@ -10,7 +10,7 @@ public final class TradeCyclingModCompat {
     private TradeCyclingModCompat() {
     }
 
-        public static boolean isTradeCyclingModLoaded() {
+    public static boolean isTradeCyclingModLoaded() {
         if (modLoaded == null) {
             modLoaded = detectModLoaded();
         }

@@ -8,7 +8,7 @@ import net.minecraft.world.entity.npc.VillagerProfession;
 import net.minecraft.world.entity.npc.WanderingTrader;
 import net.minecraft.world.item.ItemStack;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.CobbleDollarsIntegration;
-import nl.streats1.cobbledollarsvillagersoverhaul.integration.McaVillagerCompat;
+import nl.streats1.cobbledollarsvillagersoverhaul.integration.McaIntegration;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.MerchantInteractCompat;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.RctTrainerAssociationCompat;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.VillagerCobbleDollarsHandler;
@@ -53,9 +53,7 @@ public class CobbleDollarsVillagersOverhaulRca {
             return false;
         }
 
-        
-        
-        if (McaVillagerCompat.shouldDeferNormalRightClick(target)) {
+        if (McaIntegration.shouldDeferRightClick(target)) {
             return false;
         }
 

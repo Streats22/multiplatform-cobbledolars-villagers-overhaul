@@ -8,11 +8,11 @@ import java.util.List;
 
 public final class ModConfigDefaults {
 
-        public static final int DEFAULT_EMERALD_RATE_CD = 750;
+    public static final int DEFAULT_EMERALD_RATE_CD = 750;
 
-        public static final List<String> DEFAULT_PASSTHROUGH_INTERACT_ITEM_IDS = List.of();
+    public static final List<String> DEFAULT_PASSTHROUGH_INTERACT_ITEM_IDS = List.of();
 
-        public static final List<String> DEFAULT_PASSTHROUGH_INTERACT_ITEM_NAMESPACES = List.of(
+    public static final List<String> DEFAULT_PASSTHROUGH_INTERACT_ITEM_NAMESPACES = List.of(
             "sophisticatedbackpacks",
             "easyvillagers",
             "moblassos",
@@ -29,7 +29,7 @@ public final class ModConfigDefaults {
     private ModConfigDefaults() {
     }
 
-        public static String fabricMainConfigJson() {
+    public static String fabricMainConfigJson() {
         return fabricMainConfigJson(
                 DEFAULT_EMERALD_RATE_CD,
                 true,
@@ -49,7 +49,7 @@ public final class ModConfigDefaults {
         );
     }
 
-        public static String fabricMainConfigJson(
+    public static String fabricMainConfigJson(
             int cobbledollarsEmeraldRate,
             boolean syncCobbleDollarsBankRate,
             boolean villagersAcceptCobbleDollars,

@@ -15,7 +15,7 @@ public class DatapackItemPricing {
     private static final Map<String, Integer> customPrices = new HashMap<>();
     private static boolean pricesLoaded = false;
 
-        public static void loadCustomPrices(String jsonConfig) {
+    public static void loadCustomPrices(String jsonConfig) {
         if (jsonConfig == null || jsonConfig.isEmpty()) {
             pricesLoaded = false;
             return;
@@ -36,27 +36,27 @@ public class DatapackItemPricing {
         }
     }
 
-        public static int getOverridePrice(ItemStack itemStack) {
+    public static int getOverridePrice(ItemStack itemStack) {
         if (itemStack == null || itemStack.isEmpty()) return 0;
         if (!pricesLoaded || customPrices.isEmpty()) return 0;
         int perItem = resolveCustomPrice(itemStack.getItem());
         return perItem > 0 ? perItem * itemStack.getCount() : 0;
     }
 
-        public static int getPrice(ItemStack itemStack) {
+    public static int getPrice(ItemStack itemStack) {
         if (itemStack == null || itemStack.isEmpty()) return 0;
         int perItem = resolveCustomPrice(itemStack.getItem());
         if (perItem > 0) return perItem * itemStack.getCount();
         return CobbleDollarsConfigHelper.getEffectiveEmeraldRate() * itemStack.getCount();
     }
 
-        public static int getSingleItemPrice(Item item) {
+    public static int getSingleItemPrice(Item item) {
         if (item == null) return 0;
         int perItem = resolveCustomPrice(item);
         return perItem > 0 ? perItem : CobbleDollarsConfigHelper.getEffectiveEmeraldRate();
     }
 
-        private static int resolveCustomPrice(Item item) {
+    private static int resolveCustomPrice(Item item) {
         if (item == null) return 0;
         String path = getItemId(item);
         Integer byPath = customPrices.get(path);
@@ -67,21 +67,21 @@ public class DatapackItemPricing {
         return byFull != null ? byFull : 0;
     }
 
-        private static String getItemId(Item item) {
+    private static String getItemId(Item item) {
         ResourceLocation registryName = BuiltInRegistries.ITEM.getKey(item);
         return registryName != null ? registryName.getPath() : "";
     }
 
-        public static void addCustomPrice(String itemId, int price) {
+    public static void addCustomPrice(String itemId, int price) {
         customPrices.put(itemId.toLowerCase(), price);
         pricesLoaded = true;
     }
 
-        public static boolean hasCustomPrices() {
+    public static boolean hasCustomPrices() {
         return pricesLoaded;
     }
 
-        public static Map<String, Integer> getCustomPrices() {
+    public static Map<String, Integer> getCustomPrices() {
         return new HashMap<>(customPrices);
     }
 }

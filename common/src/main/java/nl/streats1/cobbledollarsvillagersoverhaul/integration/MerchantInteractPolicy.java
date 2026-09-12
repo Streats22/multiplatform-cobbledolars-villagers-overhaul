@@ -11,7 +11,7 @@ public final class MerchantInteractPolicy {
         return sneaking && skipShopWhenSneakingEnabled;
     }
 
-        public static boolean isEntityTypeExcluded(
+    public static boolean isEntityTypeExcluded(
             String namespace,
             String path,
             Collection<String> excludedIds,
@@ -23,7 +23,7 @@ public final class MerchantInteractPolicy {
         return matchesFullId(excludedIds, namespace, path) || matchesNamespace(excludedNamespaces, namespace);
     }
 
-        public static boolean shouldPassthroughHeldItem(
+    public static boolean shouldPassthroughHeldItem(
             String namespace,
             String path,
             boolean namedNameTag,

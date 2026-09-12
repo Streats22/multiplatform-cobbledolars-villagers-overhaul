@@ -245,7 +245,7 @@ public class CustomCurrencyConfigScreen extends Screen {
             super(mc, w, h, y, itemHeight);
         }
 
-        public void refresh() {
+    public void refresh() {
             clearEntries();
             entries.sort((a, b) -> {
                 boolean aEmerald = "minecraft:emerald".equalsIgnoreCase(a.itemId());
@@ -259,7 +259,7 @@ public class CustomCurrencyConfigScreen extends Screen {
             }
         }
 
-        public class Entry extends ObjectSelectionList.Entry<Entry> {
+    public class Entry extends ObjectSelectionList.Entry<Entry> {
             private final CurrencyEntryRecord record;
 
             Entry(CurrencyEntryRecord record) {

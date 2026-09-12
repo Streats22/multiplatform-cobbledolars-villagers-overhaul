@@ -80,7 +80,7 @@ public class ConfigNeoForge {
 
     static final ModConfigSpec SPEC = BUILDER.build();
     
-        public static void saveFromScreen() {
+    public static void saveFromScreen() {
         loadConfig(SPEC);
     }
 

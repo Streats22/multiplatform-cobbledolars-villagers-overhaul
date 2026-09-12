@@ -51,7 +51,7 @@ public final class VillagerShopCommand {
         return 1;
     }
 
-        private static Entity findLookedAtMerchant(net.minecraft.world.entity.player.Player player) {
+    private static Entity findLookedAtMerchant(net.minecraft.world.entity.player.Player player) {
         Vec3 eyePos = player.getEyePosition(1.0f);
         Vec3 lookVec = player.getViewVector(1.0f);
         Vec3 end = eyePos.add(lookVec.scale(REACH_DISTANCE));

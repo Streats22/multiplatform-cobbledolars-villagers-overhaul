@@ -13,7 +13,7 @@ public final class TradeIngredientHelper {
     private TradeIngredientHelper() {
     }
 
-        public static ItemStack secondaryIngredient(MerchantOffer offer) {
+    public static ItemStack secondaryIngredient(MerchantOffer offer) {
         if (offer == null) {
             return ItemStack.EMPTY;
         }
@@ -29,7 +29,7 @@ public final class TradeIngredientHelper {
         return new ItemStack(costB.getItem(), costB.getCount());
     }
 
-        public static ItemStack normalizeIngredient(ItemStack stack) {
+    public static ItemStack normalizeIngredient(ItemStack stack) {
         if (stack == null || stack.isEmpty()) {
             return ItemStack.EMPTY;
         }
@@ -47,73 +47,37 @@ public final class TradeIngredientHelper {
     }
 
     public static int countInInventory(Player player, ItemStack required) {
-        if (player == null || required == null || required.isEmpty()) {
+        if (player == null) {
             return 0;
         }
-        ItemStack needle = normalizeIngredient(required);
-        int total = 0;
-        var inv = player.getInventory();
-        for (int slot = 0; slot < inv.getContainerSize(); slot++) {
-            ItemStack stack = inv.getItem(slot);
-            if (!stack.isEmpty() && matchesIngredient(needle, stack)) {
-                total += stack.getCount();
-            }
-        }
-        ItemStack carried = player.containerMenu.getCarried();
-        if (!carried.isEmpty() && matchesIngredient(needle, carried)) {
-            total += carried.getCount();
-        }
-        return total;
+        return PlayerInventory.of(player).countMatching(required);
     }
 
     public static boolean hasInInventory(Player player, ItemStack required, int amount) {
-        return amount <= 0 || countInInventory(player, required) >= amount;
+        if (player == null) {
+            return amount <= 0;
+        }
+        return PlayerInventory.of(player).hasMatching(required, amount);
     }
 
     public static int countInInventory(Player player, ItemCost cost) {
-        if (player == null || cost == null) {
+        if (player == null) {
             return 0;
         }
-        int total = 0;
-        var inv = player.getInventory();
-        for (int slot = 0; slot < inv.getContainerSize(); slot++) {
-            ItemStack stack = inv.getItem(slot);
-            if (!stack.isEmpty() && cost.test(stack)) {
-                total += stack.getCount();
-            }
-        }
-        ItemStack carried = player.containerMenu.getCarried();
-        if (!carried.isEmpty() && cost.test(carried)) {
-            total += carried.getCount();
-        }
-        return total;
+        return PlayerInventory.of(player).count(cost);
     }
 
     public static boolean hasInInventory(Player player, ItemCost cost, int amount) {
-        return amount <= 0 || countInInventory(player, cost) >= amount;
+        if (player == null) {
+            return amount <= 0;
+        }
+        return PlayerInventory.of(player).has(cost, amount);
     }
 
     public static void shrinkFromInventory(ServerPlayer player, ItemCost cost, int amount) {
-        if (player == null || cost == null || amount <= 0) {
+        if (player == null) {
             return;
         }
-        int remaining = amount;
-        var inv = player.getInventory();
-        for (int slot = 0; slot < inv.getContainerSize() && remaining > 0; slot++) {
-            ItemStack stack = inv.getItem(slot);
-            if (stack.isEmpty() || !cost.test(stack)) {
-                continue;
-            }
-            int take = Math.min(remaining, stack.getCount());
-            stack.shrink(take);
-            remaining -= take;
-        }
-        if (remaining > 0) {
-            ItemStack carried = player.containerMenu.getCarried();
-            if (!carried.isEmpty() && cost.test(carried)) {
-                int take = Math.min(remaining, carried.getCount());
-                carried.shrink(take);
-            }
-        }
+        PlayerInventory.of(player).shrink(cost, amount);
     }
 }

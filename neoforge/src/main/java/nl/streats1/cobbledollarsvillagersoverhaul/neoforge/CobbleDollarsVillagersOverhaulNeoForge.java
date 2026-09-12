@@ -82,7 +82,7 @@ public class CobbleDollarsVillagersOverhaulNeoForge {
         }
     }
 
-        @SubscribeEvent(priority = EventPriority.HIGHEST)
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
     public void onEntityInteract(PlayerInteractEvent.EntityInteract event) {
         if (event.getLevel().isClientSide()) {
             if (nl.streats1.cobbledollarsvillagersoverhaul.client.ClientAssignMode.isInMode()
@@ -122,21 +122,21 @@ public class CobbleDollarsVillagersOverhaulNeoForge {
         CvmCommand.register(event.getDispatcher());
     }
 
-        @SubscribeEvent
+    @SubscribeEvent
     public void onPlayerLoggedIn(PlayerEvent.PlayerLoggedInEvent event) {
         if (event.getEntity() instanceof ServerPlayer sp) {
             CobbleDollarsShopPayloadHandlers.sendServerShopConfigTo(sp);
         }
     }
 
-        @SubscribeEvent
+    @SubscribeEvent
     public void onPlayerLoggedOut(PlayerEvent.PlayerLoggedOutEvent event) {
         if (event.getEntity() instanceof ServerPlayer sp) {
             CobbleDollarsShopPayloadHandlers.handlePlayerDisconnect(sp);
         }
     }
 
-        @SubscribeEvent(priority = EventPriority.HIGHEST)
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
     public void onEntityInteractSpecific(PlayerInteractEvent.EntityInteractSpecific event) {
         if (event.getLevel().isClientSide()) {
             if (nl.streats1.cobbledollarsvillagersoverhaul.client.ClientAssignMode.isInMode()
@@ -178,7 +178,7 @@ public class CobbleDollarsVillagersOverhaulNeoForge {
         }
     }
 
-        @SuppressWarnings({"unused", "null"})
+    @SuppressWarnings({"unused", "null"})
     private static boolean isRadicalTrainerAssociation(Entity entity) {
         ResourceLocation id = BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType());
         return "rctmod".equals(id.getNamespace()) && "trainer_association".equals(id.getPath());

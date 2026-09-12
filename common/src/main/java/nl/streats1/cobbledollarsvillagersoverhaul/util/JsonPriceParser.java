@@ -6,7 +6,7 @@ public final class JsonPriceParser {
 
     private JsonPriceParser() {}
 
-        public static int parse(JsonElement el) {
+    public static int parse(JsonElement el) {
         if (el == null || el.isJsonNull()) return 0;
         if (el.isJsonPrimitive()) {
             var p = el.getAsJsonPrimitive();

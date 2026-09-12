@@ -38,7 +38,7 @@ public final class MerchantTradeGenerationHelper {
         return null;
     }
 
-        public static void ensureMerchantOffersReady(ServerLevel level, AbstractVillager merchant) {
+    public static void ensureMerchantOffersReady(ServerLevel level, AbstractVillager merchant) {
         if (merchant == null || level == null) {
             return;
         }

@@ -68,7 +68,7 @@ public class CobbleDollarsVillagersOverhaulFabric implements ModInitializer {
         });
     }
 
-        private void registerEvents() {
+    private void registerEvents() {
         UseEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
             
             if (hand != InteractionHand.MAIN_HAND) {

@@ -13,7 +13,7 @@ public final class FabricMerchantScreenOverlapGuard {
 
     private static final int WINDOW_TICKS = 45;
     private static final int MAX_REOPEN = 16;
-        private static final int RECOVERY_START_TICK = 2;
+    private static final int RECOVERY_START_TICK = 2;
 
     private static int ticksRemaining;
     private static int ticksSinceArm;
@@ -34,23 +34,20 @@ public final class FabricMerchantScreenOverlapGuard {
         earlyNullRecoveryAttempts = 0;
     }
 
-        public static void clear() {
+    public static void clear() {
         clear("disconnect");
     }
 
     private static void clear(String reason) {
-        boolean hadPayload = cachedPayload != null;
         cachedPayload = null;
         ticksRemaining = 0;
         ticksSinceArm = 0;
         expectedEntityId = Integer.MIN_VALUE;
         reopenAttempts = 0;
         earlyNullRecoveryAttempts = 0;
-        if (hadPayload) {
-        }
     }
 
-        public static void scheduleDeferredRecheck(Minecraft mc) {
+    public static void scheduleDeferredRecheck(Minecraft mc) {
         mc.execute(() -> {
             if (cachedPayload == null) {
                 return;
@@ -61,10 +58,8 @@ public final class FabricMerchantScreenOverlapGuard {
             if (alreadyShowingOurShop(mc)) {
                 return;
             }
-            String screenName = mc.screen == null ? "null" : mc.screen.getClass().getSimpleName();
             if (mc.screen instanceof MerchantScreen || mc.screen == null) {
                 reopenFromCache(mc, "deferred-recheck");
-            } else {
             }
         });
     }
@@ -80,9 +75,6 @@ public final class FabricMerchantScreenOverlapGuard {
 
         if (alreadyShowingOurShop(mc)) {
             return;
-        }
-
-        if (mc.screen instanceof CobbleDollarsShopScreen shop) {
         }
 
         if (mc.screen instanceof PauseScreen || mc.screen instanceof TitleScreen) {

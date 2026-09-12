@@ -66,7 +66,7 @@ public class CobbleDollarsShopScreen extends Screen {
     private static final int LEFT_PANEL_BTN_SIZE = 9;
     private static final int LEFT_PANEL_BUY_W = 31;
     private static final int LEFT_PANEL_BUY_H = 14;
-        private static final float TRADE_ACTION_BUTTON_TEXT_SCALE = 0.82f;
+    private static final float TRADE_ACTION_BUTTON_TEXT_SCALE = 0.82f;
     private static final int LEFT_PANEL_QTY_BTN_UP_X = 64;
     private static final int LEFT_PANEL_QTY_BTN_GAP = 2;
     private static final int LEFT_PANEL_QTY_BTN_DOWN_X = LEFT_PANEL_QTY_BTN_UP_X + LEFT_PANEL_BTN_SIZE + LEFT_PANEL_QTY_BTN_GAP;
@@ -86,7 +86,7 @@ public class CobbleDollarsShopScreen extends Screen {
     private static final int LIST_ITEM_ICON_SIZE = Math.round(16 * LIST_ICON_SCALE);
     private static final int BALANCE_BG_X = 72;
     private static final int BALANCE_BG_Y = 181;
-        private static final int BANK_BUTTON_X = 8;
+    private static final int BANK_BUTTON_X = 8;
     private static final int BANK_BUTTON_Y = BALANCE_BG_Y;
     private static final int BALANCE_TEXT_X_OFFSET = 6;
     private static final int BALANCE_TEXT_Y_OFFSET = 1;
@@ -100,7 +100,7 @@ public class CobbleDollarsShopScreen extends Screen {
     private static final int LIST_ICON_OFFSET_Y = -1;
     private static final int LIST_PRICE_BADGE_OFFSET_X = -3;
     private static final int LIST_PRICE_BADGE_OFFSET_Y = -3;
-        private static final int LIST_TRADES_ARROW_OFFSET_X = -7;
+    private static final int LIST_TRADES_ARROW_OFFSET_X = -7;
     private static final int LIST_TRADES_ARROW_OFFSET_Y = 2;
     private static final int PRICE_TEXT_OFFSET_Y = 4;
 
@@ -163,9 +163,9 @@ public class CobbleDollarsShopScreen extends Screen {
     private final List<CobbleDollarsShopPayloads.ShopOfferEntry> tradesOffers;
     private final boolean buyOffersFromConfig;
     private final boolean canCycleTrades;
-        private List<String> tabNames = List.of();
-        private List<List<CobbleDollarsShopPayloads.ShopOfferEntry>> tabOffers = List.of();
-        private int buyTabCount;
+    private List<String> tabNames = List.of();
+    private List<List<CobbleDollarsShopPayloads.ShopOfferEntry>> tabOffers = List.of();
+    private int buyTabCount;
 
     private enum TabSection {
         BUY,
@@ -205,7 +205,7 @@ public class CobbleDollarsShopScreen extends Screen {
         selectFirstNonEmptyTab();
     }
 
-        private void rebuildTabs() {
+    private void rebuildTabs() {
         List<String> names = new ArrayList<>();
         List<List<CobbleDollarsShopPayloads.ShopOfferEntry>> offers = new ArrayList<>();
         int buyTabs = 0;
@@ -293,7 +293,7 @@ public class CobbleDollarsShopScreen extends Screen {
         }
     }
 
-        public int shopTargetEntityId() {
+    public int shopTargetEntityId() {
         return villagerId;
     }
 
@@ -310,7 +310,7 @@ public class CobbleDollarsShopScreen extends Screen {
         return selectedTab == buyTabCount + 1;
     }
 
-        private int serverOfferIndex() {
+    private int serverOfferIndex() {
         if (selectedTab < buyTabCount) {
             int base = 0;
             for (int t = 0; t < selectedTab; t++) base += tabOffers.get(t).size();
@@ -336,7 +336,7 @@ public class CobbleDollarsShopScreen extends Screen {
         mc.setScreen(new CobbleDollarsShopScreen(villagerId, balance, buyOffers, sellOffers, tradesOffers, buyOffersFromConfig, canCycleTrades));
     }
 
-        private static void updateOffersFromServer(CobbleDollarsShopScreen screen, int villagerId, long balance,
+    private static void updateOffersFromServer(CobbleDollarsShopScreen screen, int villagerId, long balance,
                                                List<CobbleDollarsShopPayloads.ShopOfferEntry> buyOffers,
                                                List<CobbleDollarsShopPayloads.ShopOfferEntry> sellOffers,
                                                List<CobbleDollarsShopPayloads.ShopOfferEntry> tradesOffers,
@@ -457,7 +457,7 @@ public class CobbleDollarsShopScreen extends Screen {
         minecraft.setScreen(new DefaultShopEditorScreen(this, null, onSave));
     }
 
-        public void onCycleTrades() {
+    public void onCycleTrades() {
         if (!canCycleTrades) return;
         PlatformNetwork.sendToServer(new CobbleDollarsShopPayloads.CycleTrades(villagerId));
     }
@@ -1054,7 +1054,7 @@ public class CobbleDollarsShopScreen extends Screen {
         }
     }
 
-        private static MutableComponent seriesStoredTextToComponent(String stored) {
+    private static MutableComponent seriesStoredTextToComponent(String stored) {
         if (stored == null || stored.isEmpty()) {
             return Component.literal("");
         }
@@ -1078,7 +1078,7 @@ public class CobbleDollarsShopScreen extends Screen {
         return stack.copy();
     }
 
-        private static ItemStack itemTradeSecondaryFrom(CobbleDollarsShopPayloads.ShopOfferEntry entry) {
+    private static ItemStack itemTradeSecondaryFrom(CobbleDollarsShopPayloads.ShopOfferEntry entry) {
         if (entry == null || !entry.hasItemTradeSecondary() || entry.itemTradeSecondary() == null) {
             return ItemStack.EMPTY;
         }
@@ -1116,7 +1116,7 @@ public class CobbleDollarsShopScreen extends Screen {
         return true;
     }
 
-        private boolean hasRequiredIngredientsForBuyOrTrade(CobbleDollarsShopPayloads.ShopOfferEntry entry, int qty) {
+    private boolean hasRequiredIngredientsForBuyOrTrade(CobbleDollarsShopPayloads.ShopOfferEntry entry, int qty) {
         if (isTradesTab()) {
             return hasRequiredTradeTabItems(entry, qty);
         }

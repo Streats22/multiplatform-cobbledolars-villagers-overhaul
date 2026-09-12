@@ -9,7 +9,7 @@ import java.util.List;
 
 public class BankButton extends Button {
 
-        public static final int WIDTH = 40;
+    public static final int WIDTH = 40;
     public static final int HEIGHT = 14;
 
     public BankButton(int x, int y, OnPress onPress) {
