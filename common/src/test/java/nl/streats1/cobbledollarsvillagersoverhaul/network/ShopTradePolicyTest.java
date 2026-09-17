@@ -19,6 +19,15 @@ class ShopTradePolicyTest {
     }
 
     @Test
+    void configBuyHonorsCatalogShownAtOpenAfterVillagerGainsOffers() {
+        // Unemployed shop open → config UI; villager claims a job before Buy.
+        assertTrue(ShopTradePolicy.shouldBuyFromConfigShop(false, true, false));
+        assertTrue(ShopTradePolicy.shouldBuyFromConfigShop(true, false, false));
+        assertTrue(ShopTradePolicy.shouldBuyFromConfigShop(false, false, true));
+        assertFalse(ShopTradePolicy.shouldBuyFromConfigShop(false, false, false));
+    }
+
+    @Test
     void zeroCdCostDoesNotShrinkCdPricedCostA() {
         assertFalse(ShopTradePolicy.shouldShrinkCostAWhenTotalCostZero(false, true));
         assertTrue(ShopTradePolicy.shouldShrinkCostAWhenTotalCostZero(false, false));
