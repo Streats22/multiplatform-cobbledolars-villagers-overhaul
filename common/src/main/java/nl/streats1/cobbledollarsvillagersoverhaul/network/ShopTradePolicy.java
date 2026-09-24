@@ -33,6 +33,16 @@ public final class ShopTradePolicy {
         return true;
     }
 
+    /**
+     * Execute the catalog shown at shop open. {@code clientFromConfigShop} is the flag the server
+     * sent with ShopData; after {@code tradingPlayer} is released an unemployed villager can claim
+     * a job and populate offers, which would otherwise run a different trade at the same index.
+     */
+    public static boolean shouldBuyFromConfigShop(boolean assignedOrVirtual, boolean clientFromConfigShop,
+                                                 boolean emptyOfferFallback) {
+        return assignedOrVirtual || clientFromConfigShop || emptyOfferFallback;
+    }
+
     public static boolean isSellTabOffer(boolean costAEmerald, boolean costACurrency,
                                         boolean resultEmerald, boolean resultGoldIngot, boolean resultCurrency) {
         if (costAEmerald || costACurrency) {

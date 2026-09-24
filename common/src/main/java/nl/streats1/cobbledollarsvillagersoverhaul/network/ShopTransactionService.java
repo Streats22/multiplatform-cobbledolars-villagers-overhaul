@@ -180,11 +180,12 @@ public final class ShopTransactionService {
         }
 
         boolean configBuyOffersAvailable = !CobbleDollarsConfigHelper.getDefaultShopBuyOffers().isEmpty();
-        if (ShopInteractionGuard.isConfigShopBuy(villagerId, entity)) {
+        boolean assignedOrVirtualConfig = ShopInteractionGuard.isConfigShopBuy(villagerId, entity);
+        if (ShopTradePolicy.shouldBuyFromConfigShop(assignedOrVirtualConfig, fromConfigShop, false)) {
             handleBuyFromConfig(serverPlayer, villagerId, offerIndex, quantity);
             return;
         }
-        
+
         if (configBuyOffersAvailable && entity instanceof Villager emptyCheckVillager) {
             if (McaIntegration.isVillager(emptyCheckVillager)) {
                 McaIntegration.prepareOffers(level, emptyCheckVillager);
