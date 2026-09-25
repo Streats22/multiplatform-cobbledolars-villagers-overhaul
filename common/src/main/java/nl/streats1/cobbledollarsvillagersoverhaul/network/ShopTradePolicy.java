@@ -34,13 +34,14 @@ public final class ShopTradePolicy {
     }
 
     /**
-     * Execute the catalog shown at shop open. {@code clientFromConfigShop} is the flag the server
-     * sent with ShopData; after {@code tradingPlayer} is released an unemployed villager can claim
-     * a job and populate offers, which would otherwise run a different trade at the same index.
+     * Execute the catalog recorded at shop open. {@code openedAsConfigShop} is server state from
+     * {@link ConfigShopBuySession}, not the buy packet. After {@code tradingPlayer} is released an
+     * unemployed villager can claim a job and populate offers, which would otherwise run a different
+     * trade at the same index.
      */
-    public static boolean shouldBuyFromConfigShop(boolean assignedOrVirtual, boolean clientFromConfigShop,
+    public static boolean shouldBuyFromConfigShop(boolean assignedOrVirtual, boolean openedAsConfigShop,
                                                  boolean emptyOfferFallback) {
-        return assignedOrVirtual || clientFromConfigShop || emptyOfferFallback;
+        return assignedOrVirtual || openedAsConfigShop || emptyOfferFallback;
     }
 
     public static boolean isSellTabOffer(boolean costAEmerald, boolean costACurrency,

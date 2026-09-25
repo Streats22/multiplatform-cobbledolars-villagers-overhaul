@@ -143,7 +143,7 @@ public final class ShopTransactionService {
         sendBalanceUpdate(serverPlayer, villagerId);
     }
 
-    public static void handleBuy(ServerPlayer serverPlayer, int villagerId, int offerIndex, int quantity, boolean fromConfigShop, int tab, String selectedSeries) {
+    public static void handleBuy(ServerPlayer serverPlayer, int villagerId, int offerIndex, int quantity, int tab, String selectedSeries) {
         if (!Config.VILLAGERS_ACCEPT_COBBLEDOLLARS) {
             return;
         }
@@ -181,7 +181,9 @@ public final class ShopTransactionService {
 
         boolean configBuyOffersAvailable = !CobbleDollarsConfigHelper.getDefaultShopBuyOffers().isEmpty();
         boolean assignedOrVirtualConfig = ShopInteractionGuard.isConfigShopBuy(villagerId, entity);
-        if (ShopTradePolicy.shouldBuyFromConfigShop(assignedOrVirtualConfig, fromConfigShop, false)) {
+        // fromConfigShop is client-written on BuyWithCobbleDollars; only the catalog recorded at open counts.
+        boolean openedAsConfigShop = ConfigShopBuySession.wasOpenedAsConfigShop(serverPlayer.getUUID(), entity.getUUID());
+        if (ShopTradePolicy.shouldBuyFromConfigShop(assignedOrVirtualConfig, openedAsConfigShop, false)) {
             handleBuyFromConfig(serverPlayer, villagerId, offerIndex, quantity);
             return;
         }
