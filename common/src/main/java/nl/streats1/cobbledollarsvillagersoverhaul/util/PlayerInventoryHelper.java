@@ -20,6 +20,10 @@ public final class PlayerInventoryHelper {
         return PlayerInventory.of(player).hasMatching(needle, required);
     }
 
+    public static boolean hasEnoughExact(ServerPlayer player, ItemStack needle, int required) {
+        return required <= 0 || countMatchingExact(player, needle) >= required;
+    }
+
     public static void shrink(ServerPlayer player, ItemStack needle, int amount) {
         PlayerInventory.of(player).shrinkMatching(needle, amount);
     }
