@@ -28,6 +28,8 @@
 - **MCA trade offers not loading in CobbleDollars shop** — Refresh MCA villager trades (`updateTrades` / `restock`) before reading offers; MCA 7.7+ lazy generation no longer falls through to empty/config shop when `startTrading` is redirected.
 - **Broader MCA entity detection** — Defer right-click to MCA for all `mca:` entities; forward-compat villager entity paths; improved `canTradeWithProfession` reflection.
 - **`startTrading` mixin on `AbstractVillager`** — Covers MCA villager subclasses reliably (Fabric + NeoForge).
+- **Fabric shop open bound `Villager.startTrading`** — On Fabric intermediary the Mojmap `updateSpecialPrices` name is missing, and the first `void(Player)` fallback resolved `startTrading`, opening a vanilla merchant menu and recursing through the MCA Trade mixin. Reputation reflection now resolves only known safe names.
+- **Config-shop buy ran villager trades after a job claim** — An unemployed villager claiming a workstation mid-session could charge a different profession trade at the same offer index. The buy now honors the `fromConfigShop` flag the server sent when the shop opened.
 
 ### Security
 
