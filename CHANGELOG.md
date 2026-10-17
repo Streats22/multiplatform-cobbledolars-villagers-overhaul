@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Added
+
+- **Editable villager buy prices** — Mods → Config → *Edit what villagers buy* sets CobbleDollars paid per item
+  (any value from 1 to 999999, no 250/500/750 steps). A price overrides the emerald-derived price of an existing sell
+  trade and adds a Sell-tab entry for items the villager has no trade for. Stored in
+  `config/cobbledollars_villagers_overhaul_rca/villager_buy_prices.json`.
+
 ---
 
 ## [0.4.0] — from 0.3.0

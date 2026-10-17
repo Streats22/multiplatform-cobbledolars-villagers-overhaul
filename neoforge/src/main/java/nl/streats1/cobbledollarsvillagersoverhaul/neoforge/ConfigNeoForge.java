@@ -107,6 +107,7 @@ public class ConfigNeoForge {
         nl.streats1.cobbledollarsvillagersoverhaul.integration.CustomCurrencyConfig.setConfigOverride(
                 customCurrency == null || customCurrency.isBlank() || "[]".equals(customCurrency.trim()) ? null : customCurrency);
         ItemPriceConfig.loadAndApply();
+        nl.streats1.cobbledollarsvillagersoverhaul.integration.SellPriceConfig.loadAndApply();
     }
 
     private static List<String> parseCommaSeparated(String raw) {

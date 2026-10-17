@@ -15,12 +15,41 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.DatapackItemPricing;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.ItemPriceConfig;
+import nl.streats1.cobbledollarsvillagersoverhaul.integration.SellPriceConfig;
 
 import java.util.*;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 public class ItemPriceEditorScreen extends Screen {
 
+    /** Which price list this editor reads and writes; both lists share the same UI. */
+    public enum Mode {
+        TRADE_ITEMS(ItemPriceConfig::loadEntries, m -> {
+            ItemPriceConfig.saveEntries(m);
+            DatapackItemPricing.loadCustomPrices(new Gson().toJson(m));
+        }, "edit_item_prices_title", "item_prices_edit_hint", 999999),
+        VILLAGER_BUYS(SellPriceConfig::loadEntries, SellPriceConfig::saveEntries,
+                "edit_villager_buys_title", "villager_buys_edit_hint", SellPriceConfig.MAX_PRICE);
+
+        final Supplier<Map<String, Integer>> loader;
+        final Consumer<Map<String, Integer>> saver;
+        final String titleKey;
+        final String hintKey;
+        final int maxPrice;
+
+        Mode(Supplier<Map<String, Integer>> loader, Consumer<Map<String, Integer>> saver,
+             String titleKey, String hintKey, int maxPrice) {
+            this.loader = loader;
+            this.saver = saver;
+            this.titleKey = titleKey;
+            this.hintKey = hintKey;
+            this.maxPrice = maxPrice;
+        }
+    }
+
     private final Screen parent;
+    private final Mode mode;
     private Map<String, Integer> entries = new LinkedHashMap<>();
     private PriceListWidget listWidget;
     private EditBox valueEdit;
@@ -32,19 +61,24 @@ public class ItemPriceEditorScreen extends Screen {
     private static final int PANEL_PAD = 16;
 
     public ItemPriceEditorScreen(Screen parent) {
-        this(parent, null);
+        this(parent, Mode.TRADE_ITEMS, null);
     }
 
-    public ItemPriceEditorScreen(Screen parent, Map<String, Integer> initialEntries) {
-        super(Component.translatable("gui.cobbledollars_villagers_overhaul_rca.edit_item_prices_title"));
+    public ItemPriceEditorScreen(Screen parent, Mode mode) {
+        this(parent, mode, null);
+    }
+
+    public ItemPriceEditorScreen(Screen parent, Mode mode, Map<String, Integer> initialEntries) {
+        super(Component.translatable("gui.cobbledollars_villagers_overhaul_rca." + mode.titleKey));
         this.parent = parent;
+        this.mode = mode;
         if (initialEntries != null) this.entries = new LinkedHashMap<>(initialEntries);
     }
 
     @Override
     protected void init() {
         if (entries.isEmpty()) {
-            entries = new LinkedHashMap<>(ItemPriceConfig.loadEntries());
+            entries = new LinkedHashMap<>(mode.loader.get());
         }
 
         int panelLeft = PANEL_PAD;
@@ -67,7 +101,7 @@ public class ItemPriceEditorScreen extends Screen {
                         Component.translatable("gui.cobbledollars_villagers_overhaul_rca.browse_items"),
                         b -> minecraft.setScreen(new ItemPickerScreen(this, (id, val) -> {
                             addEntry(id, val);
-                            minecraft.setScreen(new ItemPriceEditorScreen(parent, getEntries()));
+                            minecraft.setScreen(new ItemPriceEditorScreen(parent, mode, getEntries()));
                         }, DEFAULT_PRICE)))
                 .bounds(width / 2 - 5, height - 56, 150, 20)
                 .build());
@@ -126,14 +160,8 @@ public class ItemPriceEditorScreen extends Screen {
 
     private void saveAndClose() {
         applyValueFromEdit();
-        ItemPriceConfig.saveEntries(entries);
-        
-        DatapackItemPricing.loadCustomPrices(buildJsonFromEntries());
+        mode.saver.accept(entries);
         minecraft.setScreen(parent);
-    }
-
-    private String buildJsonFromEntries() {
-        return new Gson().toJson(entries);
     }
 
     @Override
@@ -152,7 +180,7 @@ public class ItemPriceEditorScreen extends Screen {
             String s = valueEdit.getValue().trim();
             if (!s.isEmpty()) {
                 int v = Integer.parseInt(s);
-                if (v > 0) updateValue(sel.getItemId(), Math.min(v, 999999));
+                if (v > 0) updateValue(sel.getItemId(), Math.min(v, mode.maxPrice));
             }
         } catch (NumberFormatException ignored) {
         }
@@ -163,7 +191,7 @@ public class ItemPriceEditorScreen extends Screen {
         var sel = listWidget.getSelected();
         if (sel == null) return;
         int current = sel.getPrice();
-        int next = Math.max(1, Math.min(999999, current + delta));
+        int next = Math.max(1, Math.min(mode.maxPrice, current + delta));
         updateValue(sel.getItemId(), next);
         if (valueEdit != null) valueEdit.setValue(String.valueOf(next));
     }
@@ -199,7 +227,7 @@ public class ItemPriceEditorScreen extends Screen {
 
         if (listWidget != null) listWidget.render(guiGraphics, mouseX, mouseY, partialTick);
         guiGraphics.drawCenteredString(font, title, width / 2, 12, 0xFFFFFF);
-        guiGraphics.drawCenteredString(font, Component.translatable("gui.cobbledollars_villagers_overhaul_rca.item_prices_edit_hint"), width / 2, 26, 0xAAAAAA);
+        guiGraphics.drawCenteredString(font, Component.translatable("gui.cobbledollars_villagers_overhaul_rca." + mode.hintKey), width / 2, 26, 0xAAAAAA);
         guiGraphics.drawString(font, Component.translatable("gui.cobbledollars_villagers_overhaul_rca.value_label"), width / 2 - 115, height - 82, 0xCCCCCC);
         super.render(guiGraphics, mouseX, mouseY, partialTick);
     }

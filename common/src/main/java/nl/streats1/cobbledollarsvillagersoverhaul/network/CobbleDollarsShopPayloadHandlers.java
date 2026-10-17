@@ -199,6 +199,7 @@ public final class CobbleDollarsShopPayloadHandlers {
                         buildDatapackOffers(allOffers, buyOffers, sellOffers);
                     }
                     buildItemForItemTrades(allOffers, tradesOffers);
+                    sellOffers.addAll(ShopOfferAssembler.configuredSellExtras(allOffers));
                 }
             } finally {
                 villager.setTradingPlayer(null);
@@ -265,6 +266,7 @@ public final class CobbleDollarsShopPayloadHandlers {
                 buildDatapackOffers(allOffers, buyOffers, sellOffers);
             }
             buildItemForItemTrades(allOffers, tradesOffers);
+            sellOffers.addAll(ShopOfferAssembler.configuredSellExtras(allOffers));
         } else {
             return;
         }

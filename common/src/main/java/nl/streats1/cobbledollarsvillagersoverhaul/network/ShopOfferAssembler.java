@@ -1,16 +1,19 @@
 package nl.streats1.cobbledollarsvillagersoverhaul.network;
 
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.trading.MerchantOffer;
 import nl.streats1.cobbledollarsvillagersoverhaul.Config;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.CustomCurrencyConfig;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.DatapackItemPricing;
+import nl.streats1.cobbledollarsvillagersoverhaul.integration.SellPriceConfig;
 import nl.streats1.cobbledollarsvillagersoverhaul.util.ShopOfferEntryFactory;
 import nl.streats1.cobbledollarsvillagersoverhaul.util.TradeIngredientHelper;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public final class ShopOfferAssembler {
 
@@ -180,7 +183,9 @@ public final class ShopOfferAssembler {
             if (result.is(Items.EMERALD) && !costA.isEmpty()) {
                 ItemStack safeCostA = costA.copy();
                 if (!safeCostA.isEmpty()) {
-                    sellOut.add(ShopOfferEntryFactory.sell(safeCostA, result.getCount()));
+                    sellOut.add(configuredSellPrice(safeCostA) > 0
+                            ? ShopOfferEntryFactory.sellDirect(safeCostA, configuredSellPrice(safeCostA))
+                            : ShopOfferEntryFactory.sell(safeCostA, result.getCount()));
                 }
                 continue;
             }
@@ -188,7 +193,8 @@ public final class ShopOfferAssembler {
             if (result.is(Items.GOLD_INGOT) && !costA.isEmpty() && CustomCurrencyConfig.getCurrencyValue(result) == 0) {
                 ItemStack safeCostA = costA.copy();
                 if (!safeCostA.isEmpty()) {
-                    sellOut.add(ShopOfferEntryFactory.sellDirect(safeCostA, DatapackItemPricing.getPrice(result)));
+                    sellOut.add(ShopOfferEntryFactory.sellDirect(safeCostA,
+                            configuredSellPrice(safeCostA) > 0 ? configuredSellPrice(safeCostA) : DatapackItemPricing.getPrice(result)));
                 }
                 continue;
             }
@@ -196,7 +202,8 @@ public final class ShopOfferAssembler {
                 int cobbleDollarsPerTrade = result.getCount() * CustomCurrencyConfig.getCurrencyValue(result);
                 ItemStack safeCostA = costA.copy();
                 if (!safeCostA.isEmpty()) {
-                    sellOut.add(ShopOfferEntryFactory.sellDirect(safeCostA, cobbleDollarsPerTrade));
+                    sellOut.add(ShopOfferEntryFactory.sellDirect(safeCostA,
+                            configuredSellPrice(safeCostA) > 0 ? configuredSellPrice(safeCostA) : cobbleDollarsPerTrade));
                 }
             }
         }
@@ -244,5 +251,31 @@ public final class ShopOfferAssembler {
                 buyOut.add(ShopOfferEntryFactory.buyDirect(safeResult, price, safeCostB));
             }
         }
+    }
+
+    /** CD for one trade's worth of {@code costA} at the configured per-item price, or 0 when none is set. */
+    public static int configuredSellPrice(ItemStack costA) {
+        long total = (long) SellPriceConfig.unitPrice(costA) * costA.getCount();
+        return total > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) total;
+    }
+
+    /**
+     * Configured items the merchant has no sell trade for, one unit each. Appended after the merchant's own sell
+     * entries; {@code handleSell} resolves indices past the merchant list through this same method.
+     */
+    public static List<CobbleDollarsShopPayloads.ShopOfferEntry> configuredSellExtras(List<MerchantOffer> allOffers) {
+        java.util.Set<Item> covered = new java.util.HashSet<>();
+        for (MerchantOffer o : sellOffers(allOffers)) {
+            covered.add(o.getCostA().getItem());
+        }
+        List<CobbleDollarsShopPayloads.ShopOfferEntry> extras = new ArrayList<>();
+        for (Map.Entry<String, Integer> e : SellPriceConfig.all().entrySet()) {
+            Item item = SellPriceConfig.resolve(e.getKey());
+            if (item == Items.AIR || covered.contains(item)) {
+                continue;
+            }
+            extras.add(ShopOfferEntryFactory.sellDirect(new ItemStack(item), e.getValue()));
+        }
+        return extras;
     }
 }

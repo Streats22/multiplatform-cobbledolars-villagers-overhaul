@@ -587,7 +587,11 @@ public final class ShopTransactionService {
             offer = allOffers.get(offerIndex);
         } else {
             List<MerchantOffer> sellOffers = ShopOfferAssembler.sellOffers(allOffers);
-            if (offerIndex < 0 || offerIndex >= sellOffers.size()) {
+            if (offerIndex >= sellOffers.size()) {
+                completedTrade = sellConfiguredExtra(serverPlayer, allOffers, offerIndex - sellOffers.size(), quantity);
+                return;
+            }
+            if (offerIndex < 0) {
                 return;
             }
             offer = sellOffers.get(offerIndex);
@@ -621,8 +625,10 @@ public final class ShopTransactionService {
                 return;
             }
             int emeraldCount = emeraldCountOpt.getAsInt();
-            int rate = CobbleDollarsConfigHelper.getEffectiveEmeraldRate();
-            var toAddOpt = ShopInteractionGuard.safeMultiplyLong(emeraldCount, rate);
+            int configured = ShopOfferAssembler.configuredSellPrice(costA);
+            var toAddOpt = configured > 0
+                    ? ShopInteractionGuard.safeMultiplyLong(configured, quantity)
+                    : ShopInteractionGuard.safeMultiplyLong(emeraldCount, CobbleDollarsConfigHelper.getEffectiveEmeraldRate());
             if (toAddOpt.isEmpty()) {
                 return;
             }
@@ -639,7 +645,8 @@ public final class ShopTransactionService {
                 return;
             }
             resultForQty.setCount(countOpt.getAsInt());
-            long toAdd = DatapackItemPricing.getPrice(resultForQty);
+            int configured = ShopOfferAssembler.configuredSellPrice(costA);
+            long toAdd = configured > 0 ? (long) configured * quantity : DatapackItemPricing.getPrice(resultForQty);
             if (!CobbleDollarsIntegration.addBalance(serverPlayer, toAdd)) {
                 return;
             }
@@ -651,7 +658,8 @@ public final class ShopTransactionService {
                 return;
             }
             resultForQty.setCount(countOpt.getAsInt());
-            long toAdd = CustomCurrencyConfig.getTotalValue(resultForQty);
+            int configured = ShopOfferAssembler.configuredSellPrice(costA);
+            long toAdd = configured > 0 ? (long) configured * quantity : CustomCurrencyConfig.getTotalValue(resultForQty);
             if (!CobbleDollarsIntegration.addBalance(serverPlayer, toAdd)) {
                 return;
             }
@@ -683,6 +691,32 @@ public final class ShopTransactionService {
             }
             finishShopTradeSession(tradingMerchant, entity, serverPlayer, villagerId, completedTrade);
         }
+    }
+
+    private static boolean sellConfiguredExtra(ServerPlayer serverPlayer, List<MerchantOffer> allOffers,
+                                               int extraIndex, int quantity) {
+        List<CobbleDollarsShopPayloads.ShopOfferEntry> extras = ShopOfferAssembler.configuredSellExtras(allOffers);
+        if (extraIndex < 0 || extraIndex >= extras.size()) {
+            return false;
+        }
+        CobbleDollarsShopPayloads.ShopOfferEntry entry = extras.get(extraIndex);
+        ItemStack item = entry.result();
+        var toAddOpt = ShopInteractionGuard.safeMultiplyLong(entry.emeraldCount(), quantity);
+        var neededOpt = ShopInteractionGuard.safeMultiplyExact(item.getCount(), quantity);
+        if (toAddOpt.isEmpty() || neededOpt.isEmpty()) {
+            return false;
+        }
+        int needed = neededOpt.getAsInt();
+        if (!PlayerInventoryHelper.hasEnough(serverPlayer, item, needed)) {
+            return false;
+        }
+        if (!CobbleDollarsIntegration.addBalance(serverPlayer, toAddOpt.getAsLong())) {
+            return false;
+        }
+        PlayerInventoryHelper.shrink(serverPlayer, item, needed);
+        serverPlayer.containerMenu.broadcastChanges();
+        serverPlayer.inventoryMenu.broadcastChanges();
+        return true;
     }
 
     private static void sendBalanceUpdate(ServerPlayer player, int villagerId) {

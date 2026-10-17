@@ -74,6 +74,7 @@ public class CobbleDollarsVillagersOverhaulNeoForge {
         Config.loadConfig();
         ConfigNeoForge.loadConfig(ConfigNeoForge.SPEC);
         ItemPriceConfig.loadAndApply();
+        nl.streats1.cobbledollarsvillagersoverhaul.integration.SellPriceConfig.loadAndApply();
     }
 
     private void onConfigLoad(ModConfigEvent event) {

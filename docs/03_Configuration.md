@@ -69,6 +69,17 @@ always use `getEffectiveEmeraldRate()` (= `cobbledollarsEmeraldRate` after load)
 
 ---
 
+## Villager buy prices (Sell tab)
+
+- **Path:** `config/cobbledollars_villagers_overhaul_rca/villager_buy_prices.json`
+- **Format:** `{"itemPrices": {"minecraft:wheat": 12, "cobblemon:apricorn": 40}}` — literal CD per 1 item, any value
+  from 1 to 999999.
+- Applies to every villager / wandering trader. Overrides the emerald-based price of an existing sell trade; items
+  without a trade are added to the Sell tab (one item per sale).
+- **Edit in-game:** Mods → Config → Edit what villagers buy.
+
+---
+
 ## CobbleDollars shop / bank (external)
 
 These files belong to **CobbleDollars**, not this mod:

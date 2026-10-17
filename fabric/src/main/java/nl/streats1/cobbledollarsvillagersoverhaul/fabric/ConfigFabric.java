@@ -98,6 +98,7 @@ public final class ConfigFabric {
             CustomCurrencyConfig.setConfigOverride(null);
             CustomCurrencyConfig.loadFromFile();
             ItemPriceConfig.loadAndApply();
+            nl.streats1.cobbledollarsvillagersoverhaul.integration.SellPriceConfig.loadAndApply();
         } catch (Exception e) {
         }
     }
