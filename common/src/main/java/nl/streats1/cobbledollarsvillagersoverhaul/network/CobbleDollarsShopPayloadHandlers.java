@@ -55,6 +55,7 @@ public final class CobbleDollarsShopPayloadHandlers {
         if (serverPlayer == null) {
             return;
         }
+        ConfigShopBuySession.forgetPlayer(serverPlayer.getUUID());
         AssignModeTracker.clear(serverPlayer.getUUID());
         ShopSeriesCatalog.clearCache(serverPlayer.getUUID());
         var server = serverPlayer.getServer();
@@ -288,9 +289,11 @@ public final class CobbleDollarsShopPayloadHandlers {
         List<CobbleDollarsShopPayloads.ShopOfferEntry> safeTradesOffers = tradesOffers != null ? tradesOffers : List.of();
 
         try {
+            ConfigShopBuySession.remember(serverPlayer.getUUID(), entity.getUUID(), buyOffersFromConfig);
             PlatformNetwork.sendToPlayer(serverPlayer,
                     new CobbleDollarsShopPayloads.ShopData(villagerId, balance, safeBuyOffers, safeSellOffers, safeTradesOffers, buyOffersFromConfig, canCycleTrades));
         } catch (Exception e) {
+            ConfigShopBuySession.remember(serverPlayer.getUUID(), entity.getUUID(), false);
             PlatformNetwork.sendToPlayer(serverPlayer,
                     new CobbleDollarsShopPayloads.ShopData(villagerId, 0L, List.of(), List.of(), List.of(), false, false));
         }
@@ -338,7 +341,8 @@ public final class CobbleDollarsShopPayloadHandlers {
     }
 
     public static void handleBuy(ServerPlayer serverPlayer, int villagerId, int offerIndex, int quantity, boolean fromConfigShop, int tab, String selectedSeries) {
-        ShopTransactionService.handleBuy(serverPlayer, villagerId, offerIndex, quantity, fromConfigShop, tab, selectedSeries);
+        // fromConfigShop is client-written. Catalog selection uses ConfigShopBuySession.
+        ShopTransactionService.handleBuy(serverPlayer, villagerId, offerIndex, quantity, tab, selectedSeries);
     }
 
     public static void handleSell(ServerPlayer serverPlayer, int villagerId, int offerIndex, int quantity) {
