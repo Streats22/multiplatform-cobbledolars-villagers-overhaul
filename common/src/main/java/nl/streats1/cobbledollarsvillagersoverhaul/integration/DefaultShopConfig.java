@@ -26,6 +26,34 @@ public final class DefaultShopConfig {
         return CobbleDollarsConfigHelper.getConfigDirectory().resolve(COBBLEDOLLARS_CONFIG_SUBDIR).resolve(DEFAULT_SHOP_FILE);
     }
 
+    public static JsonObject asLegacyRoot(JsonElement parsed) {
+        if (parsed.isJsonObject()) {
+            return parsed.getAsJsonObject();
+        }
+        JsonArray defaultShop = new JsonArray();
+        if (parsed.isJsonArray()) {
+            for (JsonElement catEl : parsed.getAsJsonArray()) {
+                if (!catEl.isJsonObject()) continue;
+                JsonObject cat = catEl.getAsJsonObject();
+                if (!cat.has("name") || !cat.has("offers") || !cat.get("offers").isJsonArray()) continue;
+                JsonObject wrapper = new JsonObject();
+                wrapper.add(cat.get("name").getAsString(), cat.get("offers"));
+                defaultShop.add(wrapper);
+            }
+        }
+        JsonObject root = new JsonObject();
+        root.add(DEFAULT_SHOP_KEY, defaultShop);
+        return root;
+    }
+
+    private static boolean existingFileUsesArrayFormat(Path file) {
+        try {
+            return Files.isRegularFile(file) && JsonParser.parseString(Files.readString(file)).isJsonArray();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     public static Map<String, List<ShopEntryRecord>> loadCategories() {
         Path file = getShopFile();
         Map<String, List<ShopEntryRecord>> out = new LinkedHashMap<>();
@@ -35,7 +63,7 @@ public final class DefaultShopConfig {
         }
         try {
             String content = Files.readString(file);
-            JsonObject root = JsonParser.parseString(content).getAsJsonObject();
+            JsonObject root = DefaultShopConfig.asLegacyRoot(JsonParser.parseString(content));
             if (!root.has(DEFAULT_SHOP_KEY)) {
                 out.put(DEFAULT_CATEGORY, new ArrayList<>());
                 return out;
@@ -108,6 +136,26 @@ public final class DefaultShopConfig {
         Path file = getShopFile();
         try {
             Files.createDirectories(file.getParent());
+            if (existingFileUsesArrayFormat(file)) {
+                JsonArray categoriesJson = new JsonArray();
+                for (Map.Entry<String, List<ShopEntryRecord>> entry : categories.entrySet()) {
+                    String catName = entry.getKey();
+                    if (catName == null || catName.isBlank()) continue;
+                    JsonArray offers = new JsonArray();
+                    for (ShopEntryRecord e : entry.getValue()) {
+                        JsonObject o = new JsonObject();
+                        o.addProperty("item", e.itemId());
+                        o.addProperty("price", String.valueOf(e.price()));
+                        offers.add(o);
+                    }
+                    JsonObject category = new JsonObject();
+                    category.addProperty("name", catName);
+                    category.add("offers", offers);
+                    categoriesJson.add(category);
+                }
+                Files.writeString(file, new com.google.gson.GsonBuilder().setPrettyPrinting().create().toJson(categoriesJson));
+                return;
+            }
             JsonArray defaultShop = new JsonArray();
             for (Map.Entry<String, List<ShopEntryRecord>> entry : categories.entrySet()) {
                 String catName = entry.getKey();

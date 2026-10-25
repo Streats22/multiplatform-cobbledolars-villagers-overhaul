@@ -1,27 +1,19 @@
 package nl.streats1.cobbledollarsvillagersoverhaul.mixin;
 
-import net.minecraft.world.entity.npc.Villager;
-import net.minecraft.world.entity.npc.WanderingTrader;
 import net.minecraft.world.item.trading.MerchantOffer;
 import nl.streats1.cobbledollarsvillagersoverhaul.ShopTradeOrbSuppression;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Redirect;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-@Mixin({Villager.class, WanderingTrader.class})
+@Mixin(MerchantOffer.class)
 public class MerchantTradeOrbSuppressionMixin {
 
-    @Redirect(
-            method = "rewardTradeXp",
-            at = @At(
-                    value = "INVOKE",
-                    target = "Lnet/minecraft/world/item/trading/MerchantOffer;shouldRewardExp()Z"
-            )
-    )
-    private boolean cobbledollars_villagers_overhaul_rca$skipOrbSpawn(MerchantOffer offer) {
+    @Inject(method = "shouldRewardExp", at = @At("HEAD"), cancellable = true)
+    private void cobbledollars_villagers_overhaul_rca$skipOrbSpawn(CallbackInfoReturnable<Boolean> cir) {
         if (ShopTradeOrbSuppression.isSuppressingTradeOrbs()) {
-            return false;
+            cir.setReturnValue(false);
         }
-        return offer.shouldRewardExp();
     }
 }

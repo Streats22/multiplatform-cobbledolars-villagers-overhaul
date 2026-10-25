@@ -7,6 +7,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.npc.AbstractVillager;
 import net.minecraft.world.entity.npc.Villager;
+import nl.streats1.cobbledollarsvillagersoverhaul.integration.VillagerShopConfig;
 import net.minecraft.world.entity.npc.WanderingTrader;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -51,36 +52,41 @@ public final class ShopTransactionService {
         if (!ShopInteractionGuard.canAccessVirtualShop(serverPlayer)) {
             return;
         }
+        sellBankEntry(serverPlayer, VirtualShopIds.VIRTUAL_ID_BANK, offerIndex, quantity);
+    }
+
+    private static boolean sellBankEntry(ServerPlayer serverPlayer, int villagerId, int bankIndex, int quantity) {
         List<CobbleDollarsShopPayloads.ShopOfferEntry> bankOffers = CobbleDollarsConfigHelper.getBankSellOffers();
-        if (offerIndex < 0 || offerIndex >= bankOffers.size()) {
-            return;
+        if (bankIndex < 0 || bankIndex >= bankOffers.size()) {
+            return false;
         }
-        CobbleDollarsShopPayloads.ShopOfferEntry entry = bankOffers.get(offerIndex);
-        
+        CobbleDollarsShopPayloads.ShopOfferEntry entry = bankOffers.get(bankIndex);
+
         ItemStack costA = entry.result();
         int pricePerUnit = entry.emeraldCount();
         var toAddOpt = ShopInteractionGuard.safeMultiplyLong(pricePerUnit, quantity);
         if (toAddOpt.isEmpty()) {
-            return;
+            return false;
         }
         long toAdd = toAddOpt.getAsLong();
 
         int perTrade = costA.getCount();
         var totalNeededOpt = ShopInteractionGuard.safeMultiplyExact(perTrade, quantity);
         if (totalNeededOpt.isEmpty()) {
-            return;
+            return false;
         }
         int totalNeeded = totalNeededOpt.getAsInt();
         if (!PlayerInventoryHelper.hasEnough(serverPlayer, costA, totalNeeded)) {
-            return;
+            return false;
         }
         if (!CobbleDollarsIntegration.addBalance(serverPlayer, toAdd)) {
-            return;
+            return false;
         }
         PlayerInventoryHelper.shrink(serverPlayer, costA, totalNeeded);
         serverPlayer.containerMenu.broadcastChanges();
         serverPlayer.inventoryMenu.broadcastChanges();
-        sendBalanceUpdate(serverPlayer, VirtualShopIds.VIRTUAL_ID_BANK);
+        sendBalanceUpdate(serverPlayer, villagerId);
+        return true;
     }
 
     public static void handleBuyFromConfig(ServerPlayer serverPlayer, int villagerId, int offerIndex, int quantity) {
@@ -587,7 +593,13 @@ public final class ShopTransactionService {
             offer = allOffers.get(offerIndex);
         } else {
             List<MerchantOffer> sellOffers = ShopOfferAssembler.sellOffers(allOffers);
-            if (offerIndex < 0 || offerIndex >= sellOffers.size()) {
+            int merchantSellCount = entity instanceof Villager configVillager
+                    && VillagerShopConfig.usesConfigShop(configVillager.getUUID()) ? 0 : sellOffers.size();
+            if (offerIndex >= merchantSellCount) {
+                sellBankEntry(serverPlayer, villagerId, offerIndex - merchantSellCount, quantity);
+                return;
+            }
+            if (offerIndex < 0) {
                 return;
             }
             offer = sellOffers.get(offerIndex);

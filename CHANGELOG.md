@@ -4,6 +4,34 @@
 
 ---
 
+## [0.4.2] — from 0.4.0
+
+**Minecraft 1.21.1** · **Fabric & NeoForge** · Cobblemon **1.8.0–1.8.2** · CobbleDollars **Beta-5.1+ / Beta-6.1**
+
+### Added
+
+- **Bank prices apply to villagers** — Items and prices from *Edit bank* (`config/cobbledollars/default_bank.json`, or `bank.json` on older CobbleDollars) now appear
+  in every villager's and wandering trader's **Sell** tab (e.g. Emerald at 500, Diamond, Relic Coin), not only in the
+  virtual bank.
+- **Quick-add buttons** in the bank editor for Emerald, Diamond and Relic Coin; the added item is selected so its price
+  can be typed immediately.
+
+### Fixed
+
+- **Edit bank / Edit shop did nothing on CobbleDollars Beta-6.1** — Beta-6.1 stores the bank in `default_bank.json`
+  (a list with string prices) and the shop as a list of `{name, offers}`; the editors and sell/buy lists still read
+  the old `bank.json` / `defaultShop` layout, so existing prices (e.g. Emerald 750) never showed and edits were
+  ignored. Both layouts are now read, and edits are saved in the layout the file already uses.
+- **Startup crash on Fabric Loader 0.18.x** — the trade-orb suppression `@Redirect` compiled with an array `at`
+  that MixinExtras 0.5.0 cannot read (`ClassCastException` while patching `Villager`). Replaced with an `@Inject` on
+  `MerchantOffer#shouldRewardExp`.
+
+### Changed
+
+- Minimum Cobblemon is now **1.8.0** (was 1.7.1); built against 1.8.0.
+
+---
+
 ## [0.4.0] — from 0.3.0
 
 **Minecraft 1.21.1** · **Fabric & NeoForge** · Cobblemon **1.7.1–1.8.x** · CobbleDollars **Beta-5.1+ / Beta-6.1**
