@@ -28,7 +28,7 @@ public class ConfigHomeScreen extends Screen {
     @Override
     protected void init() {
         int centerX = width / 2 - 100;
-        int startY = height / 2 - 55;
+        int startY = height / 2 - 68;
         addRenderableWidget(Button.builder(
                         Component.translatable("config.cobbledollars_villagers_overhaul_rca.category.general"),
                         b -> Minecraft.getInstance().setScreen(generalScreen))
@@ -60,8 +60,14 @@ public class ConfigHomeScreen extends Screen {
                 .bounds(centerX, startY + 100, 200, 20)
                 .build());
 
-        addRenderableWidget(Button.builder(Component.translatable("gui.back"), b -> onClose())
+        addRenderableWidget(Button.builder(
+                        Component.translatable("gui.cobbledollars_villagers_overhaul_rca.edit_labels"),
+                        b -> Minecraft.getInstance().setScreen(new ShopLabelsEditorScreen(this)))
                 .bounds(centerX, startY + 125, 200, 20)
+                .build());
+
+        addRenderableWidget(Button.builder(Component.translatable("gui.back"), b -> onClose())
+                .bounds(centerX, startY + 150, 200, 20)
                 .build());
     }
 

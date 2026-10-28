@@ -22,6 +22,7 @@ import nl.streats1.cobbledollarsvillagersoverhaul.client.screen.widget.BankButto
 import nl.streats1.cobbledollarsvillagersoverhaul.client.screen.widget.CycleTradesButton;
 import nl.streats1.cobbledollarsvillagersoverhaul.client.screen.widget.InvisibleButton;
 import nl.streats1.cobbledollarsvillagersoverhaul.client.screen.widget.TextureOnlyButton;
+import nl.streats1.cobbledollarsvillagersoverhaul.integration.ShopLabels;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.CobbleDollarsBankCompat;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.CobbleDollarsConfigHelper;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.RctTrainerAssociationCompat;
@@ -192,7 +193,7 @@ public class CobbleDollarsShopScreen extends Screen {
                                    List<CobbleDollarsShopPayloads.ShopOfferEntry> tradesOffers,
                                    boolean buyOffersFromConfig,
                                    boolean canCycleTrades) {
-        super(Component.translatable("gui.cobbledollars_villagers_overhaul_rca.shop"));
+        super(Component.literal(ShopLabels.shopTitle()));
         this.villagerId = villagerId;
         this.balance = balance;
         this.buyOffers = buyOffers != null ? new ArrayList<>(buyOffers) : new ArrayList<>();
@@ -212,7 +213,7 @@ public class CobbleDollarsShopScreen extends Screen {
         if (buyOffersFromConfig && !buyOffers.isEmpty()) {
             Map<String, List<CobbleDollarsShopPayloads.ShopOfferEntry>> byCat = new LinkedHashMap<>();
             for (CobbleDollarsShopPayloads.ShopOfferEntry e : buyOffers) {
-                String cat = (e.categoryName() != null && !e.categoryName().isEmpty()) ? e.categoryName() : "Buy";
+                String cat = (e.categoryName() != null && !e.categoryName().isEmpty()) ? e.categoryName() : ShopLabels.buyTab();
                 byCat.computeIfAbsent(cat, k -> new ArrayList<>()).add(e);
             }
             for (Map.Entry<String, List<CobbleDollarsShopPayloads.ShopOfferEntry>> e : byCat.entrySet()) {
@@ -222,13 +223,13 @@ public class CobbleDollarsShopScreen extends Screen {
             }
         } else {
             
-            names.add(Component.translatable("gui.cobbledollars_villagers_overhaul_rca.buy").getString());
+            names.add(ShopLabels.buyTab());
             offers.add(buyOffers);
             buyTabs = 1;
         }
-        names.add(Component.translatable("gui.cobbledollars_villagers_overhaul_rca.sell").getString());
+        names.add(ShopLabels.sellTab());
         offers.add(sellOffers);
-        names.add(Component.translatable("gui.cobbledollars_villagers_overhaul_rca.trades").getString());
+        names.add(ShopLabels.tradesTab());
         offers.add(tradesOffers);
         tabNames = List.copyOf(names);
         tabOffers = List.copyOf(offers);
@@ -559,7 +560,7 @@ public class CobbleDollarsShopScreen extends Screen {
         blitFull(guiGraphics, TEX_SHOP_BASE, left, top, TEX_SHOP_BASE_W, TEX_SHOP_BASE_H);
 
         int stripX = left + 8;
-        guiGraphics.drawString(font, Component.translatable("gui.cobbledollars_villagers_overhaul_rca.shop"), stripX, top + 6, 0xFFE0E0E0, false);
+        guiGraphics.drawString(font, ShopLabels.shopTitle(), stripX, top + 6, 0xFFE0E0E0, false);
         int balanceBgX = left + BALANCE_BG_X;
         int balanceBgY = top + BALANCE_BG_Y;
         blitFull(guiGraphics, TEX_COBBLEDOLLARS_LOGO, balanceBgX, balanceBgY, TEX_COBBLEDOLLARS_LOGO_W, TEX_COBBLEDOLLARS_LOGO_H);
