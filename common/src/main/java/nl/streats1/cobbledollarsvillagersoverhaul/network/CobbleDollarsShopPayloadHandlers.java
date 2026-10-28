@@ -267,6 +267,15 @@ public final class CobbleDollarsShopPayloadHandlers {
             }
             buildItemForItemTrades(allOffers, tradesOffers);
         } else {
+            if (RctTrainerAssociationCompat.isTrainerAssociation(entity)) {
+                openVanillaMerchantMenu(serverPlayer, villagerId);
+            }
+            return;
+        }
+
+        if (buyOffers.isEmpty() && sellOffers.isEmpty() && tradesOffers.isEmpty()
+                && RctTrainerAssociationCompat.isTrainerAssociation(entity)) {
+            openVanillaMerchantMenu(serverPlayer, villagerId);
             return;
         }
 
