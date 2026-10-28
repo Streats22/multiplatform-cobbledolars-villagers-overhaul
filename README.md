@@ -133,6 +133,20 @@ The shop has three tabs:
 > **Note**: The Trades tab only appears when interacting with RCT trainer entities. Regular villagers and wandering
 > traders will only show Buy and Sell tabs.
 
+### Renaming the Shop and Tabs
+
+Shop title and tab labels are language keys, so rename them with a resource pack (or a lang override) that sets
+these keys in `assets/cobbledollars_villagers_overhaul_rca/lang/en_us.json`:
+
+| Key (prefix `gui.cobbledollars_villagers_overhaul_rca.`) | Default |
+|----------------------------------------------------------|---------|
+| `shop`   | Shop (title) |
+| `buy`    | Buy |
+| `sell`   | Sell |
+| `trades` | Trades |
+
+Custom Buy categories in the default shop are renamed in-game from **Edit shop** → **Rename category**.
+
 ### RCT Series
 
 When using RCT trainers, you can:

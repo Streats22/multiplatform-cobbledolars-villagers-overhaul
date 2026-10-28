@@ -8,9 +8,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-import java.lang.reflect.Constructor;
-import java.math.BigInteger;
-
+import nl.streats1.cobbledollarsvillagersoverhaul.integration.BankOfferFactory;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.CustomCurrencyConfig;
 
 /**
@@ -19,8 +17,6 @@ import nl.streats1.cobbledollarsvillagersoverhaul.integration.CustomCurrencyConf
 @Pseudo
 @Mixin(targets = "fr.harmex.cobbledollars.common.world.item.trading.shop.Bank")
 public class BankMixin {
-
-    private static Constructor<?> offerCtor;
 
     @Inject(method = "contains(Lnet/minecraft/world/item/ItemStack;)Z", at = @At("RETURN"), cancellable = true, remap = false)
     private void onContains(ItemStack stack, CallbackInfoReturnable<Boolean> cir) {
@@ -45,16 +41,6 @@ public class BankMixin {
     }
 
     private static Object createOffer(ItemStack stack, int cobbleDollarsPerItem) {
-        try {
-            if (offerCtor == null) {
-                Class<?> offerClass = Class.forName("fr.harmex.cobbledollars.common.world.item.trading.shop.Offer");
-                offerCtor = offerClass.getConstructor(ItemStack.class, BigInteger.class, int.class);
-            }
-            ItemStack single = stack.copy();
-            single.setCount(1);
-            return offerCtor.newInstance(single, BigInteger.valueOf(cobbleDollarsPerItem), 0);
-        } catch (Throwable t) {
-            return null;
-        }
+        return BankOfferFactory.create("fr.harmex.cobbledollars.common.world.item.trading.shop.Offer", stack, cobbleDollarsPerItem);
     }
 }
