@@ -135,13 +135,18 @@ The shop has three tabs:
 
 ### Renaming the Shop and Tabs
 
-In game: open the mod config (Mod Menu on Fabric, the Mods list on NeoForge) → **Shop names & tabs**. Set the shop
-title and the Buy / Sell / Trades tab names (max 32 characters); leave a field blank to use the default. Settings are
-saved per client in `config/cobbledollars_villagers_overhaul_rca/shop_labels.json`.
+Names are **server-wide**: they are stored on the server in
+`config/cobbledollars_villagers_overhaul_rca/shop_labels.json` and synced to every player. Op (permission level 2)
+required.
 
-Blank fields fall back to the language keys `gui.cobbledollars_villagers_overhaul_rca.shop`, `.buy`, `.sell` and
-`.trades`, so a resource pack can still rename them. Custom Buy categories in the default shop are renamed under
-**Edit shop** → **Rename category**.
+- **Command:** `/cvm label <shop|buy|sell|trades> <text>`, `/cvm label <key> reset`, or `/cvm label list`.
+  Example: `/cvm label shop Poké Mart`.
+- **In game GUI:** mod config (Mod Menu on Fabric, Mods list on NeoForge) → **Shop names & tabs**. Done sends the
+  commands above, so it needs op rights on the server (cheats on in singleplayer).
+
+Names are limited to 32 characters; blank means the default. Defaults come from the language keys
+`gui.cobbledollars_villagers_overhaul_rca.shop`, `.buy`, `.sell` and `.trades`, so a resource pack can still rename
+them. Custom Buy categories in the default shop are renamed under **Edit shop** → **Rename category**.
 
 ### RCT Series
 

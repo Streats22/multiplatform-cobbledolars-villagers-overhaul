@@ -23,6 +23,7 @@
   "gui.cobbledollars_villagers_overhaul_rca.browse_items": "Browse items",
   "gui.cobbledollars_villagers_overhaul_rca.hold_item_first": "Hold an item in your hand first",
   "gui.cobbledollars_villagers_overhaul_rca.edit_currencies": "Edit currencies",
+  "command.cobbledollars_villagers_overhaul_rca.cvm.label_set": "Updated shop label: %s",
   "gui.cobbledollars_villagers_overhaul_rca.edit_labels": "Shop names & tabs",
   "gui.cobbledollars_villagers_overhaul_rca.edit_labels_title": "Shop Names & Tabs",
   "gui.cobbledollars_villagers_overhaul_rca.label_shop": "Shop title",

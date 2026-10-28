@@ -34,14 +34,18 @@ public final class NeoForgeNetworking {
         registrar.playToClient(
                 Objects.requireNonNull(CobbleDollarsShopPayloads.ServerShopConfigSync.TYPE),
                 Objects.requireNonNull(CobbleDollarsShopPayloads.ServerShopConfigSync.STREAM_CODEC),
-                (data, context) -> context.enqueueWork(() ->
-                        Config.applyServerShopRuntimeConfig(
-                                data.useCobbleDollarsShopUi(),
-                                data.villagersAcceptCobbleDollars(),
-                                data.useDatapackTrades(),
-                                data.useRctTradesOverhaul(),
-                                data.emeraldRateCdPerEmerald(),
-                                data.syncCobbleDollarsBankRate())));
+                (data, context) -> context.enqueueWork(() -> {
+                    Config.applyServerShopRuntimeConfig(
+                            data.useCobbleDollarsShopUi(),
+                            data.villagersAcceptCobbleDollars(),
+                            data.useDatapackTrades(),
+                            data.useRctTradesOverhaul(),
+                            data.emeraldRateCdPerEmerald(),
+                            data.syncCobbleDollarsBankRate());
+                    nl.streats1.cobbledollarsvillagersoverhaul.integration.ShopLabels.applySynced(
+                            new nl.streats1.cobbledollarsvillagersoverhaul.integration.ShopLabels.Values(
+                                    data.shopTitle(), data.buyTab(), data.sellTab(), data.tradesTab()));
+                }));
 
         registrar.playToClient(
                 Objects.requireNonNull(CobbleDollarsShopPayloads.ShopData.TYPE),

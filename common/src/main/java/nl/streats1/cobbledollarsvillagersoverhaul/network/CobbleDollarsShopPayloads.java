@@ -182,7 +182,11 @@ public final class CobbleDollarsShopPayloads {
             boolean useDatapackTrades,
             boolean useRctTradesOverhaul,
             int emeraldRateCdPerEmerald,
-            boolean syncCobbleDollarsBankRate
+            boolean syncCobbleDollarsBankRate,
+            String shopTitle,
+            String buyTab,
+            String sellTab,
+            String tradesTab
     ) implements CustomPacketPayload {
     public static final CustomPacketPayload.Type<ServerShopConfigSync> TYPE =
                 new CustomPacketPayload.Type<>(Objects.requireNonNull(id("server_shop_config_sync")));
@@ -195,6 +199,10 @@ public final class CobbleDollarsShopPayloads {
                             BOOL.encode(buf, data.useRctTradesOverhaul());
                             VAR_INT.encode(buf, data.emeraldRateCdPerEmerald());
                             BOOL.encode(buf, data.syncCobbleDollarsBankRate());
+                            STRING_UTF8.encode(buf, data.shopTitle() != null ? data.shopTitle() : "");
+                            STRING_UTF8.encode(buf, data.buyTab() != null ? data.buyTab() : "");
+                            STRING_UTF8.encode(buf, data.sellTab() != null ? data.sellTab() : "");
+                            STRING_UTF8.encode(buf, data.tradesTab() != null ? data.tradesTab() : "");
                         },
                         buf -> new ServerShopConfigSync(
                                 BOOL.decode(buf),
@@ -202,7 +210,11 @@ public final class CobbleDollarsShopPayloads {
                                 BOOL.decode(buf),
                                 BOOL.decode(buf),
                                 VAR_INT.decode(buf),
-                                BOOL.decode(buf))
+                                BOOL.decode(buf),
+                                STRING_UTF8.decode(buf),
+                                STRING_UTF8.decode(buf),
+                                STRING_UTF8.decode(buf),
+                                STRING_UTF8.decode(buf))
                 );
 
     @Override

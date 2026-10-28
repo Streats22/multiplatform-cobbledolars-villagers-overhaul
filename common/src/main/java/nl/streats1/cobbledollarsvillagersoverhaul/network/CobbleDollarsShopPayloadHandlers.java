@@ -77,13 +77,15 @@ public final class CobbleDollarsShopPayloadHandlers {
     }
 
     public static void sendServerShopConfigTo(ServerPlayer player) {
+        var labels = nl.streats1.cobbledollarsvillagersoverhaul.integration.ShopLabels.values();
         PlatformNetwork.sendToPlayer(player, new CobbleDollarsShopPayloads.ServerShopConfigSync(
                 Config.USE_COBBLEDOLLARS_SHOP_UI,
                 Config.VILLAGERS_ACCEPT_COBBLEDOLLARS,
                 Config.USE_DATAPACK_TRADES,
                 Config.USE_RCT_TRADES_OVERHAUL,
                 nl.streats1.cobbledollarsvillagersoverhaul.integration.CobbleDollarsConfigHelper.getEffectiveEmeraldRate(),
-                Config.SYNC_COBBLEDOLLARS_BANK_RATE));
+                Config.SYNC_COBBLEDOLLARS_BANK_RATE,
+                labels.shop(), labels.buy(), labels.sell(), labels.trades()));
     }
 
     public static void handleRequestShopData(ServerPlayer serverPlayer, int villagerId) {

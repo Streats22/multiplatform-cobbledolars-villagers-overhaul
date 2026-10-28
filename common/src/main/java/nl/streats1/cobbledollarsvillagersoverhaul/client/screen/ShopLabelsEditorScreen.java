@@ -59,8 +59,20 @@ public class ShopLabelsEditorScreen extends Screen {
     }
 
     private void saveAndClose() {
-        ShopLabels.save(new ShopLabels.Values(shopBox.getValue(), buyBox.getValue(), sellBox.getValue(), tradesBox.getValue()));
+        var player = Minecraft.getInstance().player;
+        if (player != null) {
+            sendLabel(player, "shop", shopBox.getValue());
+            sendLabel(player, "buy", buyBox.getValue());
+            sendLabel(player, "sell", sellBox.getValue());
+            sendLabel(player, "trades", tradesBox.getValue());
+        }
         onClose();
+    }
+
+    /** Labels are server-wide: the server stores them via the op-only {@code /cvm label} command. */
+    private static void sendLabel(net.minecraft.client.player.LocalPlayer player, String key, String value) {
+        String text = value.trim();
+        player.connection.sendCommand("cvm label " + key + " " + (text.isEmpty() ? "reset" : text));
     }
 
     @Override

@@ -41,13 +41,18 @@ public class CobbleDollarsVillagersOverhaulFabricClient implements ClientModInit
         });
 
         ClientPlayNetworking.registerGlobalReceiver(CobbleDollarsShopPayloads.ServerShopConfigSync.TYPE,
-            (payload, context) -> context.client().execute(() -> Config.applyServerShopRuntimeConfig(
-                    payload.useCobbleDollarsShopUi(),
-                    payload.villagersAcceptCobbleDollars(),
-                    payload.useDatapackTrades(),
-                    payload.useRctTradesOverhaul(),
-                    payload.emeraldRateCdPerEmerald(),
-                    payload.syncCobbleDollarsBankRate())));
+            (payload, context) -> context.client().execute(() -> {
+                Config.applyServerShopRuntimeConfig(
+                        payload.useCobbleDollarsShopUi(),
+                        payload.villagersAcceptCobbleDollars(),
+                        payload.useDatapackTrades(),
+                        payload.useRctTradesOverhaul(),
+                        payload.emeraldRateCdPerEmerald(),
+                        payload.syncCobbleDollarsBankRate());
+                nl.streats1.cobbledollarsvillagersoverhaul.integration.ShopLabels.applySynced(
+                        new nl.streats1.cobbledollarsvillagersoverhaul.integration.ShopLabels.Values(
+                                payload.shopTitle(), payload.buyTab(), payload.sellTab(), payload.tradesTab()));
+            }));
 
         ClientPlayNetworking.registerGlobalReceiver(CobbleDollarsShopPayloads.ShopData.TYPE, 
             (payload, context) -> {

@@ -9,8 +9,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 /**
- * Optional player-chosen shop title and tab labels, stored in {@code shop_labels.json}.
- * A blank value falls back to the language-file default, so resource-pack renames still work.
+ * Optional shop title and tab labels, stored server-side in {@code shop_labels.json} and synced to clients
+ * with the server shop config. A blank value falls back to the language-file default, so resource-pack
+ * renames still work.
  */
 public final class ShopLabels {
     public static final int MAX_LENGTH = 32;
@@ -60,6 +61,16 @@ public final class ShopLabels {
     public static Values values() {
         Data d = ensureLoaded();
         return new Values(nonNull(d.shop), nonNull(d.buy), nonNull(d.sell), nonNull(d.trades));
+    }
+
+    /** Client side: adopt the labels the server sent, in memory only. */
+    public static void applySynced(Values values) {
+        Data d = new Data();
+        d.shop = clean(values.shop());
+        d.buy = clean(values.buy());
+        d.sell = clean(values.sell());
+        d.trades = clean(values.trades());
+        data = d;
     }
 
     public static void save(Values values) {
