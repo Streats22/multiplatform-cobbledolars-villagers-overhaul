@@ -47,9 +47,9 @@ public class DefaultShopEditorScreen extends EditorScreen {
     }
 
         public DefaultShopEditorScreen(Screen parent, Map<String, List<ShopEntryRecord>> initialCategories, Runnable onSaveCallback) {
-        super(Component.translatable(AdminConfigClient.hasVillagerScope()
-                ? "gui.cobbledollars_villagers_overhaul_rca.edit_villager_shop_title"
-                : "gui.cobbledollars_villagers_overhaul_rca.edit_shop_title"));
+        super(AdminConfigClient.hasVillagerScope()
+                ? Component.translatable("gui.cobbledollars_villagers_overhaul_rca.villager_shop_title", AdminConfigClient.villagerScopeLabel())
+                : Component.translatable("gui.cobbledollars_villagers_overhaul_rca.edit_shop_title"));
         this.parent = parent;
         this.onSaveCallback = onSaveCallback;
         if (initialCategories != null) {
@@ -265,7 +265,7 @@ public class DefaultShopEditorScreen extends EditorScreen {
         int panelBottom = height - 80;
         ShopThemePanel.draw(guiGraphics, panelLeft, panelTop, panelRight, panelBottom);
 
-        guiGraphics.drawCenteredString(font, title, width / 2, 8, 0xFFFFFFFF);
+        guiGraphics.drawCenteredString(font, font.plainSubstrByWidth(title.getString(), width - 40), width / 2, 8, 0xFFFFFFFF);
         guiGraphics.drawCenteredString(font, Component.translatable("gui.cobbledollars_villagers_overhaul_rca.shop_edit_hint"), width / 2, 19, 0xFFAAAAAA);
         int il = itemListLeft();
         String heading = selectedCategory != null ? selectedCategory : "-";

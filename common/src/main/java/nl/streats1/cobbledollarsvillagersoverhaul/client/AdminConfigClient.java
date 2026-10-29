@@ -32,18 +32,25 @@ public final class AdminConfigClient {
     private static String pendingKind;
     /** UUID of the villager whose personal shop the editors are editing, or null for the global ones. */
     private static String villagerScope;
+    private static String villagerScopeLabel = "";
     private static Runnable pendingAction;
     private static long pendingDeadline;
 
     private AdminConfigClient() {
     }
 
-    public static void setVillagerScope(String villagerUuid) {
+    public static void setVillagerScope(String villagerUuid, String label) {
         villagerScope = villagerUuid;
+        villagerScopeLabel = label != null ? label : "";
+    }
+
+    public static String villagerScopeLabel() {
+        return villagerScopeLabel;
     }
 
     public static void clearVillagerScope() {
         villagerScope = null;
+        villagerScopeLabel = "";
     }
 
     public static boolean hasVillagerScope() {

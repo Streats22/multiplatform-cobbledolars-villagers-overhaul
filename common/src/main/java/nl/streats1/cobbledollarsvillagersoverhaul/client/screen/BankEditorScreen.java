@@ -38,9 +38,9 @@ public class BankEditorScreen extends EditorScreen {
     }
 
     public BankEditorScreen(Screen parent, List<BankEntryRecord> initialEntries) {
-        super(Component.translatable(nl.streats1.cobbledollarsvillagersoverhaul.client.AdminConfigClient.hasVillagerScope()
-                ? "gui.cobbledollars_villagers_overhaul_rca.edit_villager_sell_title"
-                : "gui.cobbledollars_villagers_overhaul_rca.edit_bank_title"));
+        super(nl.streats1.cobbledollarsvillagersoverhaul.client.AdminConfigClient.hasVillagerScope()
+                ? Component.translatable("gui.cobbledollars_villagers_overhaul_rca.villager_sell_title", nl.streats1.cobbledollarsvillagersoverhaul.client.AdminConfigClient.villagerScopeLabel())
+                : Component.translatable("gui.cobbledollars_villagers_overhaul_rca.edit_bank_title"));
         this.parent = parent;
         if (initialEntries != null) this.entries = new ArrayList<>(initialEntries);
     }

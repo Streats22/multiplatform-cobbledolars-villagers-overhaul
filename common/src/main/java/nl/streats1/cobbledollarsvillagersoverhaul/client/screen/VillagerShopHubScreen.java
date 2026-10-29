@@ -27,7 +27,7 @@ public class VillagerShopHubScreen extends Screen {
 
     @Override
     protected void init() {
-        AdminConfigClient.setVillagerScope(villagerUuid);
+        AdminConfigClient.setVillagerScope(villagerUuid, villagerLabel);
         int x = width / 2 - BTN_W / 2;
         int y = height / 2 - 52;
         addRenderableWidget(Button.builder(Component.translatable(LANG + "villager_shop_items"),
