@@ -12,11 +12,11 @@ import nl.streats1.cobbledollarsvillagersoverhaul.platform.PlatformNetwork;
 import java.util.List;
 
 /** Op screen listing villagers that use the config shop, with unassign buttons and assign shortcuts. */
-public class AssignedVillagersScreen extends Screen {
+public class AssignedVillagersScreen extends EditorScreen {
 
     private static final String LANG = "gui.cobbledollars_villagers_overhaul_rca.";
     private static final int ROWS_PER_PAGE = 6;
-    private static final int ROW_W = 260;
+    private static final int ROW_W = 320;
 
     private final Screen parent;
     private int page;
@@ -28,6 +28,7 @@ public class AssignedVillagersScreen extends Screen {
 
     @Override
     protected void init() {
+        nl.streats1.cobbledollarsvillagersoverhaul.client.AdminConfigClient.clearVillagerScope();
         if (Minecraft.getInstance().level != null) {
             PlatformNetwork.sendToServer(new CobbleDollarsShopPayloads.RequestAssignedList(true));
         }
@@ -53,6 +54,15 @@ public class AssignedVillagersScreen extends Screen {
         int first = page * ROWS_PER_PAGE;
         for (int i = 0; i < ROWS_PER_PAGE && first + i < uuids.size(); i++) {
             String uuid = uuids.get(first + i);
+            List<String> labels = ClientAssignedVillagers.labels();
+            String label = first + i < labels.size() ? labels.get(first + i) : uuid;
+            addRenderableWidget(Button.builder(Component.translatable(LANG + "edit_villager_shop"),
+                            b -> {
+                                nl.streats1.cobbledollarsvillagersoverhaul.client.AdminConfigClient.setVillagerScope(uuid, label);
+                                nl.streats1.cobbledollarsvillagersoverhaul.client.AdminConfigClient.openVillagerLabels(
+                                        () -> Minecraft.getInstance().setScreen(new VillagerShopHubScreen(this, uuid, label)));
+                            })
+                    .bounds(x + ROW_W - 146, y + i * 24, 72, 20).build());
             addRenderableWidget(Button.builder(Component.translatable(LANG + "unassign"),
                             b -> PlatformNetwork.sendToServer(new CobbleDollarsShopPayloads.UnassignByUuid(uuid)))
                     .bounds(x + ROW_W - 70, y + i * 24, 70, 20).build());
@@ -89,6 +99,7 @@ public class AssignedVillagersScreen extends Screen {
 
     @Override
     public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
+        beginFrame();
         renderBackground(g, mouseX, mouseY, partialTick);
         int x = width / 2 - ROW_W / 2;
         ShopThemePanel.draw(g, x - 6, 36, x + ROW_W + 6, 44 + ROWS_PER_PAGE * 24 - 2);
@@ -100,7 +111,7 @@ public class AssignedVillagersScreen extends Screen {
             g.drawCenteredString(font, Component.translatable(LANG + "assigned_none"), width / 2, 44 + 4 * 6, 0xFFAAAAAA);
         }
         for (int i = 0; i < ROWS_PER_PAGE && first + i < labels.size(); i++) {
-            g.drawString(font, font.plainSubstrByWidth(labels.get(first + i), ROW_W - 80), x, 44 + i * 24 + 6, 0xFFFFFFFF, false);
+            g.drawString(font, font.plainSubstrByWidth(labels.get(first + i), ROW_W - 160), x, 44 + i * 24 + 6, 0xFFFFFFFF, false);
         }
         super.render(g, mouseX, mouseY, partialTick);
     }

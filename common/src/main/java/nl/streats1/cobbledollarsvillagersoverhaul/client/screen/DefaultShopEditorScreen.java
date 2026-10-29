@@ -18,7 +18,7 @@ import nl.streats1.cobbledollarsvillagersoverhaul.integration.ShopEntryRecord;
 
 import java.util.*;
 
-public class DefaultShopEditorScreen extends Screen {
+public class DefaultShopEditorScreen extends EditorScreen {
 
     private final Screen parent;
     private final Runnable onSaveCallback;
@@ -31,12 +31,16 @@ public class DefaultShopEditorScreen extends Screen {
     private Button minusBtn;
     private Button plusBtn;
     private boolean valueEditWasFocused;
-    private static final int ROW_HEIGHT = 22;
+    private boolean showSell;
+    private boolean showTrades;
+    private boolean tabsLoaded;
+    private static final int ROW_HEIGHT = 24;
     private static final int CAT_ROW_HEIGHT = 18;
     private static final int DEFAULT_PRICE = 50;
     private static final int PANEL_PAD = 20;
     private static final int CAT_LIST_W = 140;
-    private static final int BTN_H = 16;
+    private static final int BTN_H = 20;
+    private static final int HEADER_BTN_W = 62;
 
     public DefaultShopEditorScreen(Screen parent) {
         this(parent, null, null);
@@ -47,7 +51,9 @@ public class DefaultShopEditorScreen extends Screen {
     }
 
         public DefaultShopEditorScreen(Screen parent, Map<String, List<ShopEntryRecord>> initialCategories, Runnable onSaveCallback) {
-        super(Component.translatable("gui.cobbledollars_villagers_overhaul_rca.edit_shop_title"));
+        super(AdminConfigClient.hasVillagerScope()
+                ? Component.translatable("gui.cobbledollars_villagers_overhaul_rca.villager_shop_title", AdminConfigClient.villagerScopeLabel())
+                : Component.translatable("gui.cobbledollars_villagers_overhaul_rca.edit_shop_title"));
         this.parent = parent;
         this.onSaveCallback = onSaveCallback;
         if (initialCategories != null) {
@@ -68,74 +74,110 @@ public class DefaultShopEditorScreen extends Screen {
         }
 
         int panelLeft = PANEL_PAD;
-        int listTop = 52;
-        int bottomAreaTop = height - 110;
-        int listBottom = bottomAreaTop - 8;
+        int panelTop = 30;
+        int panelBottom = height - 80;
+        int listTop = panelTop + 28;
+        int listBottom = panelBottom - 4;
         int il = itemListLeft();
+        int right = width - PANEL_PAD;
 
-        categoryListWidget = new CategoryListWidget(minecraft, CAT_LIST_W - 4, listBottom - listTop, listTop, CAT_ROW_HEIGHT);
-        categoryListWidget.setX(panelLeft + 2);
-        categoryListWidget.setY(listTop);
-        addRenderableWidget(categoryListWidget);
-        categoryListWidget.refresh();
-
-        listWidget = new ShopListWidget(minecraft, width - il - PANEL_PAD - 20, listBottom - listTop, listTop, ROW_HEIGHT);
-        listWidget.setX(il + 8);
-        listWidget.setY(listTop);
-        addRenderableWidget(listWidget);
-        listWidget.refresh();
-
-        categoryNameEdit = new EditBox(font, panelLeft, listTop - 22, CAT_LIST_W, 18, Component.translatable("gui.cobbledollars_villagers_overhaul_rca.category_name"));
+        categoryNameEdit = new EditBox(font, panelLeft + 4, panelTop + 6, CAT_LIST_W - 8, 18, Component.translatable("gui.cobbledollars_villagers_overhaul_rca.category_name"));
         categoryNameEdit.setHint(Component.translatable("gui.cobbledollars_villagers_overhaul_rca.category_name_hint"));
         categoryNameEdit.setMaxLength(32);
         addRenderableWidget(categoryNameEdit);
         if (selectedCategory != null) categoryNameEdit.setValue(selectedCategory);
 
-        int btnY = bottomAreaTop;
-        addRenderableWidget(Button.builder(Component.translatable("gui.cobbledollars_villagers_overhaul_rca.add_category"), b -> addCategory())
-                .bounds(panelLeft, btnY, CAT_LIST_W, BTN_H)
-                .build());
-        btnY += BTN_H + 4;
-        addRenderableWidget(Button.builder(Component.translatable("gui.cobbledollars_villagers_overhaul_rca.remove_category"), b -> removeSelectedCategory())
-                .bounds(panelLeft, btnY, CAT_LIST_W, BTN_H)
-                .build());
-        btnY += BTN_H + 4;
-        addRenderableWidget(Button.builder(Component.translatable("gui.cobbledollars_villagers_overhaul_rca.rename_category"), b -> renameSelectedCategory())
-                .bounds(panelLeft, btnY, CAT_LIST_W, BTN_H)
-                .build());
+        categoryListWidget = new CategoryListWidget(minecraft, CAT_LIST_W, listBottom - listTop, listTop, CAT_ROW_HEIGHT);
+        categoryListWidget.setX(panelLeft);
+        categoryListWidget.setY(listTop);
+        addRenderableWidget(categoryListWidget);
+        categoryListWidget.refresh();
 
-        int valueRowY = bottomAreaTop + 2;
-        int valueCenterX = il + 100;
+        listWidget = new ShopListWidget(minecraft, right - il - 4, listBottom - listTop, listTop, ROW_HEIGHT);
+        listWidget.setX(il);
+        listWidget.setY(listTop);
+        addRenderableWidget(listWidget);
+        listWidget.refresh();
+
+        if (AdminConfigClient.hasVillagerScope()) {
+            int tradesX = right - 4 - HEADER_BTN_W;
+            int sellX = tradesX - 4 - HEADER_BTN_W;
+            addRenderableWidget(Button.builder(Component.translatable("gui.cobbledollars_villagers_overhaul_rca.editor_sell_list"),
+                            b -> AdminConfigClient.open(nl.streats1.cobbledollarsvillagersoverhaul.network.AdminConfigService.BANK,
+                                    () -> minecraft.setScreen(new BankEditorScreen(this))))
+                    .bounds(sellX, panelTop + 4, HEADER_BTN_W, BTN_H).build());
+            addRenderableWidget(Button.builder(Component.translatable("gui.cobbledollars_villagers_overhaul_rca.editor_trades"),
+                            b -> AdminConfigClient.open(nl.streats1.cobbledollarsvillagersoverhaul.network.AdminConfigService.TRADES,
+                                    () -> minecraft.setScreen(new VillagerTradesEditorScreen(this))))
+                    .bounds(tradesX, panelTop + 4, HEADER_BTN_W, BTN_H).build());
+        }
+
+        int rowA = height - 76;
+        int rowB = height - 52;
+        int catBtnW = (CAT_LIST_W - 8) / 3;
+        addRenderableWidget(Button.builder(Component.translatable("gui.cobbledollars_villagers_overhaul_rca.cat_add"), b -> addCategory())
+                .bounds(panelLeft, rowA, catBtnW, BTN_H).build());
+        addRenderableWidget(Button.builder(Component.translatable("gui.cobbledollars_villagers_overhaul_rca.cat_remove"), b -> removeSelectedCategory())
+                .bounds(panelLeft + catBtnW + 4, rowA, catBtnW, BTN_H).build());
+        addRenderableWidget(Button.builder(Component.translatable("gui.cobbledollars_villagers_overhaul_rca.cat_rename"), b -> renameSelectedCategory())
+                .bounds(panelLeft + (catBtnW + 4) * 2, rowA, catBtnW, BTN_H).build());
+
+        int labelW = font.width(Component.translatable("gui.cobbledollars_villagers_overhaul_rca.value_label")) + 6;
+        int priceX = il + labelW;
         minusBtn = Button.builder(Component.literal("−"), b -> adjustValue(-1))
-                .bounds(valueCenterX - 90, valueRowY, 18, BTN_H).build();
-        plusBtn = Button.builder(Component.literal("+"), b -> adjustValue(1))
-                .bounds(valueCenterX - 18, valueRowY, 18, BTN_H).build();
-        addRenderableWidget(minusBtn);
-        addRenderableWidget(plusBtn);
-
-        valueEdit = new EditBox(font, valueCenterX - 68, valueRowY, 46, BTN_H, Component.translatable("gui.cobbledollars_villagers_overhaul_rca.value"));
+                .bounds(priceX, rowA, 20, BTN_H).build();
+        valueEdit = new EditBox(font, priceX + 24, rowA, 64, BTN_H, Component.translatable("gui.cobbledollars_villagers_overhaul_rca.value"));
         valueEdit.setHint(Component.translatable("gui.cobbledollars_villagers_overhaul_rca.value_hint"));
         valueEdit.setFilter(s -> s.isEmpty() || s.matches("\\d*"));
+        plusBtn = Button.builder(Component.literal("+"), b -> adjustValue(1))
+                .bounds(priceX + 92, rowA, 20, BTN_H).build();
+        addRenderableWidget(minusBtn);
         addRenderableWidget(valueEdit);
+        addRenderableWidget(plusBtn);
 
-        int itemBtnY = bottomAreaTop + BTN_H + 6;
+        if (AdminConfigClient.hasVillagerScope()) {
+            if (!tabsLoaded) {
+                boolean[] tabs = AdminConfigClient.loadVillagerShopTabs();
+                showSell = tabs[0];
+                showTrades = tabs[1];
+                tabsLoaded = true;
+            }
+            int tabBtnW = (CAT_LIST_W - 4) / 2;
+            addRenderableWidget(Button.builder(tabLabel("tab_sell_short", showSell), b -> {
+                        showSell = !showSell;
+                        b.setMessage(tabLabel("tab_sell_short", showSell));
+                    })
+                    .bounds(panelLeft, rowB, tabBtnW, BTN_H).build());
+            addRenderableWidget(Button.builder(tabLabel("tab_trades_short", showTrades), b -> {
+                        showTrades = !showTrades;
+                        b.setMessage(tabLabel("tab_trades_short", showTrades));
+                    })
+                    .bounds(panelLeft + tabBtnW + 4, rowB, tabBtnW, BTN_H).build());
+        }
+
+        int itemBtnW = (right - il - 4) / 2;
         addRenderableWidget(Button.builder(Component.translatable("gui.cobbledollars_villagers_overhaul_rca.add_held_item"), b -> addHeldItem())
-                .bounds(il, itemBtnY, 100, BTN_H)
-                .build());
+                .bounds(il, rowB, itemBtnW, BTN_H).build());
         addRenderableWidget(Button.builder(Component.translatable("gui.cobbledollars_villagers_overhaul_rca.browse_items"), b -> minecraft.setScreen(new ItemPickerScreen(this, (id, val) -> {
                     addEntry(id, val);
-                    minecraft.setScreen(new DefaultShopEditorScreen(parent, getCategories()));
+                    DefaultShopEditorScreen again = new DefaultShopEditorScreen(parent, getCategories());
+                    again.showSell = showSell;
+                    again.showTrades = showTrades;
+                    again.tabsLoaded = tabsLoaded;
+                    minecraft.setScreen(again);
                 }, DEFAULT_PRICE)))
-                .bounds(il + 106, itemBtnY, 100, BTN_H)
-                .build());
+                .bounds(il + itemBtnW + 4, rowB, itemBtnW, BTN_H).build());
 
         int navY = height - 28;
         addRenderableWidget(Button.builder(Component.translatable("gui.back"), b -> minecraft.setScreen(parent))
-                .bounds(width / 2 - 155, navY, 100, BTN_H)
-                .build());
+                .bounds(width / 2 - 104, navY, 100, BTN_H).build());
         addRenderableWidget(Button.builder(Component.translatable("gui.done"), b -> saveAndClose())
-                .bounds(width / 2 - 50, navY, 100, BTN_H)
-                .build());
+                .bounds(width / 2 + 4, navY, 100, BTN_H).build());
+    }
+
+
+    private static Component tabLabel(String key, boolean on) {
+        return Component.translatable("gui.cobbledollars_villagers_overhaul_rca." + key, Component.translatable(on ? "options.on" : "options.off"));
     }
 
     private void addCategory() {
@@ -206,7 +248,11 @@ public class DefaultShopEditorScreen extends Screen {
     private void saveAndClose() {
         applyValueFromEdit();
         renameSelectedCategory(); 
-        AdminConfigClient.saveShop(categories);
+        if (AdminConfigClient.hasVillagerScope()) {
+            AdminConfigClient.saveVillagerShop(categories, showSell, showTrades);
+        } else {
+            AdminConfigClient.saveShop(categories);
+        }
         if (onSaveCallback != null) {
             onSaveCallback.run();
         } else minecraft.setScreen(parent);
@@ -243,9 +289,9 @@ public class DefaultShopEditorScreen extends Screen {
         updateValue(sel.getRecord().itemId(), next);
         if (valueEdit != null) valueEdit.setValue(String.valueOf(next));
     }
-
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+        beginFrame();
         var sel = listWidget != null ? listWidget.getSelected() : null;
         boolean hasSel = sel != null;
         if (valueEdit != null) {
@@ -256,7 +302,6 @@ public class DefaultShopEditorScreen extends Screen {
                 }
             } else {
                 valueEdit.setValue("");
-                valueEdit.setHint(Component.translatable("gui.cobbledollars_villagers_overhaul_rca.value_hint"));
             }
         }
         if (minusBtn != null) minusBtn.active = hasSel;
@@ -265,17 +310,18 @@ public class DefaultShopEditorScreen extends Screen {
         renderBackground(guiGraphics, mouseX, mouseY, partialTick);
         int panelLeft = PANEL_PAD;
         int panelRight = width - PANEL_PAD;
-        int panelTop = 24;
-        int panelBottom = height - 115;
+        int panelTop = 30;
+        int panelBottom = height - 80;
         ShopThemePanel.draw(guiGraphics, panelLeft, panelTop, panelRight, panelBottom);
 
-        if (categoryListWidget != null) categoryListWidget.render(guiGraphics, mouseX, mouseY, partialTick);
-        if (listWidget != null) listWidget.render(guiGraphics, mouseX, mouseY, partialTick);
-        if (categoryNameEdit != null) categoryNameEdit.render(guiGraphics, mouseX, mouseY, partialTick);
-        guiGraphics.drawCenteredString(font, title, width / 2, 8, 0xFFFFFF);
-        guiGraphics.drawCenteredString(font, Component.translatable("gui.cobbledollars_villagers_overhaul_rca.shop_edit_hint"), width / 2, 20, 0xAAAAAA);
-        int valueRowY = height - 108;
-        guiGraphics.drawString(font, Component.translatable("gui.cobbledollars_villagers_overhaul_rca.value_label"), itemListLeft() + 8, valueRowY + (BTN_H - font.lineHeight) / 2, 0xCCCCCC);
+        guiGraphics.drawCenteredString(font, font.plainSubstrByWidth(title.getString(), width - 40), width / 2, 8, 0xFFFFFFFF);
+        guiGraphics.drawCenteredString(font, Component.translatable("gui.cobbledollars_villagers_overhaul_rca.shop_edit_hint"), width / 2, 19, 0xFFAAAAAA);
+        int il = itemListLeft();
+        String heading = selectedCategory != null ? selectedCategory : "-";
+        int headingRoom = panelRight - il - 12 - (AdminConfigClient.hasVillagerScope() ? 2 * HEADER_BTN_W + 8 : 0);
+        guiGraphics.drawString(font, font.plainSubstrByWidth(heading, headingRoom), il + 4, panelTop + 11, EditorWidgets.PRICE_COLOR, false);
+        guiGraphics.fill(il, panelTop + 26, panelRight - 4, panelTop + 27, 0x44FFFFFF);
+        guiGraphics.drawString(font, Component.translatable("gui.cobbledollars_villagers_overhaul_rca.value_label"), il, height - 76 + (BTN_H - font.lineHeight) / 2, 0xFFCCCCCC, false);
         super.render(guiGraphics, mouseX, mouseY, partialTick);
     }
 
@@ -287,7 +333,7 @@ public class DefaultShopEditorScreen extends Screen {
         return PANEL_PAD + CAT_LIST_W + 12;
     }
 
-    private class CategoryListWidget extends ObjectSelectionList<CategoryListWidget.Entry> {
+    private class CategoryListWidget extends EditorWidgets.FullWidthList<CategoryListWidget.Entry> {
         public CategoryListWidget(Minecraft mc, int w, int h, int y, int itemHeight) {
             super(mc, w, h, y, itemHeight);
         }
@@ -339,7 +385,7 @@ public class DefaultShopEditorScreen extends Screen {
         }
     }
 
-    private class ShopListWidget extends ObjectSelectionList<ShopListWidget.Entry> {
+    private class ShopListWidget extends EditorWidgets.FullWidthList<ShopListWidget.Entry> {
         public ShopListWidget(Minecraft mc, int w, int h, int y, int itemHeight) {
             super(mc, w, h, y, itemHeight);
         }
@@ -364,24 +410,7 @@ public class DefaultShopEditorScreen extends Screen {
 
             @Override
             public void render(GuiGraphics guiGraphics, int index, int top, int left, int width, int height, int mouseX, int mouseY, boolean hovered, float partialTick) {
-                Item item;
-                try {
-                    item = BuiltInRegistries.ITEM.get(ResourceLocation.parse(record.itemId()));
-                } catch (Exception e) {
-                    item = Items.BARRIER;
-                }
-                if (item == null || item == Items.AIR) item = Items.BARRIER;
-                guiGraphics.renderItem(new ItemStack(item), left + 2, top + 2);
-                String name = record.itemId();
-                int maxNameW = Math.max(60, width - 72);
-                if (DefaultShopEditorScreen.this.font.width(name) > maxNameW) {
-                    while (name.length() > 3 && DefaultShopEditorScreen.this.font.width(name + "...") > maxNameW) {
-                        name = name.substring(0, name.length() - 1);
-                    }
-                    name = name + "...";
-                }
-                guiGraphics.drawString(DefaultShopEditorScreen.this.font, name, left + 22, top + 6, 0xFFFFFF);
-                guiGraphics.drawString(DefaultShopEditorScreen.this.font, String.valueOf(record.price()), left + width - 50, top + 6, 0xAAAAAA);
+                EditorWidgets.drawItemRow(guiGraphics, DefaultShopEditorScreen.this.font, record.itemId(), record.price(), left, top, width, height);
             }
 
             @Override

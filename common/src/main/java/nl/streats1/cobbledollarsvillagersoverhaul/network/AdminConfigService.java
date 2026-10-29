@@ -7,6 +7,7 @@ import nl.streats1.cobbledollarsvillagersoverhaul.integration.BankConfig;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.CustomCurrencyConfig;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.DefaultShopConfig;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.ItemPriceConfig;
+import nl.streats1.cobbledollarsvillagersoverhaul.integration.VillagerShopData;
 import nl.streats1.cobbledollarsvillagersoverhaul.platform.PlatformNetwork;
 
 import java.nio.charset.StandardCharsets;
@@ -21,6 +22,10 @@ public final class AdminConfigService {
     public static final String BANK = "bank";
     public static final String ITEM_PRICES = "item_prices";
     public static final String CURRENCY = "currency";
+    /** Only meaningful inside a villager kind ({@code v:<uuid>:trades}). */
+    public static final String TRADES = "trades";
+    /** Per-villager sections are addressed as {@code v:<villager uuid>:<shop|bank|labels>}. */
+    public static final String VILLAGER_PREFIX = "v:";
 
     private static final int MAX_BYTES = 256 * 1024;
     private static final int OP_LEVEL = 2;
@@ -53,7 +58,27 @@ public final class AdminConfigService {
         handleRequest(player, kind);
     }
 
+    public static String villagerKind(String villagerUuid, String section) {
+        return VILLAGER_PREFIX + villagerUuid + ":" + section;
+    }
+
+    private static String[] parseVillagerKind(String kind) {
+        if (kind == null || !kind.startsWith(VILLAGER_PREFIX)) return null;
+        String[] parts = kind.substring(VILLAGER_PREFIX.length()).split(":", 2);
+        if (parts.length != 2) return null;
+        try {
+            java.util.UUID.fromString(parts[0]);
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
+        return parts;
+    }
+
     static String read(String kind) {
+        String[] villager = parseVillagerKind(kind);
+        if (villager != null) {
+            return VillagerShopData.readSection(java.util.UUID.fromString(villager[0]), villager[1]);
+        }
         return switch (kind) {
             case SHOP -> DefaultShopConfig.readRaw();
             case BANK -> BankConfig.readRaw();
@@ -66,6 +91,9 @@ public final class AdminConfigService {
     static boolean isValid(String kind, String json) {
         try {
             JsonElement root = JsonParser.parseString(json);
+            if (parseVillagerKind(kind) != null) {
+                return root.isJsonObject();
+            }
             return switch (kind) {
                 case SHOP, BANK, ITEM_PRICES -> root.isJsonObject();
                 case CURRENCY -> root.isJsonArray();
@@ -77,6 +105,11 @@ public final class AdminConfigService {
     }
 
     private static void write(String kind, String json) throws java.io.IOException {
+        String[] villager = parseVillagerKind(kind);
+        if (villager != null) {
+            VillagerShopData.writeSection(java.util.UUID.fromString(villager[0]), villager[1], json);
+            return;
+        }
         switch (kind) {
             case SHOP -> DefaultShopConfig.writeRaw(json);
             case BANK -> BankConfig.writeRaw(json);

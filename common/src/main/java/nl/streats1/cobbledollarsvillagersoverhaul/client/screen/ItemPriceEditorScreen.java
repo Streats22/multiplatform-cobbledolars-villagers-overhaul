@@ -19,7 +19,7 @@ import nl.streats1.cobbledollarsvillagersoverhaul.integration.ItemPriceConfig;
 
 import java.util.*;
 
-public class ItemPriceEditorScreen extends Screen {
+public class ItemPriceEditorScreen extends EditorScreen {
 
     private final Screen parent;
     private Map<String, Integer> entries = new LinkedHashMap<>();
@@ -169,6 +169,7 @@ public class ItemPriceEditorScreen extends Screen {
 
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+        beginFrame();
         var sel = listWidget != null ? listWidget.getSelected() : null;
         boolean hasSel = sel != null;
         if (valueEdit != null) {
@@ -203,7 +204,7 @@ public class ItemPriceEditorScreen extends Screen {
         return new LinkedHashMap<>(entries);
     }
 
-    private class PriceListWidget extends ObjectSelectionList<PriceListWidget.Entry> {
+    private class PriceListWidget extends EditorWidgets.FullWidthList<PriceListWidget.Entry> {
         public PriceListWidget(Minecraft mc, int w, int h, int y, int itemHeight) {
             super(mc, w, h, y, itemHeight);
         }
@@ -228,18 +229,7 @@ public class ItemPriceEditorScreen extends Screen {
 
             @Override
             public void render(GuiGraphics guiGraphics, int index, int top, int left, int width, int height, int mouseX, int mouseY, boolean hovered, float partialTick) {
-                Item item;
-                try {
-                    item = BuiltInRegistries.ITEM.get(ResourceLocation.parse(itemId));
-                } catch (Exception e) {
-                    item = Items.BARRIER;
-                }
-                if (item == null || item == Items.AIR) item = Items.BARRIER;
-                guiGraphics.renderItem(new ItemStack(item), left + 2, top + 2);
-                String name = itemId;
-                if (name.length() > 28) name = name.substring(0, 25) + "...";
-                guiGraphics.drawString(ItemPriceEditorScreen.this.font, name, left + 22, top + 6, 0xFFFFFF);
-                guiGraphics.drawString(ItemPriceEditorScreen.this.font, String.valueOf(price), left + width - 50, top + 6, 0xAAAAAA);
+                EditorWidgets.drawItemRow(guiGraphics, ItemPriceEditorScreen.this.font, itemId, price, left, top, width, height);
             }
 
             @Override

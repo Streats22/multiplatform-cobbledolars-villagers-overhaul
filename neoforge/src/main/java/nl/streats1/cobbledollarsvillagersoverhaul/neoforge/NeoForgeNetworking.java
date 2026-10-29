@@ -52,8 +52,7 @@ public final class NeoForgeNetworking {
                 Objects.requireNonNull(CobbleDollarsShopPayloads.ShopData.STREAM_CODEC),
                 (data, context) -> context.enqueueWork(() -> {
                     NeoForgePendingCustomShopMerchantSuppress.onShopDataReceived(data.villagerId());
-                        CobbleDollarsShopScreen.openFromPayload(
-                                data.villagerId(), data.balance(), data.buyOffers(), data.sellOffers(), data.tradesOffers(), data.buyOffersFromConfig(), data.canCycleTrades());
+                        CobbleDollarsShopScreen.openFromPayload(data);
                 })
         );
 

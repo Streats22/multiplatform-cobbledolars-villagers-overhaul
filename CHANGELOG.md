@@ -1,6 +1,42 @@
 # Changelog
 
-## Unreleased
+## [0.5.0] — from 0.4.3
+
+### Added
+
+- **Per-villager shops** — Every assigned villager now has its own shop (`villager_shops/<uuid>.json`): its own items
+  and prices, its own sell list (items it buys from players) and its own shop name and Buy/Sell/Trades tab names.
+  Assigning copies the current default shop; editing one villager never changes another or the default shop.
+  Open **Villager shops** in the mod config and press **Edit shop** on a villager. Villagers assigned earlier keep
+  using the default shop until you edit them.
+- Back button in the item picker.
+- **Sell and Trades tabs are optional per villager and off by default.** In a villager's *Shop name and tabs* screen
+  you can switch each tab on (Sell uses the villager's own sell list, Trades shows its normal item-for-item trades).
+- Empty shop categories now get a tab, in editor order.
+- **Custom item-for-item trades per villager**: a Trades editor where you set what the player gives (one or two
+  items, with counts) and what they get. They show in the villager's Trades tab (switch it on first), after the
+  villager's own datapack/normal item trades, and the server checks and runs them. Open it from the villager's menu or from the Trades button in its items editor.
+- A custom trade can also **cost CobbleDollars** on top of its items (the "+ CD" box in the trades editor); the
+  server checks the balance and charges it.
+- The villager's items editor has **Sell list** and **Trades** buttons, so everything for one villager is reachable
+  from the screen you already use.
+- **Shop name per villager** (for example "Shop Guga") on the villager's menu; the shopkeeper keeps their own name.
+- The category tabs in the shop scroll when there are more than 5 (mouse wheel or the arrows).
+
+### Fixed
+
+- **The Edit button inside a villager's shop opened the shared default shop** instead of that villager's own shop.
+  It now opens the villager's own editor. Blurred titles and names on the editor screens are sharp again, and the
+  "Custom shop" note sits right under the villager name.
+
+### Changed
+
+- Config menu regrouped into Shop / Prices / Look / General sections, two buttons per row.
+- Shop, bank, item-price and currency editors: rows use the full list width, show the item name with its id muted and
+  the price right-aligned; clearer price row and button layout.
+- The config entry for the shared shop is now **Default shop** (the template new villager shops are copied from);
+  villager editors are titled with the villager's name.
+- "Custom villagers" screen renamed **Villager shops**, with an Edit shop and Unassign button per row.
 
 ---
 

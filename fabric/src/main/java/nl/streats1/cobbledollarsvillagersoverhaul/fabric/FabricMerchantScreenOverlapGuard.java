@@ -135,14 +135,7 @@ public final class FabricMerchantScreenOverlapGuard {
         }
         String screenBefore = mc.screen == null ? "null" : mc.screen.getClass().getSimpleName();
         reopenAttempts++;
-        CobbleDollarsShopScreen.openFromPayload(
-                p.villagerId(),
-                p.balance(),
-                p.buyOffers(),
-                p.sellOffers(),
-                p.tradesOffers(),
-                p.buyOffersFromConfig(),
-                p.canCycleTrades());
+        CobbleDollarsShopScreen.openFromPayload(p);
         String screenAfter = mc.screen == null ? "null" : mc.screen.getClass().getSimpleName();
     }
 }

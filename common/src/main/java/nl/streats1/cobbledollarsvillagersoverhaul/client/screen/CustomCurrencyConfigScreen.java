@@ -20,7 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
-public class CustomCurrencyConfigScreen extends Screen {
+public class CustomCurrencyConfigScreen extends EditorScreen {
 
     private final Screen parent;
     private final Consumer<List<CurrencyEntryRecord>> onSave;
@@ -201,6 +201,7 @@ public class CustomCurrencyConfigScreen extends Screen {
 
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+        beginFrame();
         var sel = listWidget.getSelected();
         boolean hasSel = sel != null;
         if (hasSel) {
@@ -237,7 +238,7 @@ public class CustomCurrencyConfigScreen extends Screen {
         return entries;
     }
 
-    private class CurrencyListWidget extends ObjectSelectionList<CurrencyListWidget.Entry> {
+    private class CurrencyListWidget extends EditorWidgets.FullWidthList<CurrencyListWidget.Entry> {
 
         public CurrencyListWidget(Minecraft mc, int w, int h, int y, int itemHeight) {
             super(mc, w, h, y, itemHeight);
@@ -266,19 +267,7 @@ public class CustomCurrencyConfigScreen extends Screen {
 
             @Override
             public void render(GuiGraphics guiGraphics, int index, int top, int left, int width, int height, int mouseX, int mouseY, boolean hovered, float partialTick) {
-                Item item;
-                try {
-                    item = BuiltInRegistries.ITEM.get(ResourceLocation.parse(record.itemId()));
-                } catch (Exception e) {
-                    item = Items.BARRIER;
-                }
-                if (item == null || item == Items.AIR) item = Items.BARRIER;
-                ItemStack stack = new ItemStack(item);
-                guiGraphics.renderItem(stack, left + 2, top + 2);
-                String name = record.itemId();
-                if (name.length() > 28) name = name.substring(0, 25) + "...";
-                guiGraphics.drawString(CustomCurrencyConfigScreen.this.font, name, left + 22, top + 6, 0xFFFFFF);
-                guiGraphics.drawString(CustomCurrencyConfigScreen.this.font, String.valueOf(record.value()), left + width - 50, top + 6, 0xAAAAAA);
+                EditorWidgets.drawItemRow(guiGraphics, CustomCurrencyConfigScreen.this.font, record.itemId(), record.value(), left, top, width, height);
             }
 
             @Override

@@ -126,6 +126,13 @@ public final class CobbleDollarsShopPayloads {
                     }
             );
 
+    private static List<String> decodeNames(RegistryFriendlyByteBuf buf) {
+        int n = VAR_INT.decode(buf);
+        List<String> out = new ArrayList<>(n);
+        for (int i = 0; i < n; i++) out.add(STRING_UTF8.decode(buf));
+        return out;
+    }
+
     public static ResourceLocation id(String path) {
         return ResourceLocation.fromNamespaceAndPath(CobbleDollarsVillagersOverhaulRca.MOD_ID, PREFIX + path);
     }
@@ -146,7 +153,25 @@ public final class CobbleDollarsShopPayloads {
         }
     }
 
-    public record ShopData(int villagerId, long balance, List<ShopOfferEntry> buyOffers, List<ShopOfferEntry> sellOffers, List<ShopOfferEntry> tradesOffers, boolean buyOffersFromConfig, boolean canCycleTrades) implements CustomPacketPayload {
+    public record ShopData(int villagerId, long balance, List<ShopOfferEntry> buyOffers, List<ShopOfferEntry> sellOffers, List<ShopOfferEntry> tradesOffers, boolean buyOffersFromConfig, boolean canCycleTrades, String labelsJson, List<String> categoryNames, int hiddenTabs) implements CustomPacketPayload {
+    public static final int HIDE_SELL_TAB = 1;
+    public static final int HIDE_TRADES_TAB = 2;
+
+    /** Shop with category names but nothing hidden. */
+    public ShopData(int villagerId, long balance, List<ShopOfferEntry> buyOffers, List<ShopOfferEntry> sellOffers, List<ShopOfferEntry> tradesOffers, boolean buyOffersFromConfig, boolean canCycleTrades, String labelsJson, List<String> categoryNames) {
+        this(villagerId, balance, buyOffers, sellOffers, tradesOffers, buyOffersFromConfig, canCycleTrades, labelsJson, categoryNames, 0);
+    }
+
+    /** Shop with per-villager tab names but no extra category names. */
+    public ShopData(int villagerId, long balance, List<ShopOfferEntry> buyOffers, List<ShopOfferEntry> sellOffers, List<ShopOfferEntry> tradesOffers, boolean buyOffersFromConfig, boolean canCycleTrades, String labelsJson) {
+        this(villagerId, balance, buyOffers, sellOffers, tradesOffers, buyOffersFromConfig, canCycleTrades, labelsJson, List.of(), 0);
+    }
+
+    /** Shop without per-villager tab names. */
+    public ShopData(int villagerId, long balance, List<ShopOfferEntry> buyOffers, List<ShopOfferEntry> sellOffers, List<ShopOfferEntry> tradesOffers, boolean buyOffersFromConfig, boolean canCycleTrades) {
+        this(villagerId, balance, buyOffers, sellOffers, tradesOffers, buyOffersFromConfig, canCycleTrades, "", List.of(), 0);
+    }
+
     public static final CustomPacketPayload.Type<ShopData> TYPE =
                 new CustomPacketPayload.Type<>(Objects.requireNonNull(id("shop_data")));
     public static final StreamCodec<RegistryFriendlyByteBuf, ShopData> STREAM_CODEC =
@@ -159,6 +184,11 @@ public final class CobbleDollarsShopPayloads {
                             OFFERS_LIST_CODEC.encode(buf, data.tradesOffers());
                             BOOL.encode(buf, data.buyOffersFromConfig());
                             BOOL.encode(buf, data.canCycleTrades());
+                            STRING_UTF8.encode(buf, data.labelsJson() != null ? data.labelsJson() : "");
+                            List<String> names = data.categoryNames() != null ? data.categoryNames() : List.of();
+                            VAR_INT.encode(buf, names.size());
+                            for (String name : names) STRING_UTF8.encode(buf, name);
+                            VAR_INT.encode(buf, data.hiddenTabs());
                         },
                         buf -> new ShopData(
                                 VAR_INT.decode(buf),
@@ -167,7 +197,10 @@ public final class CobbleDollarsShopPayloads {
                                 OFFERS_LIST_CODEC.decode(buf),
                                 OFFERS_LIST_CODEC.decode(buf),
                                 BOOL.decode(buf),
-                                BOOL.decode(buf))
+                                BOOL.decode(buf),
+                                STRING_UTF8.decode(buf),
+                                decodeNames(buf),
+                                VAR_INT.decode(buf))
                 );
 
     @Override

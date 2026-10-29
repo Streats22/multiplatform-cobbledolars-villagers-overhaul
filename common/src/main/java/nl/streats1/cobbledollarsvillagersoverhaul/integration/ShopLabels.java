@@ -22,6 +22,7 @@ public final class ShopLabels {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
     private static Data data;
+    private static volatile Values override;
 
     private ShopLabels() {
     }
@@ -58,6 +59,11 @@ public final class ShopLabels {
         data = null;
     }
 
+    /** Client side: labels of the villager whose shop is open; blank fields fall back to the server labels. */
+    public static void setOverride(Values values) {
+        override = values;
+    }
+
     public static Values values() {
         Data d = ensureLoaded();
         return new Values(nonNull(d.shop), nonNull(d.buy), nonNull(d.sell), nonNull(d.trades));
@@ -89,19 +95,47 @@ public final class ShopLabels {
     }
 
     public static String shopTitle() {
-        return resolve(ensureLoaded().shop, "shop");
+        return resolve(pick(ensureLoaded().shop, override != null ? override.shop() : null), "shop");
     }
 
     public static String buyTab() {
-        return resolve(ensureLoaded().buy, "buy");
+        return resolve(pick(ensureLoaded().buy, override != null ? override.buy() : null), "buy");
     }
 
     public static String sellTab() {
-        return resolve(ensureLoaded().sell, "sell");
+        return resolve(pick(ensureLoaded().sell, override != null ? override.sell() : null), "sell");
     }
 
     public static String tradesTab() {
-        return resolve(ensureLoaded().trades, "trades");
+        return resolve(pick(ensureLoaded().trades, override != null ? override.trades() : null), "trades");
+    }
+
+    /** Parses {"shop":..,"buy":..,"sell":..,"trades":..}; null or blank input means no override. */
+    public static Values fromJson(String json) {
+        if (json == null || json.isBlank()) return null;
+        try {
+            var o = com.google.gson.JsonParser.parseString(json).getAsJsonObject();
+            return new Values(text(o, "shop"), text(o, "buy"), text(o, "sell"), text(o, "trades"));
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    public static String toJson(Values v) {
+        var o = new com.google.gson.JsonObject();
+        o.addProperty("shop", clean(v.shop()));
+        o.addProperty("buy", clean(v.buy()));
+        o.addProperty("sell", clean(v.sell()));
+        o.addProperty("trades", clean(v.trades()));
+        return o.toString();
+    }
+
+    private static String text(com.google.gson.JsonObject o, String key) {
+        return o.has(key) && o.get(key).isJsonPrimitive() ? clean(o.get(key).getAsString()) : "";
+    }
+
+    private static String pick(String global, String villager) {
+        return clean(villager).isEmpty() ? global : villager;
     }
 
     private static String resolve(String custom, String langKey) {

@@ -133,6 +133,9 @@ public final class CobbleDollarsShopPayloadHandlers {
         List<CobbleDollarsShopPayloads.ShopOfferEntry> sellOffers = new ArrayList<>();
         List<CobbleDollarsShopPayloads.ShopOfferEntry> tradesOffers = new ArrayList<>();
         boolean buyOffersFromConfig = false;
+        String villagerLabelsJson = "";
+        List<String> configCategoryNames = List.of();
+        int hiddenTabs = 0;
 
         ServerLevel level = serverPlayer.serverLevel();
         Entity entity = VirtualShopIds.isVirtual(villagerId) ? null : level.getEntity(villagerId);
@@ -142,7 +145,8 @@ public final class CobbleDollarsShopPayloadHandlers {
                 List<CobbleDollarsShopPayloads.ShopOfferEntry> configBuy = CobbleDollarsConfigHelper.getDefaultShopBuyOffers();
                 try {
                     PlatformNetwork.sendToPlayer(serverPlayer,
-                            new CobbleDollarsShopPayloads.ShopData(villagerId, balance, configBuy, List.of(), List.of(), true, false));
+                            new CobbleDollarsShopPayloads.ShopData(villagerId, balance, configBuy, List.of(), List.of(), true, false, "",
+                                    new ArrayList<>(nl.streats1.cobbledollarsvillagersoverhaul.integration.DefaultShopConfig.loadCategories().keySet())));
                 } catch (Exception e) {
                     PlatformNetwork.sendToPlayer(serverPlayer,
                             new CobbleDollarsShopPayloads.ShopData(villagerId, 0L, List.of(), List.of(), List.of(), false, false));
@@ -189,10 +193,31 @@ public final class CobbleDollarsShopPayloadHandlers {
                     VillagerConfigCompat.prepareVillagerForShop(serverPlayer.serverLevel(), villager);
                 }
                 if (VillagerShopConfig.usesConfigShop(villager.getUUID())) {
-                    List<CobbleDollarsShopPayloads.ShopOfferEntry> configBuy = CobbleDollarsConfigHelper.getDefaultShopBuyOffers();
-                    if (!configBuy.isEmpty()) {
+                    var own = nl.streats1.cobbledollarsvillagersoverhaul.integration.VillagerShopData.load(villager.getUUID());
+                    List<CobbleDollarsShopPayloads.ShopOfferEntry> configBuy = own != null
+                            ? CobbleDollarsConfigHelper.buyOffersFromCategories(own.shop())
+                            : CobbleDollarsConfigHelper.getDefaultShopBuyOffers();
+                    if (own != null) {
+                        if (own.sellTab()) {
+                            sellOffers.addAll(CobbleDollarsConfigHelper.sellOffersFromBank(own.bank()));
+                        } else {
+                            hiddenTabs |= CobbleDollarsShopPayloads.ShopData.HIDE_SELL_TAB;
+                        }
+                        if (own.tradesTab()) {
+                            // the villager's own (datapack) item trades first, then the custom ones
+                            buildItemForItemTrades(villager.getOffers(), tradesOffers);
+                            tradesOffers.addAll(CobbleDollarsConfigHelper.tradeOffersFrom(own.trades()));
+                        } else {
+                            hiddenTabs |= CobbleDollarsShopPayloads.ShopData.HIDE_TRADES_TAB;
+                        }
+                        villagerLabelsJson = nl.streats1.cobbledollarsvillagersoverhaul.integration.ShopLabels.toJson(own.labels());
+                    }
+                    if (own != null || !configBuy.isEmpty()) {
                         buyOffers.addAll(configBuy);
                         buyOffersFromConfig = true;
+                        configCategoryNames = own != null
+                                ? new ArrayList<>(own.shop().keySet())
+                                : new ArrayList<>(nl.streats1.cobbledollarsvillagersoverhaul.integration.DefaultShopConfig.loadCategories().keySet());
                     }
                 } else {
                     MerchantOfferDedupe.removeIdenticalDuplicates(villager.getOffers());
@@ -302,7 +327,7 @@ public final class CobbleDollarsShopPayloadHandlers {
         try {
             ConfigShopBuySession.remember(serverPlayer.getUUID(), entity.getUUID(), buyOffersFromConfig);
             PlatformNetwork.sendToPlayer(serverPlayer,
-                    new CobbleDollarsShopPayloads.ShopData(villagerId, balance, safeBuyOffers, safeSellOffers, safeTradesOffers, buyOffersFromConfig, canCycleTrades));
+                    new CobbleDollarsShopPayloads.ShopData(villagerId, balance, safeBuyOffers, safeSellOffers, safeTradesOffers, buyOffersFromConfig, canCycleTrades, villagerLabelsJson, configCategoryNames, hiddenTabs));
         } catch (Exception e) {
             ConfigShopBuySession.remember(serverPlayer.getUUID(), entity.getUUID(), false);
             PlatformNetwork.sendToPlayer(serverPlayer,
@@ -340,6 +365,7 @@ public final class CobbleDollarsShopPayloadHandlers {
         }
         if (AssignModeTracker.isInAssignMode(serverPlayer.getUUID())) {
             VillagerShopConfig.add(villager.getUUID());
+            nl.streats1.cobbledollarsvillagersoverhaul.integration.VillagerShopData.ensureExists(villager.getUUID());
             AssignModeTracker.clear(serverPlayer.getUUID());
             PlatformNetwork.sendToPlayer(serverPlayer, new CobbleDollarsShopPayloads.AssignModeUpdate(false));
             serverPlayer.sendSystemMessage(net.minecraft.network.chat.Component.translatable("command.cobbledollars_villagers_overhaul_rca.assign.success"));

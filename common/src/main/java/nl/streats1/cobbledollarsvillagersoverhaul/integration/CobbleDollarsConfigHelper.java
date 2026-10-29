@@ -111,8 +111,58 @@ public final class CobbleDollarsConfigHelper {
     }
 
     public static List<CobbleDollarsShopPayloads.ShopOfferEntry> getBankSellOffers() {
+        return sellOffersFromBank(BankConfig.loadEntries());
+    }
+
+    /** Buy offers for a catalog of categories (the default shop, or one villager's own shop). */
+    public static List<CobbleDollarsShopPayloads.ShopOfferEntry> buyOffersFromCategories(java.util.Map<String, List<ShopEntryRecord>> categories) {
         List<CobbleDollarsShopPayloads.ShopOfferEntry> out = new ArrayList<>();
-        for (BankEntryRecord entry : BankConfig.loadEntries()) {
+        for (var category : categories.entrySet()) {
+            for (ShopEntryRecord entry : category.getValue()) {
+                ResourceLocation id = ResourceLocation.tryParse(entry.itemId());
+                if (id == null || entry.price() <= 0) continue;
+                var item = BuiltInRegistries.ITEM.get(id);
+                if (item == null || item == Items.AIR) continue;
+                out.add(ShopOfferEntryFactory.buyConfig(new ItemStack(item, 1), entry.price(), category.getKey()));
+            }
+        }
+        return out;
+    }
+
+    /** Trades tab entries for a villager's custom item-for-item trades; unknown items are skipped. */
+    public static List<CobbleDollarsShopPayloads.ShopOfferEntry> tradeOffersFrom(List<TradeRecord> trades) {
+        List<CobbleDollarsShopPayloads.ShopOfferEntry> out = new ArrayList<>();
+        for (TradeRecord t : usableTrades(trades)) {
+            ItemStack give = stackOf(t.giveItem(), t.giveCount());
+            ItemStack get = stackOf(t.getItem(), t.getCount());
+            ItemStack give2 = t.hasSecondItem() ? stackOf(t.give2Item(), t.give2Count()) : ItemStack.EMPTY;
+            if (give.isEmpty() || get.isEmpty()) continue;
+            out.add(ShopOfferEntryFactory.tradeWithDollars(give, get, give2, t.dollars()));
+        }
+        return out;
+    }
+
+    /** The same filtering as {@link #tradeOffersFrom}, so indexes line up with the shop the player sees. */
+    public static List<TradeRecord> usableTrades(List<TradeRecord> trades) {
+        List<TradeRecord> out = new ArrayList<>();
+        for (TradeRecord t : trades) {
+            if (stackOf(t.giveItem(), 1).isEmpty() || stackOf(t.getItem(), 1).isEmpty()) continue;
+            out.add(t);
+        }
+        return out;
+    }
+
+    public static ItemStack stackOf(String itemId, int count) {
+        ResourceLocation id = ResourceLocation.tryParse(itemId);
+        if (id == null) return ItemStack.EMPTY;
+        var item = BuiltInRegistries.ITEM.get(id);
+        return item == null || item == Items.AIR ? ItemStack.EMPTY : new ItemStack(item, Math.max(1, count));
+    }
+
+    /** Sell offers (items the shop buys from players) for a list of bank entries. */
+    public static List<CobbleDollarsShopPayloads.ShopOfferEntry> sellOffersFromBank(List<BankEntryRecord> bank) {
+        List<CobbleDollarsShopPayloads.ShopOfferEntry> out = new ArrayList<>();
+        for (BankEntryRecord entry : bank) {
             ResourceLocation id = ResourceLocation.tryParse(entry.itemId());
             if (id == null) continue;
             var item = BuiltInRegistries.ITEM.get(id);
