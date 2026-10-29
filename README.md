@@ -148,22 +148,35 @@ Names are limited to 32 characters; blank means the default. Defaults come from 
 `gui.cobbledollars_villagers_overhaul_rca.shop`, `.buy`, `.sell` and `.trades`, so a resource pack can still rename
 them. Custom Buy categories in the default shop are renamed under **Edit shop** → **Rename category**.
 
+### Editing the Shop on a Server (operators)
+
+The editors in the mod config (Mod Menu on Fabric, Mods list on NeoForge) work server-wide. Connected to a server,
+**Edit shop**, **Edit bank**, **Edit item prices** and **Edit currencies** load the server's files and send your
+changes back to the server. Only players with operator rights (permission level 2) can do this. In singleplayer, or
+from the main menu, they edit the local files as before. The default shop is read fresh on each shop open. Item
+prices and currencies apply immediately; CobbleDollars reads `bank.json` itself, so reload or restart for bank
+changes. On NeoForge the currency list is also stored in the config TOML, which a server edit does not change.
+
+**Custom villagers:** the **Custom villagers** screen lists the villagers that open the config shop, lets you
+unassign them, and has **Assign a villager** / **Unassign by click** buttons (same as `/cvm assign` and
+`/cvm unassign`). Assigning only adds the villager's UUID to `villager_shops.json`; its own trades are untouched.
+Their shop shows a "Custom shop" note.
+
 ### Shop Themes
 
-Seasonal looks for the shop screen: **Pumpkin Night**, **Haunted Purple**, **Graveyard Mist** (Halloween) and
-**Christmas**. Open the mod config (Mod Menu on Fabric, Mods list on NeoForge) and press the **Shop theme** button to
-cycle through **Seasonal (auto)**, **Normal** and the themes. A theme tints the shop textures, changes the title and
-tab colors and adds small decorations. It is cosmetic and stored per player in
+Styles for the shop screen: **Pumpkin Night**, **Haunted Purple**, **Graveyard Mist**, **Crimson (red)** and
+**Christmas (red + snow)**. Press the **Shop theme** button in the mod config to cycle **Seasonal (auto)**,
+**Normal** and the styles. **Theme decorations** (cobweb, pumpkin, snow, holly, fog) can be switched off separately,
+so you can keep, for example, the red style without any Christmas decoration. A style recolors the shop textures and
+text and this mod's editor panels. It is cosmetic and stored per player in
 `config/cobbledollars_villagers_overhaul_rca/shop_theme.json`.
 
-**Seasonal (auto)** is the default setting: from 28 to 31 October the shop switches to Pumpkin Night by itself and
-returns to normal on 1 November. It reads only the date on the player's own computer (no network access) and is purely
-cosmetic. Pick **Normal** in the same button to always keep the grey shop, or any named theme to keep that one all
-year. Changes apply the next time the shop opens.
+**Seasonal (auto)** is the default: from 28 to 31 October the shop switches to Pumpkin Night by itself and returns
+to normal on 1 November. It reads only the date on the player's own computer (no network access). Pick **Normal** to
+always keep the grey shop, or a named style to keep it all year. Changes apply the next time the shop opens.
 
 The theme covers the shop screen (including its Bank button and the `/cvm open bank` view) and this mod's editor
-screens (Edit shop, Edit bank, Edit item prices, Edit currencies and the item picker). The CobbleDollars mod's own
-bank screen belongs to that mod and keeps its own look.
+screens. The CobbleDollars mod's own bank screen belongs to that mod and keeps its own look.
 
 ### RCT Series
 
