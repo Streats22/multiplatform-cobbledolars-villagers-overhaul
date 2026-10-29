@@ -207,12 +207,16 @@ public final class ShopTransactionService {
         boolean assignedOrVirtualConfig = ShopInteractionGuard.isConfigShopBuy(villagerId, entity);
         // fromConfigShop is client-written on BuyWithCobbleDollars; only the catalog recorded at open counts.
         boolean openedAsConfigShop = ConfigShopBuySession.wasOpenedAsConfigShop(serverPlayer.getUUID(), entity.getUUID());
-        if (ShopTradePolicy.shouldBuyFromConfigShop(assignedOrVirtualConfig, openedAsConfigShop, false)) {
+        boolean ownTrades = tab == 2 && entity instanceof Villager tradesVillager
+                && VillagerShopConfig.usesConfigShop(tradesVillager.getUUID())
+                && VillagerShopData.load(tradesVillager.getUUID()) instanceof VillagerShopData.Data own
+                && own.tradesTab();
+        if (!ownTrades && ShopTradePolicy.shouldBuyFromConfigShop(assignedOrVirtualConfig, openedAsConfigShop, false)) {
             handleBuyFromConfig(serverPlayer, villagerId, offerIndex, quantity);
             return;
         }
 
-        if (configBuyOffersAvailable && entity instanceof Villager emptyCheckVillager) {
+        if (!ownTrades && configBuyOffersAvailable && entity instanceof Villager emptyCheckVillager) {
             if (McaIntegration.isVillager(emptyCheckVillager)) {
                 McaIntegration.prepareOffers(level, emptyCheckVillager);
             } else {
@@ -575,6 +579,9 @@ public final class ShopTransactionService {
         if (entity instanceof Villager assigned && VillagerShopConfig.usesConfigShop(assigned.getUUID())) {
             var own = VillagerShopData.load(assigned.getUUID());
             if (own != null) {
+                if (!own.sellTab()) {
+                    return;
+                }
                 sellBankEntry(serverPlayer, villagerId, offerIndex, quantity, CobbleDollarsConfigHelper.sellOffersFromBank(own.bank()));
                 return;
             }

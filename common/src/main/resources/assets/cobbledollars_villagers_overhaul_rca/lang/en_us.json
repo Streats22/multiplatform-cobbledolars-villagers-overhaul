@@ -44,6 +44,8 @@
   "gui.cobbledollars_villagers_overhaul_rca.assigned_hint": "Each villager here has its own shop",
   "gui.cobbledollars_villagers_overhaul_rca.edit_villager_shop": "Edit shop",
   "gui.cobbledollars_villagers_overhaul_rca.villager_shop_title": "Shop of %s",
+  "gui.cobbledollars_villagers_overhaul_rca.show_sell_tab": "Sell tab: %s",
+  "gui.cobbledollars_villagers_overhaul_rca.show_trades_tab": "Trades tab: %s",
   "gui.cobbledollars_villagers_overhaul_rca.villager_shop_hint": "Changes only affect this villager",
   "gui.cobbledollars_villagers_overhaul_rca.villager_shop_items": "Items and prices (what it sells)",
   "gui.cobbledollars_villagers_overhaul_rca.villager_shop_sell": "Sell list (what it buys)",

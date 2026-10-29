@@ -151,4 +151,25 @@ class VillagerShopDataTest {
         assertTrue(Files.readString(dir.resolve("default_shop.json")).trim().startsWith("["));
         assertEquals(1500, DefaultShopConfig.loadCategories().get("Balls").get(0).price());
     }
+
+    @Test
+    void sellAndTradesTabsAreOffByDefaultAndCanBeSwitchedOn() {
+        UUID villager = UUID.randomUUID();
+        VillagerShopData.ensureExists(villager);
+
+        var fresh = VillagerShopData.load(villager);
+        assertFalse(fresh.sellTab());
+        assertFalse(fresh.tradesTab());
+
+        VillagerShopData.writeSection(villager, VillagerShopData.SECTION_LABELS,
+                "{\"shop\":\"\",\"buy\":\"\",\"sell\":\"\",\"trades\":\"\",\"showSell\":true,\"showTrades\":false}");
+
+        var edited = VillagerShopData.load(villager);
+        assertTrue(edited.sellTab());
+        assertFalse(edited.tradesTab());
+        assertTrue(VillagerShopData.readSection(villager, VillagerShopData.SECTION_LABELS).contains("\"showSell\":true"));
+
+        VillagerShopData.writeSection(villager, VillagerShopData.SECTION_SHOP, DefaultShopConfig.toJson(shop("X", "minecraft:apple", 1)));
+        assertTrue(VillagerShopData.load(villager).sellTab(), "editing items keeps the tab options");
+    }
 }

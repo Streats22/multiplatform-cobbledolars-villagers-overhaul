@@ -28,9 +28,15 @@ public final class VillagerShopData {
 
     private static final String SUBDIR = "villager_shops";
 
+    /** {@code sellTab} / {@code tradesTab}: whether the shop shows those tabs; both are off by default. */
     public record Data(ShopLabels.Values labels,
                        Map<String, List<ShopEntryRecord>> shop,
-                       List<BankEntryRecord> bank) {
+                       List<BankEntryRecord> bank,
+                       boolean sellTab,
+                       boolean tradesTab) {
+        public Data(ShopLabels.Values labels, Map<String, List<ShopEntryRecord>> shop, List<BankEntryRecord> bank) {
+            this(labels, shop, bank, false, false);
+        }
     }
 
     private VillagerShopData() {
@@ -60,7 +66,9 @@ public final class VillagerShopData {
             List<BankEntryRecord> bank = root.has(SECTION_BANK)
                     ? BankConfig.parseEntries(root.get(SECTION_BANK).toString())
                     : new ArrayList<>();
-            return new Data(labels != null ? labels : new ShopLabels.Values("", "", "", ""), shop, bank);
+            JsonObject tabs = root.has("tabs") && root.get("tabs").isJsonObject() ? root.getAsJsonObject("tabs") : new JsonObject();
+            return new Data(labels != null ? labels : new ShopLabels.Values("", "", "", ""), shop, bank,
+                    flag(tabs, "sell"), flag(tabs, "trades"));
         } catch (Exception ex) {
             return null;
         }
@@ -71,12 +79,20 @@ public final class VillagerShopData {
         root.add(SECTION_LABELS, JsonParser.parseString(ShopLabels.toJson(data.labels())));
         root.add(SECTION_SHOP, JsonParser.parseString(DefaultShopConfig.toJson(data.shop())));
         root.add(SECTION_BANK, JsonParser.parseString(BankConfig.toJson(data.bank())));
+        JsonObject tabs = new JsonObject();
+        tabs.addProperty("sell", data.sellTab());
+        tabs.addProperty("trades", data.tradesTab());
+        root.add("tabs", tabs);
         try {
             Path file = file(villager);
             Files.createDirectories(file.getParent());
             Files.writeString(file, new GsonBuilder().setPrettyPrinting().create().toJson(root));
         } catch (Exception ignored) {
         }
+    }
+
+    private static boolean flag(JsonObject o, String key) {
+        return o.has(key) && o.get(key).isJsonPrimitive() && o.get(key).getAsBoolean();
     }
 
     /** A copy of the current default shop, no sell list, and tab names left blank (= server names). */
@@ -106,7 +122,12 @@ public final class VillagerShopData {
         return switch (section) {
             case SECTION_SHOP -> DefaultShopConfig.toJson(data.shop());
             case SECTION_BANK -> BankConfig.toJson(data.bank());
-            case SECTION_LABELS -> ShopLabels.toJson(data.labels());
+            case SECTION_LABELS -> {
+                JsonObject o = JsonParser.parseString(ShopLabels.toJson(data.labels())).getAsJsonObject();
+                o.addProperty("showSell", data.sellTab());
+                o.addProperty("showTrades", data.tradesTab());
+                yield o.toString();
+            }
             default -> null;
         };
     }
@@ -118,11 +139,14 @@ public final class VillagerShopData {
             throw new IllegalArgumentException(section);
         }
         switch (section) {
-            case SECTION_SHOP -> data = new Data(data.labels(), DefaultShopConfig.parseCategories(json), data.bank());
-            case SECTION_BANK -> data = new Data(data.labels(), data.shop(), BankConfig.parseEntries(json));
+            case SECTION_SHOP -> data = new Data(data.labels(), DefaultShopConfig.parseCategories(json), data.bank(), data.sellTab(), data.tradesTab());
+            case SECTION_BANK -> data = new Data(data.labels(), data.shop(), BankConfig.parseEntries(json), data.sellTab(), data.tradesTab());
             case SECTION_LABELS -> {
                 ShopLabels.Values labels = ShopLabels.fromJson(json);
-                data = new Data(labels != null ? labels : data.labels(), data.shop(), data.bank());
+                JsonObject o = check.getAsJsonObject();
+                boolean sell = o.has("showSell") ? flag(o, "showSell") : data.sellTab();
+                boolean trades = o.has("showTrades") ? flag(o, "showTrades") : data.tradesTab();
+                data = new Data(labels != null ? labels : data.labels(), data.shop(), data.bank(), sell, trades);
             }
             default -> throw new IllegalArgumentException(section);
         }

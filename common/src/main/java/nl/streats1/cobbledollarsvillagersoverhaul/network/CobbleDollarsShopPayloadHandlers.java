@@ -135,6 +135,7 @@ public final class CobbleDollarsShopPayloadHandlers {
         boolean buyOffersFromConfig = false;
         String villagerLabelsJson = "";
         List<String> configCategoryNames = List.of();
+        int hiddenTabs = 0;
 
         ServerLevel level = serverPlayer.serverLevel();
         Entity entity = VirtualShopIds.isVirtual(villagerId) ? null : level.getEntity(villagerId);
@@ -197,7 +198,16 @@ public final class CobbleDollarsShopPayloadHandlers {
                             ? CobbleDollarsConfigHelper.buyOffersFromCategories(own.shop())
                             : CobbleDollarsConfigHelper.getDefaultShopBuyOffers();
                     if (own != null) {
-                        sellOffers.addAll(CobbleDollarsConfigHelper.sellOffersFromBank(own.bank()));
+                        if (own.sellTab()) {
+                            sellOffers.addAll(CobbleDollarsConfigHelper.sellOffersFromBank(own.bank()));
+                        } else {
+                            hiddenTabs |= CobbleDollarsShopPayloads.ShopData.HIDE_SELL_TAB;
+                        }
+                        if (own.tradesTab()) {
+                            buildItemForItemTrades(villager.getOffers(), tradesOffers);
+                        } else {
+                            hiddenTabs |= CobbleDollarsShopPayloads.ShopData.HIDE_TRADES_TAB;
+                        }
                         villagerLabelsJson = nl.streats1.cobbledollarsvillagersoverhaul.integration.ShopLabels.toJson(own.labels());
                     }
                     if (own != null || !configBuy.isEmpty()) {
@@ -315,7 +325,7 @@ public final class CobbleDollarsShopPayloadHandlers {
         try {
             ConfigShopBuySession.remember(serverPlayer.getUUID(), entity.getUUID(), buyOffersFromConfig);
             PlatformNetwork.sendToPlayer(serverPlayer,
-                    new CobbleDollarsShopPayloads.ShopData(villagerId, balance, safeBuyOffers, safeSellOffers, safeTradesOffers, buyOffersFromConfig, canCycleTrades, villagerLabelsJson, configCategoryNames));
+                    new CobbleDollarsShopPayloads.ShopData(villagerId, balance, safeBuyOffers, safeSellOffers, safeTradesOffers, buyOffersFromConfig, canCycleTrades, villagerLabelsJson, configCategoryNames, hiddenTabs));
         } catch (Exception e) {
             ConfigShopBuySession.remember(serverPlayer.getUUID(), entity.getUUID(), false);
             PlatformNetwork.sendToPlayer(serverPlayer,

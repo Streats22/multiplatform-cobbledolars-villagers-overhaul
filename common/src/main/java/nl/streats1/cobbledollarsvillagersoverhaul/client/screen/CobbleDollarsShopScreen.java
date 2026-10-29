@@ -22,7 +22,9 @@ import nl.streats1.cobbledollarsvillagersoverhaul.client.screen.widget.BankButto
 import nl.streats1.cobbledollarsvillagersoverhaul.client.screen.widget.CycleTradesButton;
 import nl.streats1.cobbledollarsvillagersoverhaul.client.screen.widget.InvisibleButton;
 import nl.streats1.cobbledollarsvillagersoverhaul.client.screen.widget.TextureOnlyButton;
+import nl.streats1.cobbledollarsvillagersoverhaul.client.AdminConfigClient;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.ShopLabels;
+import nl.streats1.cobbledollarsvillagersoverhaul.network.AdminConfigService;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.ShopTheme;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.CobbleDollarsBankCompat;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.CobbleDollarsConfigHelper;
@@ -203,6 +205,8 @@ public class CobbleDollarsShopScreen extends Screen {
         this.buyOffersFromConfig = buyOffersFromConfig;
         this.canCycleTrades = canCycleTrades;
         this.categoryNames = categoryNamesForNextOpen;
+        this.hiddenTabs = hiddenTabsForNextOpen;
+        this.ownShop = ownShopForNextOpen;
 
         rebuildTabs();
         selectFirstNonEmptyTab();
@@ -211,6 +215,10 @@ public class CobbleDollarsShopScreen extends Screen {
     /** Category names sent with the open shop, so empty categories still get a tab. */
     private static List<String> categoryNamesForNextOpen = List.of();
     private List<String> categoryNames = List.of();
+    private static int hiddenTabsForNextOpen;
+    private int hiddenTabs;
+    private static boolean ownShopForNextOpen;
+    private boolean ownShop;
 
     private void rebuildTabs() {
         List<String> names = new ArrayList<>();
@@ -243,6 +251,13 @@ public class CobbleDollarsShopScreen extends Screen {
         tabNames = List.copyOf(names);
         tabOffers = List.copyOf(offers);
         buyTabCount = buyTabs;
+    }
+
+    /** Sell and Trades tabs can be switched off for a villager's own shop. */
+    private boolean tabVisible(int t) {
+        if (t == buyTabCount) return (hiddenTabs & CobbleDollarsShopPayloads.ShopData.HIDE_SELL_TAB) == 0;
+        if (t == buyTabCount + 1) return (hiddenTabs & CobbleDollarsShopPayloads.ShopData.HIDE_TRADES_TAB) == 0;
+        return true;
     }
 
     private TabSection currentTabSection() {
@@ -333,6 +348,8 @@ public class CobbleDollarsShopScreen extends Screen {
     public static void openFromPayload(CobbleDollarsShopPayloads.ShopData d) {
         ShopLabels.setOverride(ShopLabels.fromJson(d.labelsJson()));
         categoryNamesForNextOpen = d.categoryNames() != null ? List.copyOf(d.categoryNames()) : List.of();
+        hiddenTabsForNextOpen = d.hiddenTabs();
+        ownShopForNextOpen = d.labelsJson() != null && !d.labelsJson().isBlank();
         openFromPayload(d.villagerId(), d.balance(), d.buyOffers(), d.sellOffers(), d.tradesOffers(),
                 d.buyOffersFromConfig(), d.canCycleTrades());
     }
@@ -392,6 +409,8 @@ public class CobbleDollarsShopScreen extends Screen {
         int previousScroll = screen.scrollOffset;
 
         screen.categoryNames = categoryNamesForNextOpen;
+        screen.hiddenTabs = hiddenTabsForNextOpen;
+        screen.ownShop = ownShopForNextOpen;
         screen.rebuildTabs();
         screen.applyTabAfterDataRefresh(section, previousTabIndex, previousOfferIndex);
         if (screen.selectedTab == previousTabIndex) {
@@ -491,6 +510,17 @@ public class CobbleDollarsShopScreen extends Screen {
             minecraft.setScreen(null);
             PlatformNetwork.sendToServer(new CobbleDollarsShopPayloads.RequestShopData(villagerId));
         };
+        if (ownShop && minecraft.level != null && minecraft.level.getEntity(villagerId) instanceof net.minecraft.world.entity.Entity villager) {
+            AdminConfigClient.setVillagerScope(villager.getUUID().toString(), villager.getName().getString());
+            Runnable ownSave = () -> {
+                AdminConfigClient.clearVillagerScope();
+                onSave.run();
+            };
+            AdminConfigClient.open(AdminConfigService.SHOP,
+                    () -> minecraft.setScreen(new DefaultShopEditorScreen(this, null, ownSave)));
+            return;
+        }
+        AdminConfigClient.clearVillagerScope();
         minecraft.setScreen(new DefaultShopEditorScreen(this, null, onSave));
     }
 
@@ -608,8 +638,10 @@ public class CobbleDollarsShopScreen extends Screen {
         int tabX = left + CATEGORY_LIST_X;
         int tabY = top + CATEGORY_LIST_Y;
         int tabGapY = 2;
+        int visibleRow = 0;
         for (int t = 0; t < tabNames.size(); t++) {
-            int y = tabY + t * (CATEGORY_ENTRY_H + tabGapY);
+            if (!tabVisible(t)) continue;
+            int y = tabY + visibleRow++ * (CATEGORY_ENTRY_H + tabGapY);
             blitFull(guiGraphics, TEX_CATEGORY_BG, tabX, y, TEX_CATEGORY_BG_W, TEX_CATEGORY_BG_H);
             if (t == selectedTab) {
                 blitStretched(guiGraphics, TEX_CATEGORY_OUTLINE, tabX + TAB_OUTLINE_OFFSET_X, y + TAB_OUTLINE_OFFSET_Y, TEX_CATEGORY_OUTLINE_W, TEX_CATEGORY_OUTLINE_H, TEX_CATEGORY_OUTLINE_W, TEX_CATEGORY_OUTLINE_H);
@@ -1290,8 +1322,10 @@ public class CobbleDollarsShopScreen extends Screen {
         int tabGapY = 2;
 
         if (mouseX >= tabX && mouseX < tabX + tabW) {
+            int visibleRow = 0;
             for (int t = 0; t < tabNames.size(); t++) {
-                int tY = tabY + t * (CATEGORY_ENTRY_H + tabGapY);
+                if (!tabVisible(t)) continue;
+                int tY = tabY + visibleRow++ * (CATEGORY_ENTRY_H + tabGapY);
                 if (mouseY >= tY && mouseY < tY + CATEGORY_ENTRY_H) {
                     selectedTab = t;
                     var off = tabOffers.get(t);

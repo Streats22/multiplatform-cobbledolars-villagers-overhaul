@@ -10,12 +10,23 @@
   Open **Villager shops** in the mod config and press **Edit shop** on a villager. Villagers assigned earlier keep
   using the default shop until you edit them.
 - Back button in the item picker.
+- **Sell and Trades tabs are optional per villager and off by default.** In a villager's *Shop name and tabs* screen
+  you can switch each tab on (Sell uses the villager's own sell list, Trades shows its normal item-for-item trades).
+- Empty shop categories now get a tab, in editor order.
+
+### Fixed
+
+- **The Edit button inside a villager's shop opened the shared default shop** instead of that villager's own shop.
+  It now opens the villager's own editor. Blurred titles and names on the editor screens are sharp again, and the
+  "Custom shop" note sits right under the villager name.
 
 ### Changed
 
 - Config menu regrouped into Shop / Prices / Look / General sections, two buttons per row.
 - Shop, bank, item-price and currency editors: rows use the full list width, show the item name with its id muted and
   the price right-aligned; clearer price row and button layout.
+- The config entry for the shared shop is now **Default shop** (the template new villager shops are copied from);
+  villager editors are titled with the villager's name.
 - "Custom villagers" screen renamed **Villager shops**, with an Edit shop and Unassign button per row.
 
 ---
