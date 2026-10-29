@@ -4,7 +4,7 @@
 
 ---
 
-## [0.4.2] — from 0.4.0
+## [0.4.3] — from 0.4.0
 
 **Minecraft 1.21.1** · **Fabric & NeoForge** · Cobblemon **1.8.0–1.8.2** · CobbleDollars **Beta-5.1+ / Beta-6.1**
 
