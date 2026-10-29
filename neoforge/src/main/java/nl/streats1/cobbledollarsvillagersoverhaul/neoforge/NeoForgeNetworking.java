@@ -34,14 +34,18 @@ public final class NeoForgeNetworking {
         registrar.playToClient(
                 Objects.requireNonNull(CobbleDollarsShopPayloads.ServerShopConfigSync.TYPE),
                 Objects.requireNonNull(CobbleDollarsShopPayloads.ServerShopConfigSync.STREAM_CODEC),
-                (data, context) -> context.enqueueWork(() ->
-                        Config.applyServerShopRuntimeConfig(
-                                data.useCobbleDollarsShopUi(),
-                                data.villagersAcceptCobbleDollars(),
-                                data.useDatapackTrades(),
-                                data.useRctTradesOverhaul(),
-                                data.emeraldRateCdPerEmerald(),
-                                data.syncCobbleDollarsBankRate())));
+                (data, context) -> context.enqueueWork(() -> {
+                    Config.applyServerShopRuntimeConfig(
+                            data.useCobbleDollarsShopUi(),
+                            data.villagersAcceptCobbleDollars(),
+                            data.useDatapackTrades(),
+                            data.useRctTradesOverhaul(),
+                            data.emeraldRateCdPerEmerald(),
+                            data.syncCobbleDollarsBankRate());
+                    nl.streats1.cobbledollarsvillagersoverhaul.integration.ShopLabels.applySynced(
+                            new nl.streats1.cobbledollarsvillagersoverhaul.integration.ShopLabels.Values(
+                                    data.shopTitle(), data.buyTab(), data.sellTab(), data.tradesTab()));
+                }));
 
         registrar.playToClient(
                 Objects.requireNonNull(CobbleDollarsShopPayloads.ShopData.TYPE),
@@ -99,6 +103,60 @@ public final class NeoForgeNetworking {
                         CobbleDollarsShopPayloadHandlers.handleAssignVillager(sp, data.villagerId());
                     }
                 })
+        );
+
+        registrar.playToServer(
+                Objects.requireNonNull(CobbleDollarsShopPayloads.RequestAdminConfig.TYPE),
+                Objects.requireNonNull(CobbleDollarsShopPayloads.RequestAdminConfig.STREAM_CODEC),
+                (data, context) -> context.enqueueWork(() -> {
+                    if (context.player() instanceof ServerPlayer sp) {
+                        nl.streats1.cobbledollarsvillagersoverhaul.network.AdminConfigService.handleRequest(sp, data.kind());
+                    }
+                })
+        );
+
+        registrar.playToServer(
+                Objects.requireNonNull(CobbleDollarsShopPayloads.SaveAdminConfig.TYPE),
+                Objects.requireNonNull(CobbleDollarsShopPayloads.SaveAdminConfig.STREAM_CODEC),
+                (data, context) -> context.enqueueWork(() -> {
+                    if (context.player() instanceof ServerPlayer sp) {
+                        nl.streats1.cobbledollarsvillagersoverhaul.network.AdminConfigService.handleSave(sp, data.kind(), data.json());
+                    }
+                })
+        );
+
+        registrar.playToClient(
+                Objects.requireNonNull(CobbleDollarsShopPayloads.AdminConfigData.TYPE),
+                Objects.requireNonNull(CobbleDollarsShopPayloads.AdminConfigData.STREAM_CODEC),
+                (data, context) -> context.enqueueWork(() ->
+                        nl.streats1.cobbledollarsvillagersoverhaul.client.AdminConfigClient.onData(data.kind(), data.json()))
+        );
+
+        registrar.playToServer(
+                Objects.requireNonNull(CobbleDollarsShopPayloads.RequestAssignedList.TYPE),
+                Objects.requireNonNull(CobbleDollarsShopPayloads.RequestAssignedList.STREAM_CODEC),
+                (data, context) -> context.enqueueWork(() -> {
+                    if (context.player() instanceof ServerPlayer sp) {
+                        CobbleDollarsShopPayloadHandlers.handleRequestAssignedList(sp);
+                    }
+                })
+        );
+
+        registrar.playToServer(
+                Objects.requireNonNull(CobbleDollarsShopPayloads.UnassignByUuid.TYPE),
+                Objects.requireNonNull(CobbleDollarsShopPayloads.UnassignByUuid.STREAM_CODEC),
+                (data, context) -> context.enqueueWork(() -> {
+                    if (context.player() instanceof ServerPlayer sp) {
+                        CobbleDollarsShopPayloadHandlers.handleUnassignByUuid(sp, data.uuid());
+                    }
+                })
+        );
+
+        registrar.playToClient(
+                Objects.requireNonNull(CobbleDollarsShopPayloads.AssignedList.TYPE),
+                Objects.requireNonNull(CobbleDollarsShopPayloads.AssignedList.STREAM_CODEC),
+                (data, context) -> context.enqueueWork(() ->
+                        nl.streats1.cobbledollarsvillagersoverhaul.client.ClientAssignedVillagers.set(data.uuids(), data.labels()))
         );
 
         registrar.playToServer(

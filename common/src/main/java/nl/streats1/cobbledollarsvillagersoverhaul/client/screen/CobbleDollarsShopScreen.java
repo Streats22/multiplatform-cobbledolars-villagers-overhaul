@@ -22,6 +22,8 @@ import nl.streats1.cobbledollarsvillagersoverhaul.client.screen.widget.BankButto
 import nl.streats1.cobbledollarsvillagersoverhaul.client.screen.widget.CycleTradesButton;
 import nl.streats1.cobbledollarsvillagersoverhaul.client.screen.widget.InvisibleButton;
 import nl.streats1.cobbledollarsvillagersoverhaul.client.screen.widget.TextureOnlyButton;
+import nl.streats1.cobbledollarsvillagersoverhaul.integration.ShopLabels;
+import nl.streats1.cobbledollarsvillagersoverhaul.integration.ShopTheme;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.CobbleDollarsBankCompat;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.CobbleDollarsConfigHelper;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.RctTrainerAssociationCompat;
@@ -143,15 +145,15 @@ public class CobbleDollarsShopScreen extends Screen {
     }
 
     private static void blitFull(GuiGraphics guiGraphics, ResourceLocation tex, int x, int y, int texW, int texH) {
-        guiGraphics.blit(tex, x, y, 0, 0, texW, texH, texW, texH);
+        guiGraphics.blit(ShopThemeTextures.resolve(tex), x, y, 0, 0, texW, texH, texW, texH);
     }
 
     private static void blitStretched(GuiGraphics guiGraphics, ResourceLocation tex, int x, int y, int drawW, int drawH, int texW, int texH) {
-        guiGraphics.blit(tex, x, y, 0, 0f, 0f, drawW, drawH, texW, texH);
+        guiGraphics.blit(ShopThemeTextures.resolve(tex), x, y, 0, 0f, 0f, drawW, drawH, texW, texH);
     }
 
     private static void blitRegion(GuiGraphics guiGraphics, ResourceLocation tex, int x, int y, int u, int v, int w, int h, int texW, int texH) {
-        guiGraphics.blit(tex, x, y, u, v, w, h, texW, texH);
+        guiGraphics.blit(ShopThemeTextures.resolve(tex), x, y, u, v, w, h, texW, texH);
     }
 
     private final int villagerId;
@@ -192,7 +194,7 @@ public class CobbleDollarsShopScreen extends Screen {
                                    List<CobbleDollarsShopPayloads.ShopOfferEntry> tradesOffers,
                                    boolean buyOffersFromConfig,
                                    boolean canCycleTrades) {
-        super(Component.translatable("gui.cobbledollars_villagers_overhaul_rca.shop"));
+        super(Component.literal(ShopLabels.shopTitle()));
         this.villagerId = villagerId;
         this.balance = balance;
         this.buyOffers = buyOffers != null ? new ArrayList<>(buyOffers) : new ArrayList<>();
@@ -212,7 +214,7 @@ public class CobbleDollarsShopScreen extends Screen {
         if (buyOffersFromConfig && !buyOffers.isEmpty()) {
             Map<String, List<CobbleDollarsShopPayloads.ShopOfferEntry>> byCat = new LinkedHashMap<>();
             for (CobbleDollarsShopPayloads.ShopOfferEntry e : buyOffers) {
-                String cat = (e.categoryName() != null && !e.categoryName().isEmpty()) ? e.categoryName() : "Buy";
+                String cat = (e.categoryName() != null && !e.categoryName().isEmpty()) ? e.categoryName() : ShopLabels.buyTab();
                 byCat.computeIfAbsent(cat, k -> new ArrayList<>()).add(e);
             }
             for (Map.Entry<String, List<CobbleDollarsShopPayloads.ShopOfferEntry>> e : byCat.entrySet()) {
@@ -222,13 +224,13 @@ public class CobbleDollarsShopScreen extends Screen {
             }
         } else {
             
-            names.add(Component.translatable("gui.cobbledollars_villagers_overhaul_rca.buy").getString());
+            names.add(ShopLabels.buyTab());
             offers.add(buyOffers);
             buyTabs = 1;
         }
-        names.add(Component.translatable("gui.cobbledollars_villagers_overhaul_rca.sell").getString());
+        names.add(ShopLabels.sellTab());
         offers.add(sellOffers);
-        names.add(Component.translatable("gui.cobbledollars_villagers_overhaul_rca.trades").getString());
+        names.add(ShopLabels.tradesTab());
         offers.add(tradesOffers);
         tabNames = List.copyOf(names);
         tabOffers = List.copyOf(offers);
@@ -559,7 +561,8 @@ public class CobbleDollarsShopScreen extends Screen {
         blitFull(guiGraphics, TEX_SHOP_BASE, left, top, TEX_SHOP_BASE_W, TEX_SHOP_BASE_H);
 
         int stripX = left + 8;
-        guiGraphics.drawString(font, Component.translatable("gui.cobbledollars_villagers_overhaul_rca.shop"), stripX, top + 6, 0xFFE0E0E0, false);
+        ShopThemeDecorations.render(guiGraphics, ShopTheme.active(), left, top, WINDOW_WIDTH, WINDOW_HEIGHT);
+        guiGraphics.drawString(font, ShopLabels.shopTitle(), stripX, top + 6, ShopTheme.active().ink(), false);
         int balanceBgX = left + BALANCE_BG_X;
         int balanceBgY = top + BALANCE_BG_Y;
         blitFull(guiGraphics, TEX_COBBLEDOLLARS_LOGO, balanceBgX, balanceBgY, TEX_COBBLEDOLLARS_LOGO_W, TEX_COBBLEDOLLARS_LOGO_H);
@@ -595,7 +598,7 @@ public class CobbleDollarsShopScreen extends Screen {
                 blitStretched(guiGraphics, TEX_CATEGORY_OUTLINE, tabX + TAB_OUTLINE_OFFSET_X, y + TAB_OUTLINE_OFFSET_Y, TEX_CATEGORY_OUTLINE_W, TEX_CATEGORY_OUTLINE_H, TEX_CATEGORY_OUTLINE_W, TEX_CATEGORY_OUTLINE_H);
             }
             String label = tabNames.get(t);
-            int textColor = t == selectedTab ? 0xFFE0E0E0 : 0xFFA0A0A0;
+            int textColor = t == selectedTab ? ShopTheme.active().ink() : ShopTheme.active().dim();
             guiGraphics.drawString(font, Component.literal(label), tabX + 4, y + (CATEGORY_ENTRY_H - font.lineHeight) / 2, textColor, false);
         }
 
@@ -635,13 +638,18 @@ public class CobbleDollarsShopScreen extends Screen {
                 
                 int lineY = top + RIGHT_PANEL_HEADER_Y;
                 for (int i = 0; i < Math.min(lines.size(), 2); i++) {
-                    guiGraphics.drawString(font, Component.literal(lines.get(i)), headerLeft, lineY, 0xFFE0E0E0, false);
+                    guiGraphics.drawString(font, Component.literal(lines.get(i)), headerLeft, lineY, ShopTheme.active().ink(), false);
                     lineY += font.lineHeight;
                 }
             } else {
                 
-                guiGraphics.drawString(font, professionLabel, headerLeft, top + RIGHT_PANEL_HEADER_Y, 0xFFE0E0E0, false);
+                guiGraphics.drawString(font, professionLabel, headerLeft, top + RIGHT_PANEL_HEADER_Y, ShopTheme.active().ink(), false);
             }
+        }
+
+        if (buyOffersFromConfig) {
+            guiGraphics.drawString(font, Component.translatable("gui.cobbledollars_villagers_overhaul_rca.custom_shop"),
+                    headerLeft, top + RIGHT_PANEL_HEADER_Y + 2 * font.lineHeight + 1, ShopTheme.active().dim(), false);
         }
 
         int listTop = top + LIST_TOP_OFFSET;
@@ -764,6 +772,8 @@ public class CobbleDollarsShopScreen extends Screen {
                 if (!costB.isEmpty()) {
                     
                     float costBScale = isTradesTab() ? LIST_ICON_SCALE : LIST_COSTB_SCALE;
+                    boolean costsThenResult = tradeShowsCostsThenResult(entry);
+                    ItemStack firstSlot = costsThenResult ? itemTradeSecondaryFrom(entry) : costB;
 
                     int costBX = priceX + Math.round(font.width(priceStr) * LIST_TEXT_SCALE) + (selectedTab < buyTabCount ? 2 : 4); 
                     int costBY = isTradesTab() ? iconY : iconY + 3;
@@ -783,7 +793,7 @@ public class CobbleDollarsShopScreen extends Screen {
                         int arrowBaseY = iconY + (LIST_ITEM_ICON_SIZE - font.lineHeight) / 2 + LIST_TRADES_ARROW_OFFSET_Y;
                         int arrowDrawX = Math.round(arrowBaseX / arrowScale);
                         int arrowDrawY = Math.round(arrowBaseY / arrowScale);
-                        guiGraphics.drawString(font, "→", arrowDrawX, arrowDrawY, 0xFFAAAAAA, false);
+                        guiGraphics.drawString(font, costsThenResult ? "+" : "→", arrowDrawX, arrowDrawY, 0xFFAAAAAA, false);
                     } else {
                         
                         guiGraphics.drawString(font, "+", plusDrawX, plusDrawY, 0xFFAAAAAA, false);
@@ -793,22 +803,23 @@ public class CobbleDollarsShopScreen extends Screen {
                     guiGraphics.pose().scale(costBScale, costBScale, 1.0f);
                     int costDrawX = Math.round((costBX + 2) / costBScale);
                     int costDrawY = Math.round(costBY / costBScale);
-                    guiGraphics.renderItem(costB, costDrawX, costDrawY);
-                    guiGraphics.renderItemDecorations(font, costB, costDrawX, costDrawY);
+                    guiGraphics.renderItem(firstSlot, costDrawX, costDrawY);
+                    guiGraphics.renderItemDecorations(font, firstSlot, costDrawX, costDrawY);
                     guiGraphics.pose().popPose();
                     if (isTradesTab() && entry.hasItemTradeSecondary()) {
                         ItemStack sec = itemTradeSecondaryFrom(entry);
                         if (!sec.isEmpty()) {
                             int firstRight = costBX + 2 + Math.round(LIST_ITEM_ICON_SIZE * costBScale);
                             int plusY = iconY + (LIST_ITEM_ICON_SIZE - font.lineHeight) / 2;
-                            guiGraphics.drawString(font, "+", firstRight + 2, plusY, 0xFFAAAAAA, false);
+                            guiGraphics.drawString(font, costsThenResult ? "→" : "+", firstRight + 2, plusY, 0xFFAAAAAA, false);
                             int secondBX = firstRight + 2 + font.width("+") + 3;
                             guiGraphics.pose().pushPose();
                             guiGraphics.pose().scale(costBScale, costBScale, 1.0f);
                             int secDrawX = Math.round(secondBX / costBScale);
                             int secDrawY = costDrawY;
-                            guiGraphics.renderItem(sec, secDrawX, secDrawY);
-                            guiGraphics.renderItemDecorations(font, sec, secDrawX, secDrawY);
+                            ItemStack lastSlot = costsThenResult ? costB : sec;
+                            guiGraphics.renderItem(lastSlot, secDrawX, secDrawY);
+                            guiGraphics.renderItemDecorations(font, lastSlot, secDrawX, secDrawY);
                             guiGraphics.pose().popPose();
                         }
                     }
@@ -819,7 +830,7 @@ public class CobbleDollarsShopScreen extends Screen {
         
         int closeX = left + WINDOW_WIDTH - CLOSE_BUTTON_SIZE - CLOSE_BUTTON_MARGIN;
         int closeY = top + 2;
-        guiGraphics.drawString(font, Component.literal("×"), closeX + 4, closeY + 3, 0xFFE0E0E0, false);
+        guiGraphics.drawString(font, Component.literal("×"), closeX + 4, closeY + 3, ShopTheme.active().ink(), false);
 
         if (offers.isEmpty()) {
             Component emptyMsg = Component.translatable("gui.cobbledollars_villagers_overhaul_rca.no_trades");
@@ -1000,7 +1011,8 @@ public class CobbleDollarsShopScreen extends Screen {
                                 guiGraphics.renderTooltip(font, tooltipLines, mouseX, mouseY);
                             } else {
                                 
-                                guiGraphics.renderTooltip(font, costB, mouseX, mouseY);
+                                guiGraphics.renderTooltip(font,
+                                        tradeShowsCostsThenResult(entry) ? itemTradeSecondaryFrom(entry) : costB, mouseX, mouseY);
                             }
                         }
                         if (isTradesTab() && entry.hasItemTradeSecondary()) {
@@ -1010,7 +1022,7 @@ public class CobbleDollarsShopScreen extends Screen {
                                 int secondBX = firstRight + 2 + font.width("+") + 3;
                                 if (mouseX >= secondBX && mouseX < secondBX + costBSize
                                         && mouseY >= costBY && mouseY < costBY + costBSize) {
-                                    guiGraphics.renderTooltip(font, sec, mouseX, mouseY);
+                                    guiGraphics.renderTooltip(font, tradeShowsCostsThenResult(entry) ? costBStackFrom(entry) : sec, mouseX, mouseY);
                                 }
                             }
                         }
@@ -1094,6 +1106,16 @@ public class CobbleDollarsShopScreen extends Screen {
         ItemStack stack = entry.costB();
         if (stack.isEmpty() || stack.is(Items.AIR)) return ItemStack.EMPTY;
         return stack.copy();
+    }
+
+    /**
+     * Item-for-item trades with two inputs are stored as (A, result C, B); show them as A + B → C
+     * instead of A → C + B. RCT series rows keep their own layout.
+     */
+    private static boolean tradeShowsCostsThenResult(CobbleDollarsShopPayloads.ShopOfferEntry entry) {
+        return entry != null && entry.hasItemTradeSecondary()
+                && (entry.seriesName() == null || entry.seriesName().isEmpty())
+                && !itemTradeSecondaryFrom(entry).isEmpty();
     }
 
     private static ItemStack itemTradeSecondaryFrom(CobbleDollarsShopPayloads.ShopOfferEntry entry) {

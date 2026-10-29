@@ -78,11 +78,7 @@ public class ItemPickerScreen extends Screen {
         int pad = 16;
         int panelTop = 40;
         int panelBottom = height - 52;
-        guiGraphics.fill(pad, panelTop, width - pad, panelBottom, 0xE0101010);
-        guiGraphics.fill(pad, panelTop, width - pad, panelTop + 1, 0xFF404040);
-        guiGraphics.fill(pad, panelBottom - 1, width - pad, panelBottom, 0xFF202020);
-        guiGraphics.fill(pad, panelTop, pad + 1, panelBottom, 0xFF404040);
-        guiGraphics.fill(width - pad - 1, panelTop, width - pad, panelBottom, 0xFF202020);
+        ShopThemePanel.draw(guiGraphics, pad, panelTop, width - pad, panelBottom);
         guiGraphics.drawCenteredString(font, title, width / 2, 10, 0xFFFFFF);
         itemList.render(guiGraphics, mouseX, mouseY, partialTick);
         search.render(guiGraphics, mouseX, mouseY, partialTick);

@@ -42,7 +42,7 @@ public class CobbleDollarsVillagersOverhaulRca {
             if (!Config.USE_COBBLEDOLLARS_SHOP_UI) {
                 return false;
             }
-            if (!isClientSide && !Config.USE_RCT_TRADES_OVERHAUL) {
+            if (!Config.USE_RCT_TRADES_OVERHAUL) {
                 return false;
             }
             cancelAction.run();

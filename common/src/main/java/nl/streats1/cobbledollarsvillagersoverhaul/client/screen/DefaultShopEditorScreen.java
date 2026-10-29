@@ -12,6 +12,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import nl.streats1.cobbledollarsvillagersoverhaul.client.AdminConfigClient;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.DefaultShopConfig;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.ShopEntryRecord;
 
@@ -60,7 +61,7 @@ public class DefaultShopEditorScreen extends Screen {
     @Override
     protected void init() {
         if (categories.isEmpty()) {
-            categories = new LinkedHashMap<>(DefaultShopConfig.loadCategories());
+            categories = new LinkedHashMap<>(AdminConfigClient.loadShop());
         }
         if (selectedCategory == null || !categories.containsKey(selectedCategory)) {
             selectedCategory = categories.isEmpty() ? null : categories.keySet().iterator().next();
@@ -205,7 +206,7 @@ public class DefaultShopEditorScreen extends Screen {
     private void saveAndClose() {
         applyValueFromEdit();
         renameSelectedCategory(); 
-        DefaultShopConfig.saveCategories(categories);
+        AdminConfigClient.saveShop(categories);
         if (onSaveCallback != null) {
             onSaveCallback.run();
         } else minecraft.setScreen(parent);
@@ -266,11 +267,7 @@ public class DefaultShopEditorScreen extends Screen {
         int panelRight = width - PANEL_PAD;
         int panelTop = 24;
         int panelBottom = height - 115;
-        guiGraphics.fill(panelLeft, panelTop, panelRight, panelBottom, 0xE0101010);
-        guiGraphics.fill(panelLeft, panelTop, panelRight, panelTop + 1, 0xFF404040);
-        guiGraphics.fill(panelLeft, panelBottom - 1, panelRight, panelBottom, 0xFF202020);
-        guiGraphics.fill(panelLeft, panelTop, panelLeft + 1, panelBottom, 0xFF404040);
-        guiGraphics.fill(panelRight - 1, panelTop, panelRight, panelBottom, 0xFF202020);
+        ShopThemePanel.draw(guiGraphics, panelLeft, panelTop, panelRight, panelBottom);
 
         if (categoryListWidget != null) categoryListWidget.render(guiGraphics, mouseX, mouseY, partialTick);
         if (listWidget != null) listWidget.render(guiGraphics, mouseX, mouseY, partialTick);

@@ -12,6 +12,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import nl.streats1.cobbledollarsvillagersoverhaul.client.AdminConfigClient;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.BankConfig;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.BankEntryRecord;
 
@@ -45,7 +46,7 @@ public class BankEditorScreen extends Screen {
     @Override
     protected void init() {
         if (entries.isEmpty()) {
-            entries = new ArrayList<>(BankConfig.loadEntries());
+            entries = new ArrayList<>(AdminConfigClient.loadBank());
         }
 
         int panelLeft = PANEL_PAD;
@@ -130,7 +131,7 @@ public class BankEditorScreen extends Screen {
 
     private void saveAndClose() {
         applyValueFromEdit();
-        BankConfig.saveEntries(entries);
+        AdminConfigClient.saveBank(entries);
         minecraft.setScreen(parent);
     }
 
@@ -189,11 +190,7 @@ public class BankEditorScreen extends Screen {
         int panelRight = width - PANEL_PAD;
         int panelTop = 36;
         int panelBottom = height - 72;
-        guiGraphics.fill(panelLeft, panelTop, panelRight, panelBottom, 0xE0101010);
-        guiGraphics.fill(panelLeft, panelTop, panelRight, panelTop + 1, 0xFF404040);
-        guiGraphics.fill(panelLeft, panelBottom - 1, panelRight, panelBottom, 0xFF202020);
-        guiGraphics.fill(panelLeft, panelTop, panelLeft + 1, panelBottom, 0xFF404040);
-        guiGraphics.fill(panelRight - 1, panelTop, panelRight, panelBottom, 0xFF202020);
+        ShopThemePanel.draw(guiGraphics, panelLeft, panelTop, panelRight, panelBottom);
 
         if (listWidget != null) listWidget.render(guiGraphics, mouseX, mouseY, partialTick);
         guiGraphics.drawCenteredString(font, title, width / 2, 12, 0xFFFFFF);

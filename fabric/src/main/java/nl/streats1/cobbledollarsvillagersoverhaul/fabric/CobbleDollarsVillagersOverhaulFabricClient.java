@@ -41,13 +41,18 @@ public class CobbleDollarsVillagersOverhaulFabricClient implements ClientModInit
         });
 
         ClientPlayNetworking.registerGlobalReceiver(CobbleDollarsShopPayloads.ServerShopConfigSync.TYPE,
-            (payload, context) -> context.client().execute(() -> Config.applyServerShopRuntimeConfig(
-                    payload.useCobbleDollarsShopUi(),
-                    payload.villagersAcceptCobbleDollars(),
-                    payload.useDatapackTrades(),
-                    payload.useRctTradesOverhaul(),
-                    payload.emeraldRateCdPerEmerald(),
-                    payload.syncCobbleDollarsBankRate())));
+            (payload, context) -> context.client().execute(() -> {
+                Config.applyServerShopRuntimeConfig(
+                        payload.useCobbleDollarsShopUi(),
+                        payload.villagersAcceptCobbleDollars(),
+                        payload.useDatapackTrades(),
+                        payload.useRctTradesOverhaul(),
+                        payload.emeraldRateCdPerEmerald(),
+                        payload.syncCobbleDollarsBankRate());
+                nl.streats1.cobbledollarsvillagersoverhaul.integration.ShopLabels.applySynced(
+                        new nl.streats1.cobbledollarsvillagersoverhaul.integration.ShopLabels.Values(
+                                payload.shopTitle(), payload.buyTab(), payload.sellTab(), payload.tradesTab()));
+            }));
 
         ClientPlayNetworking.registerGlobalReceiver(CobbleDollarsShopPayloads.ShopData.TYPE, 
             (payload, context) -> {
@@ -83,6 +88,14 @@ public class CobbleDollarsVillagersOverhaulFabricClient implements ClientModInit
                     );
                 });
             });
+
+        ClientPlayNetworking.registerGlobalReceiver(CobbleDollarsShopPayloads.AdminConfigData.TYPE,
+                (payload, context) -> context.client().execute(() ->
+                        nl.streats1.cobbledollarsvillagersoverhaul.client.AdminConfigClient.onData(payload.kind(), payload.json())));
+
+        ClientPlayNetworking.registerGlobalReceiver(CobbleDollarsShopPayloads.AssignedList.TYPE,
+                (payload, context) -> context.client().execute(() ->
+                        nl.streats1.cobbledollarsvillagersoverhaul.client.ClientAssignedVillagers.set(payload.uuids(), payload.labels())));
 
         ClientPlayNetworking.registerGlobalReceiver(CobbleDollarsShopPayloads.AssignModeUpdate.TYPE,
                 (payload, context) -> context.client().execute(() -> ClientAssignMode.setInMode(payload.on())));

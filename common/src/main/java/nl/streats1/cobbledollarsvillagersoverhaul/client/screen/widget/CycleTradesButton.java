@@ -26,7 +26,7 @@ public class CycleTradesButton extends Button {
     @Override
     protected void renderWidget(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         int srcY = isHoveredOrFocused() ? HEIGHT : 0;
-        guiGraphics.blit(TEX_CYCLE_TRADES, getX(), getY(), 0, srcY, WIDTH, HEIGHT, TEX_SIZE, TEX_SIZE);
+        guiGraphics.blit(nl.streats1.cobbledollarsvillagersoverhaul.client.screen.ShopThemeTextures.resolve(TEX_CYCLE_TRADES), getX(), getY(), 0, srcY, WIDTH, HEIGHT, TEX_SIZE, TEX_SIZE);
     }
 
     public void renderTooltipIfHovered(GuiGraphics guiGraphics, int mouseX, int mouseY) {

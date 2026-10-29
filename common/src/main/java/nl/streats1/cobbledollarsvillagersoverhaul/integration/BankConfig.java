@@ -28,7 +28,30 @@ public final class BankConfig {
         Path file = getBankFile();
         if (!Files.isRegularFile(file)) return new ArrayList<>();
         try {
-            String content = Files.readString(file);
+            return parseEntries(Files.readString(file));
+        } catch (Exception ex) {
+            return new ArrayList<>();
+        }
+    }
+
+    /** Raw file text for syncing to ops; empty object when the file does not exist yet. */
+    public static String readRaw() {
+        try {
+            Path file = getBankFile();
+            return Files.isRegularFile(file) ? Files.readString(file) : "{}";
+        } catch (Exception ex) {
+            return "{}";
+        }
+    }
+
+    public static void writeRaw(String json) throws java.io.IOException {
+        Path file = getBankFile();
+        Files.createDirectories(file.getParent());
+        Files.writeString(file, json);
+    }
+
+    public static List<BankEntryRecord> parseEntries(String content) {
+        try {
             JsonObject root = JsonParser.parseString(content).getAsJsonObject();
             List<BankEntryRecord> out = new ArrayList<>();
             if (!root.has("bank")) return out;
@@ -50,20 +73,22 @@ public final class BankConfig {
     }
 
     public static void saveEntries(List<BankEntryRecord> entries) {
-        Path file = getBankFile();
         try {
-            Files.createDirectories(file.getParent());
-            JsonArray bank = new JsonArray();
-            for (BankEntryRecord e : entries) {
-                JsonObject o = new JsonObject();
-                o.addProperty("item", e.itemId());
-                o.addProperty("price", e.price());
-                bank.add(o);
-            }
-            JsonObject root = new JsonObject();
-            root.add("bank", bank);
-            Files.writeString(file, new com.google.gson.GsonBuilder().setPrettyPrinting().create().toJson(root));
+            writeRaw(toJson(entries));
         } catch (Exception ex) {
         }
+    }
+
+    public static String toJson(List<BankEntryRecord> entries) {
+        JsonArray bank = new JsonArray();
+        for (BankEntryRecord e : entries) {
+            JsonObject o = new JsonObject();
+            o.addProperty("item", e.itemId());
+            o.addProperty("price", e.price());
+            bank.add(o);
+        }
+        JsonObject root = new JsonObject();
+        root.add("bank", bank);
+        return new com.google.gson.GsonBuilder().setPrettyPrinting().create().toJson(root);
     }
 }
