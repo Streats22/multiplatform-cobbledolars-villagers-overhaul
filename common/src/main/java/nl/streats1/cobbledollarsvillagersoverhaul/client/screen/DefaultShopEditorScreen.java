@@ -266,11 +266,7 @@ public class DefaultShopEditorScreen extends Screen {
         int panelRight = width - PANEL_PAD;
         int panelTop = 24;
         int panelBottom = height - 115;
-        guiGraphics.fill(panelLeft, panelTop, panelRight, panelBottom, 0xE0101010);
-        guiGraphics.fill(panelLeft, panelTop, panelRight, panelTop + 1, 0xFF404040);
-        guiGraphics.fill(panelLeft, panelBottom - 1, panelRight, panelBottom, 0xFF202020);
-        guiGraphics.fill(panelLeft, panelTop, panelLeft + 1, panelBottom, 0xFF404040);
-        guiGraphics.fill(panelRight - 1, panelTop, panelRight, panelBottom, 0xFF202020);
+        ShopThemePanel.draw(guiGraphics, panelLeft, panelTop, panelRight, panelBottom);
 
         if (categoryListWidget != null) categoryListWidget.render(guiGraphics, mouseX, mouseY, partialTick);
         if (listWidget != null) listWidget.render(guiGraphics, mouseX, mouseY, partialTick);

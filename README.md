@@ -161,6 +161,10 @@ returns to normal on 1 November. It reads only the date on the player's own comp
 cosmetic. Pick **Normal** in the same button to always keep the grey shop, or any named theme to keep that one all
 year. Changes apply the next time the shop opens.
 
+The theme covers the shop screen (including its Bank button and the `/cvm open bank` view) and this mod's editor
+screens (Edit shop, Edit bank, Edit item prices, Edit currencies and the item picker). The CobbleDollars mod's own
+bank screen belongs to that mod and keeps its own look.
+
 ### RCT Series
 
 When using RCT trainers, you can:

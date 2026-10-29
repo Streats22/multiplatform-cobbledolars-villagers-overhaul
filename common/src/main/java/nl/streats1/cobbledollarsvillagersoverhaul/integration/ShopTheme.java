@@ -17,12 +17,12 @@ import java.time.LocalDate;
  * normal look, and any other value pins that theme.
  */
 public enum ShopTheme {
-    AUTO("auto", 0xFFE0E0E0, 0xFFA0A0A0, Decoration.NONE),
-    DEFAULT("default", 0xFFE0E0E0, 0xFFA0A0A0, Decoration.NONE),
-    PUMPKIN_NIGHT("pumpkin_night", 0xFFFFE2BD, 0xFFC58B52, Decoration.HALLOWEEN),
-    HAUNTED_PURPLE("haunted_purple", 0xFFE6DCFF, 0xFF9A88C8, Decoration.HALLOWEEN),
-    GRAVEYARD_MIST("graveyard_mist", 0xFFDCEBE5, 0xFF8FA59C, Decoration.FOG),
-    CHRISTMAS("christmas", 0xFFFFF4D6, 0xFFE0A0A0, Decoration.SNOW);
+    AUTO("auto", 0xFFE0E0E0, 0xFFA0A0A0, Decoration.NONE, 0xE0101010, 0xFF404040, 0xFF202020),
+    DEFAULT("default", 0xFFE0E0E0, 0xFFA0A0A0, Decoration.NONE, 0xE0101010, 0xFF404040, 0xFF202020),
+    PUMPKIN_NIGHT("pumpkin_night", 0xFFFFE2BD, 0xFFC58B52, Decoration.HALLOWEEN, 0xE02B1203, 0xFFA2561A, 0xFF1B0B00),
+    HAUNTED_PURPLE("haunted_purple", 0xFFE6DCFF, 0xFF9A88C8, Decoration.HALLOWEEN, 0xE01A1229, 0xFF5B4A85, 0xFF120C1F),
+    GRAVEYARD_MIST("graveyard_mist", 0xFFDCEBE5, 0xFF8FA59C, Decoration.FOG, 0xE0222C29, 0xFF7D918A, 0xFF18201D),
+    CHRISTMAS("christmas", 0xFFFFF4D6, 0xFFE0A0A0, Decoration.SNOW, 0xE0400A0F, 0xFFD94A52, 0xFF20060A);
 
     public enum Decoration {
         NONE, HALLOWEEN, FOG, SNOW
@@ -42,12 +42,18 @@ public enum ShopTheme {
     private final int ink;
     private final int dim;
     private final Decoration decoration;
+    private final int panelBackground;
+    private final int panelHighlight;
+    private final int panelShadow;
 
-    ShopTheme(String id, int ink, int dim, Decoration decoration) {
+    ShopTheme(String id, int ink, int dim, Decoration decoration, int panelBackground, int panelHighlight, int panelShadow) {
         this.id = id;
         this.ink = ink;
         this.dim = dim;
         this.decoration = decoration;
+        this.panelBackground = panelBackground;
+        this.panelHighlight = panelHighlight;
+        this.panelShadow = panelShadow;
     }
 
     private static final class Data {
@@ -66,6 +72,21 @@ public enum ShopTheme {
     /** Text color for unselected tabs. */
     public int dim() {
         return dim;
+    }
+
+    /** Fill color of the panels on the editor screens. */
+    public int panelBackground() {
+        return panelBackground;
+    }
+
+    /** Color of the lit top and left panel edges. */
+    public int panelHighlight() {
+        return panelHighlight;
+    }
+
+    /** Color of the shaded bottom and right panel edges. */
+    public int panelShadow() {
+        return panelShadow;
     }
 
     public Decoration decoration() {
