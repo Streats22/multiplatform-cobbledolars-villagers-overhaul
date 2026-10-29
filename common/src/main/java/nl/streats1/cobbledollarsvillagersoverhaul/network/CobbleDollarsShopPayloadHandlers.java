@@ -290,9 +290,6 @@ public final class CobbleDollarsShopPayloadHandlers {
             }
 
             rctaOffers = new ArrayList<>(ShopSeriesCatalog.withFallbackSeriesOffers(rctaOffers, serverPlayer));
-            org.slf4j.LoggerFactory.getLogger("CVO-RCT").info("Trainer association offers for {}: {} (series: {})",
-                    serverPlayer.getName().getString(), rctaOffers.size(),
-                    rctaOffers.stream().map(ShopSeriesCatalog::seriesIdOfOffer).toList());
             if (!rctaOffers.isEmpty()) {
                 buildRctaOfferLists(rctaOffers, buyOffers, sellOffers, tradesOffers, serverPlayer);
             } else {

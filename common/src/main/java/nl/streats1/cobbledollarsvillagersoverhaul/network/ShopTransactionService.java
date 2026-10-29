@@ -399,8 +399,6 @@ public final class ShopTransactionService {
             if (targetSeries == null) {
                 targetSeries = "";
             }
-            org.slf4j.LoggerFactory.getLogger("CVO-RCT").info("Trainer association buy: index {} offer series '{}' selected '{}' -> target '{}'",
-                    offerIndex, offerSeries, selectedSeries, targetSeries);
             if (offerSeries.isEmpty()) {
                 List<String> availableIds = ShopSeriesCatalog.getLiveAvailableSeriesIds(serverPlayer);
                 if (!ShopInteractionGuard.isSeriesAllowed(targetSeries, availableIds)) {
