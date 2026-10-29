@@ -76,13 +76,13 @@ public final class ShopTransactionService {
             return false;
         }
         int totalNeeded = totalNeededOpt.getAsInt();
-        if (!PlayerInventoryHelper.hasEnough(serverPlayer, costA, totalNeeded)) {
+        if (!playerHasShopItem(serverPlayer, costA, totalNeeded)) {
             return false;
         }
         if (!CobbleDollarsIntegration.addBalance(serverPlayer, toAdd)) {
             return false;
         }
-        PlayerInventoryHelper.shrink(serverPlayer, costA, totalNeeded);
+        takeShopItem(serverPlayer, costA, totalNeeded);
         serverPlayer.containerMenu.broadcastChanges();
         serverPlayer.inventoryMenu.broadcastChanges();
         sendBalanceUpdate(serverPlayer, villagerId);
@@ -149,7 +149,7 @@ public final class ShopTransactionService {
         sendBalanceUpdate(serverPlayer, villagerId);
     }
 
-    public static void handleBuy(ServerPlayer serverPlayer, int villagerId, int offerIndex, int quantity, boolean fromConfigShop, int tab, String selectedSeries) {
+    public static void handleBuy(ServerPlayer serverPlayer, int villagerId, int offerIndex, int quantity, int tab, String selectedSeries) {
         if (!Config.VILLAGERS_ACCEPT_COBBLEDOLLARS) {
             return;
         }
@@ -187,7 +187,9 @@ public final class ShopTransactionService {
 
         boolean configBuyOffersAvailable = !CobbleDollarsConfigHelper.getDefaultShopBuyOffers().isEmpty();
         boolean assignedOrVirtualConfig = ShopInteractionGuard.isConfigShopBuy(villagerId, entity);
-        if (ShopTradePolicy.shouldBuyFromConfigShop(assignedOrVirtualConfig, fromConfigShop, false)) {
+        // fromConfigShop is client-written on BuyWithCobbleDollars; only the catalog recorded at open counts.
+        boolean openedAsConfigShop = ConfigShopBuySession.wasOpenedAsConfigShop(serverPlayer.getUUID(), entity.getUUID());
+        if (ShopTradePolicy.shouldBuyFromConfigShop(assignedOrVirtualConfig, openedAsConfigShop, false)) {
             handleBuyFromConfig(serverPlayer, villagerId, offerIndex, quantity);
             return;
         }
@@ -421,7 +423,7 @@ public final class ShopTransactionService {
                 return;
             }
             int totalNeeded = totalNeededOpt.getAsInt();
-            if (!PlayerInventoryHelper.hasEnough(serverPlayer, costA, totalNeeded)) {
+            if (!playerHasShopItem(serverPlayer, costA, totalNeeded)) {
                 return;
             }
             totalCost = 0;
@@ -483,7 +485,7 @@ public final class ShopTransactionService {
             if (shrinkOpt.isEmpty()) {
                 return;
             }
-            PlayerInventoryHelper.shrink(serverPlayer, costA, shrinkOpt.getAsInt());
+            takeShopItem(serverPlayer, costA, shrinkOpt.getAsInt());
         }
 
         ItemStack result = offer.getResult().copy();
@@ -622,7 +624,7 @@ public final class ShopTransactionService {
             return;
         }
         int totalNeeded = totalNeededOpt.getAsInt();
-            if (!PlayerInventoryHelper.hasEnough(serverPlayer, costA, totalNeeded)) {
+            if (!playerHasShopItem(serverPlayer, costA, totalNeeded)) {
             return;
         }
 
@@ -643,7 +645,7 @@ public final class ShopTransactionService {
             if (!CobbleDollarsIntegration.addBalance(serverPlayer, toAdd)) {
                 return;
             }
-            PlayerInventoryHelper.shrink(serverPlayer, costA, totalNeeded);
+            takeShopItem(serverPlayer, costA, totalNeeded);
         } else if (result.is(Items.GOLD_INGOT) && CustomCurrencyConfig.getCurrencyValue(result) == 0) {
             ItemStack resultForQty = result.copy();
             var countOpt = ShopInteractionGuard.safeMultiplyExact(result.getCount(), quantity);
@@ -655,7 +657,7 @@ public final class ShopTransactionService {
             if (!CobbleDollarsIntegration.addBalance(serverPlayer, toAdd)) {
                 return;
             }
-            PlayerInventoryHelper.shrink(serverPlayer, costA, totalNeeded);
+            takeShopItem(serverPlayer, costA, totalNeeded);
         } else if (CustomCurrencyConfig.getCurrencyValue(result) > 0) {
             ItemStack resultForQty = result.copy();
             var countOpt = ShopInteractionGuard.safeMultiplyExact(result.getCount(), quantity);
@@ -667,7 +669,7 @@ public final class ShopTransactionService {
             if (!CobbleDollarsIntegration.addBalance(serverPlayer, toAdd)) {
                 return;
             }
-            PlayerInventoryHelper.shrink(serverPlayer, costA, totalNeeded);
+            takeShopItem(serverPlayer, costA, totalNeeded);
         } else {
             ItemStack resultCopy = result.copy();
             var countOpt = ShopInteractionGuard.safeMultiplyExact(result.getCount(), quantity);
@@ -675,7 +677,7 @@ public final class ShopTransactionService {
                 return;
             }
             resultCopy.setCount(countOpt.getAsInt());
-            PlayerInventoryHelper.shrink(serverPlayer, costA, totalNeeded);
+            takeShopItem(serverPlayer, costA, totalNeeded);
             PlayerInventoryHelper.give(serverPlayer, resultCopy);
         }
 
@@ -695,6 +697,23 @@ public final class ShopTransactionService {
             }
             finishShopTradeSession(tradingMerchant, entity, serverPlayer, villagerId, completedTrade);
         }
+    }
+
+    /**
+     * Same rule as the shop screen: only stacks with the same item and components count.
+     * A same-item-only check would let a hotbar variant (written book, lodestone compass)
+     * satisfy the trade and be removed before the plain stack the UI counted.
+     */
+    private static boolean playerHasShopItem(ServerPlayer player, ItemStack needle, int required) {
+        return ShopTradePolicy.itemPaymentRequiresExactComponents()
+                && PlayerInventoryHelper.hasEnoughExact(player, needle, required);
+    }
+
+    private static void takeShopItem(ServerPlayer player, ItemStack needle, int amount) {
+        if (!ShopTradePolicy.itemPaymentRequiresExactComponents() || amount <= 0) {
+            return;
+        }
+        PlayerInventoryHelper.shrinkExact(player, needle, amount);
     }
 
     private static void sendBalanceUpdate(ServerPlayer player, int villagerId) {

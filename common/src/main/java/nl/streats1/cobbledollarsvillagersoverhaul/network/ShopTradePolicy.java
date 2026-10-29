@@ -18,6 +18,40 @@ public final class ShopTradePolicy {
         return true;
     }
 
+    /**
+     * The shop UI counts a payment only when item and components match. A same-item
+     * scan from slot 0 would delete a different variant first: a written book and quill
+     * while selling a blank one, or a lodestone compass while selling a plain compass.
+     */
+    public static boolean itemPaymentRequiresExactComponents() {
+        return true;
+    }
+
+    /**
+     * Items removed from each inventory slot when paying a shop offer.
+     * Inexact slots (same item, different components) are never taken.
+     */
+    static int[] takeExactComponentSlots(boolean[] exactMatch, int[] counts, int amount) {
+        if (counts == null) {
+            return new int[0];
+        }
+        int[] taken = new int[counts.length];
+        if (!itemPaymentRequiresExactComponents() || exactMatch == null || amount <= 0) {
+            return taken;
+        }
+        int remaining = amount;
+        int n = Math.min(exactMatch.length, counts.length);
+        for (int i = 0; i < n && remaining > 0; i++) {
+            if (!exactMatch[i] || counts[i] <= 0) {
+                continue;
+            }
+            int take = Math.min(remaining, counts[i]);
+            taken[i] = take;
+            remaining -= take;
+        }
+        return taken;
+    }
+
     public static boolean shouldReleaseMerchantOnDisconnect(Player tradingPlayer, ServerPlayer disconnected) {
         return tradingPlayer != null && disconnected != null && tradingPlayer == disconnected;
     }
@@ -34,13 +68,14 @@ public final class ShopTradePolicy {
     }
 
     /**
-     * Execute the catalog shown at shop open. {@code clientFromConfigShop} is the flag the server
-     * sent with ShopData; after {@code tradingPlayer} is released an unemployed villager can claim
-     * a job and populate offers, which would otherwise run a different trade at the same index.
+     * Execute the catalog recorded at shop open. {@code openedAsConfigShop} is server state from
+     * {@link ConfigShopBuySession}, not the buy packet. After {@code tradingPlayer} is released an
+     * unemployed villager can claim a job and populate offers, which would otherwise run a different
+     * trade at the same index.
      */
-    public static boolean shouldBuyFromConfigShop(boolean assignedOrVirtual, boolean clientFromConfigShop,
+    public static boolean shouldBuyFromConfigShop(boolean assignedOrVirtual, boolean openedAsConfigShop,
                                                  boolean emptyOfferFallback) {
-        return assignedOrVirtual || clientFromConfigShop || emptyOfferFallback;
+        return assignedOrVirtual || openedAsConfigShop || emptyOfferFallback;
     }
 
     public static boolean isSellTabOffer(boolean costAEmerald, boolean costACurrency,
