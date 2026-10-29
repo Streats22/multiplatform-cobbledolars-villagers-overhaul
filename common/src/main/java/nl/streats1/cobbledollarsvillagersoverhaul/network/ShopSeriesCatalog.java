@@ -132,6 +132,24 @@ public final class ShopSeriesCatalog {
         return null;
     }
 
+    /** The series an RCT association offer switches to (RCT 0.19 stores it in the offer); empty if unknown. */
+    public static String seriesIdOfOffer(MerchantOffer offer) {
+        if (offer == null) return "";
+        try {
+            for (Class<?> c = offer.getClass(); c != null && c != Object.class; c = c.getSuperclass()) {
+                try {
+                    var field = c.getDeclaredField("seriesId");
+                    field.setAccessible(true);
+                    Object value = field.get(offer);
+                    return value == null ? "" : value.toString();
+                } catch (NoSuchFieldException ignored) {
+                }
+            }
+        } catch (Exception ignored) {
+        }
+        return "";
+    }
+
     public record SeriesDisplay(String id, String title, String tooltip, int difficulty, int completed) {
     }
 

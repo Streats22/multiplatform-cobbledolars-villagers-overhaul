@@ -306,11 +306,15 @@ public final class ShopTransactionService {
                 McaIntegration.prepareOffers(level, v);
             }
             allOffers = v.getOffers();
-        } else if (entity instanceof WanderingTrader trader) {
+        } else if (entity instanceof WanderingTrader trader && !RctTrainerAssociationCompat.isTrainerAssociation(entity)) {
             trader.setTradingPlayer(serverPlayer);
             tradingMerchant = trader;
             allOffers = trader.getOffers();
         } else if (RctTrainerAssociationCompat.isTrainerAssociation(entity)) {
+            if (entity instanceof AbstractVillager association) {
+                association.setTradingPlayer(serverPlayer);
+                tradingMerchant = association;
+            }
             try {
                 var updateOffersForMethod = entity.getClass().getMethod("updateOffersFor", net.minecraft.world.entity.player.Player.class);
                 updateOffersForMethod.setAccessible(true);
@@ -386,16 +390,20 @@ public final class ShopTransactionService {
                 return;
             }
 
-            String targetSeries = selectedSeries;
+            // The offer comes from the association's own per-player list, so its series is trusted over the client's.
+            String offerSeries = ShopSeriesCatalog.seriesIdOfOffer(offer);
+            String targetSeries = offerSeries.isEmpty() ? selectedSeries : offerSeries;
             if (targetSeries == null || targetSeries.isEmpty()) {
                 targetSeries = ShopSeriesCatalog.identifySeriesFromOffer(offer, serverPlayer, offerIndex);
             }
             if (targetSeries == null) {
                 targetSeries = "";
             }
-            List<String> availableIds = ShopSeriesCatalog.getLiveAvailableSeriesIds(serverPlayer);
-            if (!ShopInteractionGuard.isSeriesAllowed(targetSeries, availableIds)) {
-                return;
+            if (offerSeries.isEmpty()) {
+                List<String> availableIds = ShopSeriesCatalog.getLiveAvailableSeriesIds(serverPlayer);
+                if (!ShopInteractionGuard.isSeriesAllowed(targetSeries, availableIds)) {
+                    return;
+                }
             }
 
             

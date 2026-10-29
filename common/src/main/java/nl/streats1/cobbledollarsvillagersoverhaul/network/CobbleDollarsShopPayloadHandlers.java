@@ -258,11 +258,21 @@ public final class CobbleDollarsShopPayloadHandlers {
             } catch (Exception e) {
             }
 
+            // RCT builds the series offers from getTradingPlayer(), which must be set while it updates.
+            net.minecraft.world.entity.npc.AbstractVillager association =
+                    entity instanceof net.minecraft.world.entity.npc.AbstractVillager av ? av : null;
+            if (association != null) {
+                association.setTradingPlayer(serverPlayer);
+            }
             try {
                 var updateOffersForMethod = entity.getClass().getMethod("updateOffersFor", net.minecraft.world.entity.player.Player.class);
                 updateOffersForMethod.setAccessible(true);
                 updateOffersForMethod.invoke(entity, serverPlayer);
             } catch (Exception e) {
+            } finally {
+                if (association != null) {
+                    association.setTradingPlayer(null);
+                }
             }
 
             List<MerchantOffer> rctaOffers = new ArrayList<>();
@@ -448,7 +458,25 @@ public final class CobbleDollarsShopPayloadHandlers {
             int seriesCompleted = 0;
 
             if (isSeriesTrade) {
-                if (tradeIndex < availableSeries.size()) {
+                String offerSeriesId = ShopSeriesCatalog.seriesIdOfOffer(o);
+                ShopSeriesCatalog.SeriesDisplay byId = null;
+                if (!offerSeriesId.isEmpty()) {
+                    for (var s : availableSeries) {
+                        if (s.id().equals(offerSeriesId)) {
+                            byId = s;
+                            break;
+                        }
+                    }
+                }
+                if (!offerSeriesId.isEmpty()) {
+                    seriesId = offerSeriesId;
+                    seriesName = byId != null ? byId.title() : result.getHoverName().getString();
+                    if (byId != null) {
+                        seriesTooltip = byId.tooltip();
+                        seriesDifficulty = byId.difficulty();
+                        seriesCompleted = byId.completed();
+                    }
+                } else if (tradeIndex < availableSeries.size()) {
                     ShopSeriesCatalog.SeriesDisplay info = availableSeries.get(tradeIndex);
                     seriesId = info.id();
                     seriesName = info.title();
