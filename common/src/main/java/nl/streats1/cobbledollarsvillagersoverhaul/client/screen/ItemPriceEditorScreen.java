@@ -19,7 +19,7 @@ import nl.streats1.cobbledollarsvillagersoverhaul.integration.ItemPriceConfig;
 
 import java.util.*;
 
-public class ItemPriceEditorScreen extends Screen {
+public class ItemPriceEditorScreen extends EditorScreen {
 
     private final Screen parent;
     private Map<String, Integer> entries = new LinkedHashMap<>();
@@ -169,6 +169,7 @@ public class ItemPriceEditorScreen extends Screen {
 
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+        beginFrame();
         var sel = listWidget != null ? listWidget.getSelected() : null;
         boolean hasSel = sel != null;
         if (valueEdit != null) {

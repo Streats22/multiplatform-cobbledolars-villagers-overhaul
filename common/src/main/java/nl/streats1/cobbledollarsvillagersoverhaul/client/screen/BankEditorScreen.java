@@ -20,7 +20,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
-public class BankEditorScreen extends Screen {
+public class BankEditorScreen extends EditorScreen {
 
     private final Screen parent;
     private List<BankEntryRecord> entries = new ArrayList<>();
@@ -197,6 +197,7 @@ public class BankEditorScreen extends Screen {
 
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+        beginFrame();
         var sel = listWidget != null ? listWidget.getSelected() : null;
         boolean hasSel = sel != null;
         if (valueEdit != null) {

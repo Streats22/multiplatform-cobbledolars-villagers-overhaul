@@ -12,7 +12,7 @@ import nl.streats1.cobbledollarsvillagersoverhaul.platform.PlatformNetwork;
 import java.util.List;
 
 /** Op screen listing villagers that use the config shop, with unassign buttons and assign shortcuts. */
-public class AssignedVillagersScreen extends Screen {
+public class AssignedVillagersScreen extends EditorScreen {
 
     private static final String LANG = "gui.cobbledollars_villagers_overhaul_rca.";
     private static final int ROWS_PER_PAGE = 6;
@@ -95,6 +95,7 @@ public class AssignedVillagersScreen extends Screen {
 
     @Override
     public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
+        beginFrame();
         renderBackground(g, mouseX, mouseY, partialTick);
         int x = width / 2 - ROW_W / 2;
         ShopThemePanel.draw(g, x - 6, 36, x + ROW_W + 6, 44 + ROWS_PER_PAGE * 24 - 2);

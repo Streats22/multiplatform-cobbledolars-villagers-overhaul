@@ -20,7 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
-public class CustomCurrencyConfigScreen extends Screen {
+public class CustomCurrencyConfigScreen extends EditorScreen {
 
     private final Screen parent;
     private final Consumer<List<CurrencyEntryRecord>> onSave;
@@ -201,6 +201,7 @@ public class CustomCurrencyConfigScreen extends Screen {
 
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+        beginFrame();
         var sel = listWidget.getSelected();
         boolean hasSel = sel != null;
         if (hasSel) {

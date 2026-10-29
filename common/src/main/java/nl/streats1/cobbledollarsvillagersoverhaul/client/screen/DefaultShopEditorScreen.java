@@ -18,7 +18,7 @@ import nl.streats1.cobbledollarsvillagersoverhaul.integration.ShopEntryRecord;
 
 import java.util.*;
 
-public class DefaultShopEditorScreen extends Screen {
+public class DefaultShopEditorScreen extends EditorScreen {
 
     private final Screen parent;
     private final Runnable onSaveCallback;
@@ -242,6 +242,7 @@ public class DefaultShopEditorScreen extends Screen {
     }
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+        beginFrame();
         var sel = listWidget != null ? listWidget.getSelected() : null;
         boolean hasSel = sel != null;
         if (valueEdit != null) {
