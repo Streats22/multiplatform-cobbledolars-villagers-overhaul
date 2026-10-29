@@ -132,9 +132,77 @@ public final class ShopSeriesCatalog {
         return null;
     }
 
+    /** A series switch we add ourselves when the association offers none (e.g. while on freeroam with no previous series). */
+    public static final class SyntheticSeriesOffer extends MerchantOffer {
+        private final String seriesId;
+
+        SyntheticSeriesOffer(String seriesId, Item card, net.minecraft.network.chat.Component title) {
+            super(new net.minecraft.world.item.trading.ItemCost(card), namedCard(card, title), Integer.MAX_VALUE, 0, 0f);
+            this.seriesId = seriesId;
+        }
+
+        private static ItemStack namedCard(Item card, net.minecraft.network.chat.Component title) {
+            ItemStack stack = new ItemStack(card);
+            stack.set(net.minecraft.core.component.DataComponents.CUSTOM_NAME, title);
+            return stack;
+        }
+
+        public String seriesId() {
+            return seriesId;
+        }
+    }
+
+    /**
+     * RCT 0.19 only offers a series switch from freeroam back to the previous series, so a player on freeroam with no
+     * previous series sees nothing. When the association offers no series at all, list every registered series
+     * (and freeroam) except the current one so the player can always pick.
+     */
+    public static List<MerchantOffer> withFallbackSeriesOffers(List<MerchantOffer> offers, ServerPlayer player) {
+        for (MerchantOffer o : offers) {
+            if (!seriesIdOfOffer(o).isEmpty()) {
+                return offers;
+            }
+        }
+        Item card = BuiltInRegistries.ITEM.get(net.minecraft.resources.ResourceLocation.parse("rctmod:trainer_card"));
+        if (card == null || card == net.minecraft.world.item.Items.AIR) {
+            return offers;
+        }
+        String current = "";
+        try {
+            var rct = Class.forName("com.gitlab.srcmc.rctmod.api.RCTMod");
+            var instance = rct.getMethod("getInstance").invoke(null);
+            var manager = rct.getMethod("getTrainerManager").invoke(instance);
+            var data = manager.getClass().getMethod("getData", Player.class).invoke(manager, player);
+            if (data != null) {
+                current = String.valueOf(data.getClass().getMethod("getCurrentSeries").invoke(data));
+            }
+        } catch (Exception ignored) {
+        }
+        List<String> ids = new ArrayList<>(allRegisteredSeriesIds());
+        if (!ids.contains("freeroam")) {
+            ids.add(0, "freeroam");
+        }
+        java.util.Map<String, SeriesDisplay> display = new java.util.HashMap<>();
+        for (SeriesDisplay d : getPlayerAvailableSeries(player)) {
+            display.put(d.id(), d);
+        }
+        List<MerchantOffer> out = new ArrayList<>(offers);
+        for (String id : ids) {
+            if (id.equals(current) || "empty".equals(id)) continue;
+            SeriesDisplay d = display.get(id);
+            String title = d != null ? d.title() : id;
+            var name = title.contains(" ") || !title.contains(".")
+                    ? net.minecraft.network.chat.Component.literal(title)
+                    : net.minecraft.network.chat.Component.translatable(title);
+            out.add(new SyntheticSeriesOffer(id, card, name));
+        }
+        return out;
+    }
+
     /** The series an RCT association offer switches to (RCT 0.19 stores it in the offer); empty if unknown. */
     public static String seriesIdOfOffer(MerchantOffer offer) {
         if (offer == null) return "";
+        if (offer instanceof SyntheticSeriesOffer synthetic) return synthetic.seriesId();
         try {
             for (Class<?> c = offer.getClass(); c != null && c != Object.class; c = c.getSuperclass()) {
                 try {

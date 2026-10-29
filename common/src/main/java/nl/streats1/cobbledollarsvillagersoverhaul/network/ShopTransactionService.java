@@ -326,7 +326,7 @@ public final class ShopTransactionService {
                 var getOffersMethod = entity.getClass().getMethod("getOffers");
                 var offers = getOffersMethod.invoke(entity);
                 if (offers instanceof List) {
-                    allOffers = (List<MerchantOffer>) offers;
+                    allOffers = ShopSeriesCatalog.withFallbackSeriesOffers((List<MerchantOffer>) offers, serverPlayer);
                 } else {
                     allOffers = List.of();
                 }
@@ -399,6 +399,8 @@ public final class ShopTransactionService {
             if (targetSeries == null) {
                 targetSeries = "";
             }
+            org.slf4j.LoggerFactory.getLogger("CVO-RCT").info("Trainer association buy: index {} offer series '{}' selected '{}' -> target '{}'",
+                    offerIndex, offerSeries, selectedSeries, targetSeries);
             if (offerSeries.isEmpty()) {
                 List<String> availableIds = ShopSeriesCatalog.getLiveAvailableSeriesIds(serverPlayer);
                 if (!ShopInteractionGuard.isSeriesAllowed(targetSeries, availableIds)) {
