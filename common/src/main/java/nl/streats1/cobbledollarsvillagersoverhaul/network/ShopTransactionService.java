@@ -7,7 +7,6 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.npc.AbstractVillager;
 import net.minecraft.world.entity.npc.Villager;
-import nl.streats1.cobbledollarsvillagersoverhaul.integration.VillagerShopConfig;
 import net.minecraft.world.entity.npc.WanderingTrader;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -595,13 +594,7 @@ public final class ShopTransactionService {
             offer = allOffers.get(offerIndex);
         } else {
             List<MerchantOffer> sellOffers = ShopOfferAssembler.sellOffers(allOffers);
-            int merchantSellCount = entity instanceof Villager configVillager
-                    && VillagerShopConfig.usesConfigShop(configVillager.getUUID()) ? 0 : sellOffers.size();
-            if (offerIndex >= merchantSellCount) {
-                sellBankEntry(serverPlayer, villagerId, offerIndex - merchantSellCount, quantity);
-                return;
-            }
-            if (offerIndex < 0) {
+            if (offerIndex < 0 || offerIndex >= sellOffers.size()) {
                 return;
             }
             offer = sellOffers.get(offerIndex);

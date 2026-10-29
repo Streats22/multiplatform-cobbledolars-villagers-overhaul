@@ -6,13 +6,10 @@
 
 ## [0.4.3] — from 0.4.0
 
-**Minecraft 1.21.1** · **Fabric & NeoForge** · Cobblemon **1.8.0–1.8.2** · CobbleDollars **Beta-5.1+ / Beta-6.1**
+**Minecraft 1.21.1** · **Fabric & NeoForge** · Cobblemon **1.8.0+** · CobbleDollars **Beta-5.1+ / Beta-6.1**
 
 ### Added
 
-- **Bank prices apply to villagers** — Items and prices from *Edit bank* (`config/cobbledollars/default_bank.json`, or `bank.json` on older CobbleDollars) now appear
-  in every villager's and wandering trader's **Sell** tab (e.g. Emerald at 500, Diamond, Relic Coin), not only in the
-  virtual bank.
 - **Quick-add buttons** in the bank editor for Emerald, Diamond and Relic Coin; the added item is selected so its price
   can be typed immediately.
 

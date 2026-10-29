@@ -277,9 +277,6 @@ public final class CobbleDollarsShopPayloadHandlers {
                 buyOffersFromConfig = true;
             }
         }
-        if (!RctTrainerAssociationCompat.isTrainerAssociation(entity)) {
-            sellOffers.addAll(CobbleDollarsConfigHelper.getBankSellOffers());
-        }
         boolean canCycleTrades = false;
         if (entity instanceof Villager villager && !buyOffersFromConfig
                 && TradeCyclingModCompat.isTradeCyclingModLoaded()) {
