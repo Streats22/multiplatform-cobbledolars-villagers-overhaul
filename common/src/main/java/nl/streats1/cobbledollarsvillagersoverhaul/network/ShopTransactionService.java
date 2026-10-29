@@ -284,7 +284,8 @@ public final class ShopTransactionService {
                 handleBuyFromConfig(serverPlayer, villagerId, offerIndex, quantity);
                 return;
             }
-        } else if (configBuyOffersAvailable && entity instanceof WanderingTrader emptyCheckTrader) {
+        } else if (configBuyOffersAvailable && !RctTrainerAssociationCompat.isTrainerAssociation(entity)
+                && entity instanceof WanderingTrader emptyCheckTrader) {
             MerchantTradeGenerationHelper.ensureMerchantOffersReady(level, emptyCheckTrader);
             if (ShopInteractionGuard.isEmptyOfferConfigFallback(emptyCheckTrader, true)) {
                 handleBuyFromConfig(serverPlayer, villagerId, offerIndex, quantity);

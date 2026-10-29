@@ -70,6 +70,8 @@ public final class ShopSeriesCatalog {
                                 return mappedSeries;
                             }
                         }
+                    } catch (NoSuchMethodException removedInNewerRct) {
+                        return identifySeriesFromOfferOriginal(offer, serverPlayer);
                     } catch (Exception e) {
                     }
 
@@ -163,13 +165,39 @@ public final class ShopSeriesCatalog {
             if (trainerPlayerData == null) {
                 return ids;
             }
-            var getAvailableSeriesMethod = trainerPlayerDataClass.getMethod("getAvailableSeries");
+            java.lang.reflect.Method getAvailableSeriesMethod;
+            try {
+                getAvailableSeriesMethod = trainerPlayerDataClass.getMethod("getAvailableSeries");
+            } catch (NoSuchMethodException removedInNewerRct) {
+                return allRegisteredSeriesIds();
+            }
             var availableSeriesObj = getAvailableSeriesMethod.invoke(trainerPlayerData);
             if (availableSeriesObj instanceof Iterable<?> iterable) {
                 for (Object seriesObj : iterable) {
                     String seriesId = getSeriesId(seriesObj);
                     if (!seriesId.isEmpty()) {
                         ids.add(seriesId);
+                    }
+                }
+            }
+        } catch (Exception e) {
+        }
+        return ids;
+    }
+
+    /** RCT 0.19+ no longer exposes per-player available series; every registered series is selectable then. */
+    private static List<String> allRegisteredSeriesIds() {
+        List<String> ids = new ArrayList<>();
+        try {
+            var rctModClass = Class.forName("com.gitlab.srcmc.rctmod.api.RCTMod");
+            var rctModInstance = rctModClass.getMethod("getInstance").invoke(null);
+            var seriesManager = rctModClass.getMethod("getSeriesManager").invoke(rctModInstance);
+            var seriesIds = seriesManager.getClass().getMethod("getSeriesIds").invoke(seriesManager);
+            if (seriesIds instanceof Iterable<?> iterable) {
+                for (Object id : iterable) {
+                    String s = String.valueOf(id);
+                    if (!s.isEmpty() && !"empty".equals(s)) {
+                        ids.add(s);
                     }
                 }
             }
