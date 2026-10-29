@@ -251,8 +251,12 @@ public final class ShopTransactionService {
                 && VillagerShopData.load(tradesVillager.getUUID()) instanceof VillagerShopData.Data own
                 && own.tradesTab();
         if (ownTrades && entity instanceof Villager customTrader) {
-            handleCustomTrade(serverPlayer, villagerId, customTrader, offerIndex, quantity);
-            return;
+            // indexes below this belong to the villager's own item trades, the rest to the custom ones
+            int normalTrades = ShopOfferAssembler.itemForItemOffers(customTrader.getOffers()).size();
+            if (offerIndex >= normalTrades) {
+                handleCustomTrade(serverPlayer, villagerId, customTrader, offerIndex - normalTrades, quantity);
+                return;
+            }
         }
         if (!ownTrades && ShopTradePolicy.shouldBuyFromConfigShop(assignedOrVirtualConfig, openedAsConfigShop, false)) {
             handleBuyFromConfig(serverPlayer, villagerId, offerIndex, quantity);
