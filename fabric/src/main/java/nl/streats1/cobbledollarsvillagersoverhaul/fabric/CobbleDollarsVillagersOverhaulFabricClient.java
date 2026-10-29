@@ -64,15 +64,7 @@ public class CobbleDollarsVillagersOverhaulFabricClient implements ClientModInit
                     if (!shopAlreadyOpen) {
                         FabricMerchantScreenOverlapGuard.arm(payload);
                     }
-                    CobbleDollarsShopScreen.openFromPayload(
-                        payload.villagerId(), 
-                        payload.balance(), 
-                        payload.buyOffers(), 
-                        payload.sellOffers(),
-                        payload.tradesOffers(),
-                        payload.buyOffersFromConfig(),
-                        payload.canCycleTrades()
-                    );
+                    CobbleDollarsShopScreen.openFromPayload(payload);
                     if (!shopAlreadyOpen) {
                         FabricMerchantScreenOverlapGuard.scheduleDeferredRecheck(client);
                     }

@@ -38,7 +38,9 @@ public class BankEditorScreen extends Screen {
     }
 
     public BankEditorScreen(Screen parent, List<BankEntryRecord> initialEntries) {
-        super(Component.translatable("gui.cobbledollars_villagers_overhaul_rca.edit_bank_title"));
+        super(Component.translatable(nl.streats1.cobbledollarsvillagersoverhaul.client.AdminConfigClient.hasVillagerScope()
+                ? "gui.cobbledollars_villagers_overhaul_rca.edit_villager_sell_title"
+                : "gui.cobbledollars_villagers_overhaul_rca.edit_bank_title"));
         this.parent = parent;
         if (initialEntries != null) this.entries = new ArrayList<>(initialEntries);
     }
@@ -229,7 +231,7 @@ public class BankEditorScreen extends Screen {
         return entries;
     }
 
-    private class BankListWidget extends ObjectSelectionList<BankListWidget.Entry> {
+    private class BankListWidget extends EditorWidgets.FullWidthList<BankListWidget.Entry> {
         public BankListWidget(Minecraft mc, int w, int h, int y, int itemHeight) {
             super(mc, w, h, y, itemHeight);
         }
@@ -251,18 +253,7 @@ public class BankEditorScreen extends Screen {
 
             @Override
             public void render(GuiGraphics guiGraphics, int index, int top, int left, int width, int height, int mouseX, int mouseY, boolean hovered, float partialTick) {
-                Item item;
-                try {
-                    item = BuiltInRegistries.ITEM.get(ResourceLocation.parse(record.itemId()));
-                } catch (Exception e) {
-                    item = Items.BARRIER;
-                }
-                if (item == null || item == Items.AIR) item = Items.BARRIER;
-                guiGraphics.renderItem(new ItemStack(item), left + 2, top + 2);
-                String name = record.itemId();
-                if (name.length() > 28) name = name.substring(0, 25) + "...";
-                guiGraphics.drawString(BankEditorScreen.this.font, name, left + 22, top + 6, 0xFFFFFF);
-                guiGraphics.drawString(BankEditorScreen.this.font, String.valueOf(record.price()), left + width - 50, top + 6, 0xAAAAAA);
+                EditorWidgets.drawItemRow(guiGraphics, BankEditorScreen.this.font, record.itemId(), record.price(), left, top, width, height);
             }
 
             @Override

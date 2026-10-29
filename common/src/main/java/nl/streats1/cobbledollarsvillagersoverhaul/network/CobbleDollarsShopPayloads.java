@@ -146,7 +146,12 @@ public final class CobbleDollarsShopPayloads {
         }
     }
 
-    public record ShopData(int villagerId, long balance, List<ShopOfferEntry> buyOffers, List<ShopOfferEntry> sellOffers, List<ShopOfferEntry> tradesOffers, boolean buyOffersFromConfig, boolean canCycleTrades) implements CustomPacketPayload {
+    public record ShopData(int villagerId, long balance, List<ShopOfferEntry> buyOffers, List<ShopOfferEntry> sellOffers, List<ShopOfferEntry> tradesOffers, boolean buyOffersFromConfig, boolean canCycleTrades, String labelsJson) implements CustomPacketPayload {
+    /** Shop without per-villager tab names. */
+    public ShopData(int villagerId, long balance, List<ShopOfferEntry> buyOffers, List<ShopOfferEntry> sellOffers, List<ShopOfferEntry> tradesOffers, boolean buyOffersFromConfig, boolean canCycleTrades) {
+        this(villagerId, balance, buyOffers, sellOffers, tradesOffers, buyOffersFromConfig, canCycleTrades, "");
+    }
+
     public static final CustomPacketPayload.Type<ShopData> TYPE =
                 new CustomPacketPayload.Type<>(Objects.requireNonNull(id("shop_data")));
     public static final StreamCodec<RegistryFriendlyByteBuf, ShopData> STREAM_CODEC =
@@ -159,6 +164,7 @@ public final class CobbleDollarsShopPayloads {
                             OFFERS_LIST_CODEC.encode(buf, data.tradesOffers());
                             BOOL.encode(buf, data.buyOffersFromConfig());
                             BOOL.encode(buf, data.canCycleTrades());
+                            STRING_UTF8.encode(buf, data.labelsJson() != null ? data.labelsJson() : "");
                         },
                         buf -> new ShopData(
                                 VAR_INT.decode(buf),
@@ -167,7 +173,8 @@ public final class CobbleDollarsShopPayloads {
                                 OFFERS_LIST_CODEC.decode(buf),
                                 OFFERS_LIST_CODEC.decode(buf),
                                 BOOL.decode(buf),
-                                BOOL.decode(buf))
+                                BOOL.decode(buf),
+                                STRING_UTF8.decode(buf))
                 );
 
     @Override

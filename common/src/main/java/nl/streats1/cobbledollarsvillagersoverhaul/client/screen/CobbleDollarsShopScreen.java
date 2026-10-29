@@ -321,6 +321,13 @@ public class CobbleDollarsShopScreen extends Screen {
         return selectedIndex;
     }
 
+    /** Opens or refreshes the shop from a server payload, applying that villager's own tab names. */
+    public static void openFromPayload(CobbleDollarsShopPayloads.ShopData d) {
+        ShopLabels.setOverride(ShopLabels.fromJson(d.labelsJson()));
+        openFromPayload(d.villagerId(), d.balance(), d.buyOffers(), d.sellOffers(), d.tradesOffers(),
+                d.buyOffersFromConfig(), d.canCycleTrades());
+    }
+
     public static void openFromPayload(int villagerId, long balance,
                                        List<CobbleDollarsShopPayloads.ShopOfferEntry> buyOffers,
                                        List<CobbleDollarsShopPayloads.ShopOfferEntry> sellOffers,

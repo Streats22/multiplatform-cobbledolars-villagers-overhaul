@@ -7,6 +7,8 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.npc.AbstractVillager;
 import net.minecraft.world.entity.npc.Villager;
+import nl.streats1.cobbledollarsvillagersoverhaul.integration.VillagerShopConfig;
+import nl.streats1.cobbledollarsvillagersoverhaul.integration.VillagerShopData;
 import net.minecraft.world.entity.npc.WanderingTrader;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -55,7 +57,11 @@ public final class ShopTransactionService {
     }
 
     private static boolean sellBankEntry(ServerPlayer serverPlayer, int villagerId, int bankIndex, int quantity) {
-        List<CobbleDollarsShopPayloads.ShopOfferEntry> bankOffers = CobbleDollarsConfigHelper.getBankSellOffers();
+        return sellBankEntry(serverPlayer, villagerId, bankIndex, quantity, CobbleDollarsConfigHelper.getBankSellOffers());
+    }
+
+    private static boolean sellBankEntry(ServerPlayer serverPlayer, int villagerId, int bankIndex, int quantity,
+                                         List<CobbleDollarsShopPayloads.ShopOfferEntry> bankOffers) {
         if (bankIndex < 0 || bankIndex >= bankOffers.size()) {
             return false;
         }
@@ -88,6 +94,19 @@ public final class ShopTransactionService {
         return true;
     }
 
+    /** The catalog a config-shop buy is checked against: the villager's own shop, else the default shop. */
+    private static List<CobbleDollarsShopPayloads.ShopOfferEntry> configBuyOffersFor(ServerPlayer player, int villagerId) {
+        if (!VirtualShopIds.isVirtual(villagerId)
+                && player.serverLevel().getEntity(villagerId) instanceof Villager villager
+                && VillagerShopConfig.usesConfigShop(villager.getUUID())) {
+            var own = VillagerShopData.load(villager.getUUID());
+            if (own != null) {
+                return CobbleDollarsConfigHelper.buyOffersFromCategories(own.shop());
+            }
+        }
+        return CobbleDollarsConfigHelper.getDefaultShopBuyOffers();
+    }
+
     public static void handleBuyFromConfig(ServerPlayer serverPlayer, int villagerId, int offerIndex, int quantity) {
         if (!ShopInteractionGuard.isValidQuantity(quantity)) {
             return;
@@ -95,7 +114,7 @@ public final class ShopTransactionService {
         if (VirtualShopIds.isVirtualShop(villagerId) && !ShopInteractionGuard.canAccessVirtualShop(serverPlayer)) {
             return;
         }
-        List<CobbleDollarsShopPayloads.ShopOfferEntry> configOffers = CobbleDollarsConfigHelper.getDefaultShopBuyOffers();
+        List<CobbleDollarsShopPayloads.ShopOfferEntry> configOffers = configBuyOffersFor(serverPlayer, villagerId);
 
         if (offerIndex < 0 || offerIndex >= configOffers.size()) {
             return;
@@ -553,7 +572,14 @@ public final class ShopTransactionService {
             return;
         }
 
-        
+        if (entity instanceof Villager assigned && VillagerShopConfig.usesConfigShop(assigned.getUUID())) {
+            var own = VillagerShopData.load(assigned.getUUID());
+            if (own != null) {
+                sellBankEntry(serverPlayer, villagerId, offerIndex, quantity, CobbleDollarsConfigHelper.sellOffersFromBank(own.bank()));
+                return;
+            }
+        }
+
         AbstractVillager tradingMerchant = null;
         List<MerchantOffer> allOffers;
         if (entity instanceof Villager v) {

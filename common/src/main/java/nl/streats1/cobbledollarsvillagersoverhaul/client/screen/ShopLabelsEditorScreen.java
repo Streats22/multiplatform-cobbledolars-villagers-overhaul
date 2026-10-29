@@ -6,6 +6,7 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import nl.streats1.cobbledollarsvillagersoverhaul.client.AdminConfigClient;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.ShopLabels;
 
 /** Lets players rename the shop title and the Buy / Sell / Trades tabs; blank restores the default. */
@@ -27,7 +28,7 @@ public class ShopLabelsEditorScreen extends Screen {
 
     @Override
     protected void init() {
-        ShopLabels.Values v = ShopLabels.values();
+        ShopLabels.Values v = AdminConfigClient.hasVillagerScope() ? AdminConfigClient.loadVillagerLabels() : ShopLabels.values();
         int x = width / 2 - FIELD_W / 2;
         int y = height / 2 - 70;
         shopBox = field(x, y, "label_shop", v.shop());
@@ -59,6 +60,12 @@ public class ShopLabelsEditorScreen extends Screen {
     }
 
     private void saveAndClose() {
+        if (AdminConfigClient.hasVillagerScope()) {
+            AdminConfigClient.saveVillagerLabels(new ShopLabels.Values(
+                    shopBox.getValue(), buyBox.getValue(), sellBox.getValue(), tradesBox.getValue()));
+            onClose();
+            return;
+        }
         var player = Minecraft.getInstance().player;
         if (player != null) {
             sendLabel(player, "shop", shopBox.getValue());
@@ -73,6 +80,12 @@ public class ShopLabelsEditorScreen extends Screen {
     private static void sendLabel(net.minecraft.client.player.LocalPlayer player, String key, String value) {
         String text = value.trim();
         player.connection.sendCommand("cvm label " + key + " " + (text.isEmpty() ? "reset" : text));
+    }
+
+    @Override
+    public void tick() {
+        super.tick();
+        AdminConfigClient.tickTimeout();
     }
 
     @Override

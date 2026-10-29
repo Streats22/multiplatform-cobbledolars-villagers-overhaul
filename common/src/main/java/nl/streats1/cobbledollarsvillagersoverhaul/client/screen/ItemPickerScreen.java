@@ -68,7 +68,7 @@ public class ItemPickerScreen extends Screen {
         addRenderableWidget(search);
         setInitialFocus(search);
 
-        addRenderableWidget(Button.builder(Component.translatable("gui.cancel"), b -> minecraft.setScreen(parent))
+        addRenderableWidget(Button.builder(Component.translatable("gui.back"), b -> minecraft.setScreen(parent))
                 .bounds(width / 2 - 100, height - 32, 200, 20).build());
     }
 
@@ -90,7 +90,7 @@ public class ItemPickerScreen extends Screen {
         void add(String itemId, int value);
     }
 
-    private class ItemListWidget extends ObjectSelectionList<ItemListWidget.ItemEntry> {
+    private class ItemListWidget extends EditorWidgets.FullWidthList<ItemListWidget.ItemEntry> {
         public ItemListWidget(Minecraft mc, int w, int h, int y, int itemHeight) {
             super(mc, w, h, y, itemHeight);
         }

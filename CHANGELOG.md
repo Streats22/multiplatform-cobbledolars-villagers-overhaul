@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+### Added
+
+- **Per-villager shops** — Every assigned villager now has its own shop (`villager_shops/<uuid>.json`): its own items
+  and prices, its own sell list (items it buys from players) and its own shop name and Buy/Sell/Trades tab names.
+  Assigning copies the current default shop; editing one villager never changes another or the default shop.
+  Open **Villager shops** in the mod config and press **Edit shop** on a villager. Villagers assigned earlier keep
+  using the default shop until you edit them.
+- Back button in the item picker.
+
+### Changed
+
+- Config menu regrouped into Shop / Prices / Look / General sections, two buttons per row.
+- Shop, bank, item-price and currency editors: rows use the full list width, show the item name with its id muted and
+  the price right-aligned; clearer price row and button layout.
+- "Custom villagers" screen renamed **Villager shops**, with an Edit shop and Unassign button per row.
+
 ---
 
 ## [0.4.3] — from 0.4.0
