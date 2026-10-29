@@ -323,13 +323,10 @@ public final class ShopTransactionService {
             }
 
             try {
-                var getOffersMethod = entity.getClass().getMethod("getOffers");
-                var offers = getOffersMethod.invoke(entity);
-                if (offers instanceof List) {
-                    allOffers = ShopSeriesCatalog.withFallbackSeriesOffers((List<MerchantOffer>) offers, serverPlayer);
-                } else {
-                    allOffers = List.of();
-                }
+                // Not reflection: Minecraft's own method names are obfuscated on a Fabric install.
+                allOffers = entity instanceof Merchant merchantEntity
+                        ? ShopSeriesCatalog.withFallbackSeriesOffers(merchantEntity.getOffers(), serverPlayer)
+                        : List.of();
             } catch (Exception e) {
                 allOffers = List.of();
             }
