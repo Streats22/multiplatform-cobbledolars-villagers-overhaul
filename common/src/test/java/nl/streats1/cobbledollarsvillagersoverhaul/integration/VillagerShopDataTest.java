@@ -178,7 +178,7 @@ class VillagerShopDataTest {
         UUID villager = UUID.randomUUID();
         VillagerShopData.ensureExists(villager);
 
-        String json = DefaultShopConfig.toJson(shop("X", "minecraft:apple", 1)).replaceFirst("\{", "{\"tabs\":{\"sell\":true,\"trades\":true},");
+        String json = DefaultShopConfig.toJson(shop("X", "minecraft:apple", 1)).replaceFirst("\\{", "{\"tabs\":{\"sell\":true,\"trades\":true},");
         VillagerShopData.writeSection(villager, VillagerShopData.SECTION_SHOP, json);
 
         var own = VillagerShopData.load(villager);
