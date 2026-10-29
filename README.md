@@ -148,6 +148,14 @@ Names are limited to 32 characters; blank means the default. Defaults come from 
 `gui.cobbledollars_villagers_overhaul_rca.shop`, `.buy`, `.sell` and `.trades`, so a resource pack can still rename
 them. Custom Buy categories in the default shop are renamed under **Edit shop** → **Rename category**.
 
+### Shop Themes
+
+Seasonal looks for the shop screen: **Pumpkin Night**, **Haunted Purple**, **Graveyard Mist** (Halloween) and
+**Christmas**. Open the mod config (Mod Menu on Fabric, Mods list on NeoForge) and press the **Shop theme** button to
+cycle through the themes; **Default** is the normal grey shop. A theme tints the shop textures, changes the title and
+tab colors and adds small decorations. It is cosmetic and stored per player in
+`config/cobbledollars_villagers_overhaul_rca/shop_theme.json`.
+
 ### RCT Series
 
 When using RCT trainers, you can:
