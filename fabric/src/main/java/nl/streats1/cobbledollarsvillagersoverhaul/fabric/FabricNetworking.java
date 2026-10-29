@@ -22,6 +22,13 @@ public final class FabricNetworking {
         PayloadTypeRegistry.playC2S().register(CobbleDollarsShopPayloads.AssignVillager.TYPE, CobbleDollarsShopPayloads.AssignVillager.STREAM_CODEC);
         PayloadTypeRegistry.playC2S().register(CobbleDollarsShopPayloads.ShopScreenClosed.TYPE, CobbleDollarsShopPayloads.ShopScreenClosed.STREAM_CODEC);
 
+        PayloadTypeRegistry.playC2S().register(CobbleDollarsShopPayloads.RequestAssignedList.TYPE, CobbleDollarsShopPayloads.RequestAssignedList.STREAM_CODEC);
+        PayloadTypeRegistry.playC2S().register(CobbleDollarsShopPayloads.UnassignByUuid.TYPE, CobbleDollarsShopPayloads.UnassignByUuid.STREAM_CODEC);
+        PayloadTypeRegistry.playC2S().register(CobbleDollarsShopPayloads.RequestAdminConfig.TYPE, CobbleDollarsShopPayloads.RequestAdminConfig.STREAM_CODEC);
+        PayloadTypeRegistry.playC2S().register(CobbleDollarsShopPayloads.SaveAdminConfig.TYPE, CobbleDollarsShopPayloads.SaveAdminConfig.STREAM_CODEC);
+        PayloadTypeRegistry.playS2C().register(CobbleDollarsShopPayloads.AdminConfigData.TYPE, CobbleDollarsShopPayloads.AdminConfigData.STREAM_CODEC);
+        PayloadTypeRegistry.playS2C().register(CobbleDollarsShopPayloads.AssignedList.TYPE, CobbleDollarsShopPayloads.AssignedList.STREAM_CODEC);
+
         PayloadTypeRegistry.playS2C().register(CobbleDollarsShopPayloads.ShopData.TYPE, CobbleDollarsShopPayloads.ShopData.STREAM_CODEC);
         PayloadTypeRegistry.playS2C().register(CobbleDollarsShopPayloads.BalanceUpdate.TYPE, CobbleDollarsShopPayloads.BalanceUpdate.STREAM_CODEC);
         PayloadTypeRegistry.playS2C().register(CobbleDollarsShopPayloads.ServerShopConfigSync.TYPE, CobbleDollarsShopPayloads.ServerShopConfigSync.STREAM_CODEC);
@@ -56,6 +63,30 @@ public final class FabricNetworking {
         ServerPlayNetworking.registerGlobalReceiver(CobbleDollarsShopPayloads.AssignVillager.TYPE, (payload, context) -> {
             if (context.player() instanceof ServerPlayer sp) {
                 context.server().execute(() -> CobbleDollarsShopPayloadHandlers.handleAssignVillager(sp, payload.villagerId()));
+            }
+        });
+
+        ServerPlayNetworking.registerGlobalReceiver(CobbleDollarsShopPayloads.RequestAdminConfig.TYPE, (payload, context) -> {
+            if (context.player() instanceof ServerPlayer sp) {
+                context.server().execute(() -> nl.streats1.cobbledollarsvillagersoverhaul.network.AdminConfigService.handleRequest(sp, payload.kind()));
+            }
+        });
+
+        ServerPlayNetworking.registerGlobalReceiver(CobbleDollarsShopPayloads.SaveAdminConfig.TYPE, (payload, context) -> {
+            if (context.player() instanceof ServerPlayer sp) {
+                context.server().execute(() -> nl.streats1.cobbledollarsvillagersoverhaul.network.AdminConfigService.handleSave(sp, payload.kind(), payload.json()));
+            }
+        });
+
+        ServerPlayNetworking.registerGlobalReceiver(CobbleDollarsShopPayloads.RequestAssignedList.TYPE, (payload, context) -> {
+            if (context.player() instanceof ServerPlayer sp) {
+                context.server().execute(() -> CobbleDollarsShopPayloadHandlers.handleRequestAssignedList(sp));
+            }
+        });
+
+        ServerPlayNetworking.registerGlobalReceiver(CobbleDollarsShopPayloads.UnassignByUuid.TYPE, (payload, context) -> {
+            if (context.player() instanceof ServerPlayer sp) {
+                context.server().execute(() -> CobbleDollarsShopPayloadHandlers.handleUnassignByUuid(sp, payload.uuid()));
             }
         });
 

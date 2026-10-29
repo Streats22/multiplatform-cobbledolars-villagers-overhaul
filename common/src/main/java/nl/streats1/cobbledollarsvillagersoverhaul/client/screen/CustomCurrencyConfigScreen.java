@@ -12,6 +12,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import nl.streats1.cobbledollarsvillagersoverhaul.client.AdminConfigClient;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.CurrencyEntryRecord;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.CustomCurrencyConfig;
 
@@ -50,8 +51,7 @@ public class CustomCurrencyConfigScreen extends Screen {
     @Override
     protected void init() {
         if (entries.isEmpty()) {
-            CustomCurrencyConfig.ensureLoadedForUi();
-            entries = new ArrayList<>(CustomCurrencyConfig.getEntries());
+            entries = new ArrayList<>(AdminConfigClient.loadCurrency());
         }
 
         int panelLeft = PANEL_PAD;
@@ -149,12 +149,14 @@ public class CustomCurrencyConfigScreen extends Screen {
 
     private void saveAndClose() {
         applyValueFromEdit();
-        CustomCurrencyConfig.replaceEntries(entries);
-        CustomCurrencyConfig.writeEntriesToFile(entries);
-        if (useFile) {
-            CustomCurrencyConfig.saveToFile();
-        } else {
-            onSave.accept(entries);
+        if (!AdminConfigClient.saveCurrencyRemote(entries)) {
+            CustomCurrencyConfig.replaceEntries(entries);
+            CustomCurrencyConfig.writeEntriesToFile(entries);
+            if (useFile) {
+                CustomCurrencyConfig.saveToFile();
+            } else {
+                onSave.accept(entries);
+            }
         }
         minecraft.setScreen(parent);
     }
@@ -222,11 +224,7 @@ public class CustomCurrencyConfigScreen extends Screen {
         int panelRight = width - PANEL_PAD;
         int panelTop = 36;
         int panelBottom = height - 72;
-        guiGraphics.fill(panelLeft, panelTop, panelRight, panelBottom, 0xE0101010);
-        guiGraphics.fill(panelLeft, panelTop, panelRight, panelTop + 1, 0xFF404040);
-        guiGraphics.fill(panelLeft, panelBottom - 1, panelRight, panelBottom, 0xFF202020);
-        guiGraphics.fill(panelLeft, panelTop, panelLeft + 1, panelBottom, 0xFF404040);
-        guiGraphics.fill(panelRight - 1, panelTop, panelRight, panelBottom, 0xFF202020);
+        ShopThemePanel.draw(guiGraphics, panelLeft, panelTop, panelRight, panelBottom);
 
         listWidget.render(guiGraphics, mouseX, mouseY, partialTick);
         guiGraphics.drawCenteredString(font, title, width / 2, 12, 0xFFFFFF);

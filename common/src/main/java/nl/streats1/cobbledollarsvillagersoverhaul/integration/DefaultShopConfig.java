@@ -26,6 +26,40 @@ public final class DefaultShopConfig {
         return CobbleDollarsConfigHelper.getConfigDirectory().resolve(COBBLEDOLLARS_CONFIG_SUBDIR).resolve(DEFAULT_SHOP_FILE);
     }
 
+    public static Map<String, List<ShopEntryRecord>> loadCategories() {
+        Path file = getShopFile();
+        if (!Files.isRegularFile(file)) {
+            Map<String, List<ShopEntryRecord>> out = new LinkedHashMap<>();
+            out.put(DEFAULT_CATEGORY, new ArrayList<>());
+            return out;
+        }
+        try {
+            return parseCategories(Files.readString(file));
+        } catch (Exception ex) {
+            return parseCategories("");
+        }
+    }
+
+    /** Raw file text for syncing to ops; empty object when the file does not exist yet. */
+    public static String readRaw() {
+        try {
+            Path file = getShopFile();
+            return Files.isRegularFile(file) ? Files.readString(file) : "{}";
+        } catch (Exception ex) {
+            return "{}";
+        }
+    }
+
+    public static void writeRaw(String json) throws java.io.IOException {
+        Path file = getShopFile();
+        Files.createDirectories(file.getParent());
+        if (existingFileUsesArrayFormat(file)) {
+            writeArrayFormat(file, parseCategories(json));
+            return;
+        }
+        Files.writeString(file, json);
+    }
+
     public static JsonObject asLegacyRoot(JsonElement parsed) {
         if (parsed.isJsonObject()) {
             return parsed.getAsJsonObject();
@@ -54,16 +88,30 @@ public final class DefaultShopConfig {
         }
     }
 
-    public static Map<String, List<ShopEntryRecord>> loadCategories() {
-        Path file = getShopFile();
-        Map<String, List<ShopEntryRecord>> out = new LinkedHashMap<>();
-        if (!Files.isRegularFile(file)) {
-            out.put(DEFAULT_CATEGORY, new ArrayList<>());
-            return out;
+    private static void writeArrayFormat(Path file, Map<String, List<ShopEntryRecord>> categories) throws java.io.IOException {
+        JsonArray out = new JsonArray();
+        for (Map.Entry<String, List<ShopEntryRecord>> entry : categories.entrySet()) {
+            String catName = entry.getKey();
+            if (catName == null || catName.isBlank()) continue;
+            JsonArray offers = new JsonArray();
+            for (ShopEntryRecord e : entry.getValue()) {
+                JsonObject o = new JsonObject();
+                o.addProperty("item", e.itemId());
+                o.addProperty("price", String.valueOf(e.price()));
+                offers.add(o);
+            }
+            JsonObject category = new JsonObject();
+            category.addProperty("name", catName);
+            category.add("offers", offers);
+            out.add(category);
         }
+        Files.writeString(file, new com.google.gson.GsonBuilder().setPrettyPrinting().create().toJson(out));
+    }
+
+    public static Map<String, List<ShopEntryRecord>> parseCategories(String content) {
+        Map<String, List<ShopEntryRecord>> out = new LinkedHashMap<>();
         try {
-            String content = Files.readString(file);
-            JsonObject root = DefaultShopConfig.asLegacyRoot(JsonParser.parseString(content));
+            JsonObject root = asLegacyRoot(JsonParser.parseString(content));
             if (!root.has(DEFAULT_SHOP_KEY)) {
                 out.put(DEFAULT_CATEGORY, new ArrayList<>());
                 return out;
@@ -133,49 +181,31 @@ public final class DefaultShopConfig {
     }
 
     public static void saveCategories(Map<String, List<ShopEntryRecord>> categories) {
-        Path file = getShopFile();
         try {
-            Files.createDirectories(file.getParent());
-            if (existingFileUsesArrayFormat(file)) {
-                JsonArray categoriesJson = new JsonArray();
-                for (Map.Entry<String, List<ShopEntryRecord>> entry : categories.entrySet()) {
-                    String catName = entry.getKey();
-                    if (catName == null || catName.isBlank()) continue;
-                    JsonArray offers = new JsonArray();
-                    for (ShopEntryRecord e : entry.getValue()) {
-                        JsonObject o = new JsonObject();
-                        o.addProperty("item", e.itemId());
-                        o.addProperty("price", String.valueOf(e.price()));
-                        offers.add(o);
-                    }
-                    JsonObject category = new JsonObject();
-                    category.addProperty("name", catName);
-                    category.add("offers", offers);
-                    categoriesJson.add(category);
-                }
-                Files.writeString(file, new com.google.gson.GsonBuilder().setPrettyPrinting().create().toJson(categoriesJson));
-                return;
-            }
-            JsonArray defaultShop = new JsonArray();
-            for (Map.Entry<String, List<ShopEntryRecord>> entry : categories.entrySet()) {
-                String catName = entry.getKey();
-                if (catName == null || catName.isBlank()) continue;
-                JsonArray offers = new JsonArray();
-                for (ShopEntryRecord e : entry.getValue()) {
-                    JsonObject o = new JsonObject();
-                    o.addProperty("item", e.itemId());
-                    o.addProperty("price", e.price());
-                    offers.add(o);
-                }
-                JsonObject category = new JsonObject();
-                category.add(catName, offers);
-                defaultShop.add(category);
-            }
-            JsonObject root = new JsonObject();
-            root.add(DEFAULT_SHOP_KEY, defaultShop);
-            Files.writeString(file, new com.google.gson.GsonBuilder().setPrettyPrinting().create().toJson(root));
+            writeRaw(toJson(categories));
         } catch (Exception ex) {
         }
+    }
+
+    public static String toJson(Map<String, List<ShopEntryRecord>> categories) {
+        JsonArray defaultShop = new JsonArray();
+        for (Map.Entry<String, List<ShopEntryRecord>> entry : categories.entrySet()) {
+            String catName = entry.getKey();
+            if (catName == null || catName.isBlank()) continue;
+            JsonArray offers = new JsonArray();
+            for (ShopEntryRecord e : entry.getValue()) {
+                JsonObject o = new JsonObject();
+                o.addProperty("item", e.itemId());
+                o.addProperty("price", e.price());
+                offers.add(o);
+            }
+            JsonObject category = new JsonObject();
+            category.add(catName, offers);
+            defaultShop.add(category);
+        }
+        JsonObject root = new JsonObject();
+        root.add(DEFAULT_SHOP_KEY, defaultShop);
+        return new com.google.gson.GsonBuilder().setPrettyPrinting().create().toJson(root);
     }
 
     public static void saveEntries(List<ShopEntryRecord> entries) {

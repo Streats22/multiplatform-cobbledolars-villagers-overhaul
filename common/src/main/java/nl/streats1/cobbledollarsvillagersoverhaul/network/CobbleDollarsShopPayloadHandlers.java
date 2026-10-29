@@ -77,13 +77,15 @@ public final class CobbleDollarsShopPayloadHandlers {
     }
 
     public static void sendServerShopConfigTo(ServerPlayer player) {
+        var labels = nl.streats1.cobbledollarsvillagersoverhaul.integration.ShopLabels.values();
         PlatformNetwork.sendToPlayer(player, new CobbleDollarsShopPayloads.ServerShopConfigSync(
                 Config.USE_COBBLEDOLLARS_SHOP_UI,
                 Config.VILLAGERS_ACCEPT_COBBLEDOLLARS,
                 Config.USE_DATAPACK_TRADES,
                 Config.USE_RCT_TRADES_OVERHAUL,
                 nl.streats1.cobbledollarsvillagersoverhaul.integration.CobbleDollarsConfigHelper.getEffectiveEmeraldRate(),
-                Config.SYNC_COBBLEDOLLARS_BANK_RATE));
+                Config.SYNC_COBBLEDOLLARS_BANK_RATE,
+                labels.shop(), labels.buy(), labels.sell(), labels.trades()));
     }
 
     public static void handleRequestShopData(ServerPlayer serverPlayer, int villagerId) {
@@ -267,6 +269,15 @@ public final class CobbleDollarsShopPayloadHandlers {
             }
             buildItemForItemTrades(allOffers, tradesOffers);
         } else {
+            if (RctTrainerAssociationCompat.isTrainerAssociation(entity)) {
+                openVanillaMerchantMenu(serverPlayer, villagerId);
+            }
+            return;
+        }
+
+        if (buyOffers.isEmpty() && sellOffers.isEmpty() && tradesOffers.isEmpty()
+                && RctTrainerAssociationCompat.isTrainerAssociation(entity)) {
+            openVanillaMerchantMenu(serverPlayer, villagerId);
             return;
         }
 
@@ -338,6 +349,40 @@ public final class CobbleDollarsShopPayloadHandlers {
             PlatformNetwork.sendToPlayer(serverPlayer, new CobbleDollarsShopPayloads.AssignModeUpdate(false));
             serverPlayer.sendSystemMessage(net.minecraft.network.chat.Component.translatable("command.cobbledollars_villagers_overhaul_rca.unassign.success"));
         }
+    }
+
+    public static void handleRequestAssignedList(ServerPlayer serverPlayer) {
+        if (!serverPlayer.hasPermissions(2)) return;
+        var server = serverPlayer.getServer();
+        if (server == null) return;
+        List<String> uuids = new ArrayList<>();
+        List<String> labels = new ArrayList<>();
+        for (java.util.UUID id : VillagerShopConfig.getAll()) {
+            uuids.add(id.toString());
+            labels.add(describeAssigned(server, id));
+        }
+        PlatformNetwork.sendToPlayer(serverPlayer, new CobbleDollarsShopPayloads.AssignedList(uuids, labels));
+    }
+
+    public static void handleUnassignByUuid(ServerPlayer serverPlayer, String uuid) {
+        if (!serverPlayer.hasPermissions(2)) return;
+        try {
+            VillagerShopConfig.remove(java.util.UUID.fromString(uuid));
+        } catch (IllegalArgumentException ignored) {
+            return;
+        }
+        handleRequestAssignedList(serverPlayer);
+    }
+
+    private static String describeAssigned(net.minecraft.server.MinecraftServer server, java.util.UUID id) {
+        for (ServerLevel level : server.getAllLevels()) {
+            Entity entity = level.getEntity(id);
+            if (entity != null) {
+                var pos = entity.blockPosition();
+                return entity.getName().getString() + " (" + pos.getX() + ", " + pos.getY() + ", " + pos.getZ() + ")";
+            }
+        }
+        return id.toString().substring(0, 8) + " (not loaded)";
     }
 
     public static void handleBuy(ServerPlayer serverPlayer, int villagerId, int offerIndex, int quantity, boolean fromConfigShop, int tab, String selectedSeries) {

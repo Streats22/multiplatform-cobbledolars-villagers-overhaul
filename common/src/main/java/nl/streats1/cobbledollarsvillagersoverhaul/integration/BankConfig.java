@@ -25,41 +25,56 @@ public final class BankConfig {
         return ModConfig.getConfigDirectory().resolve(COBBLEDOLLARS_CONFIG_SUBDIR).resolve(name);
     }
 
-    public static List<BankEntryRecord> loadEntries() {
+    private static Path activeFile() {
         Path current = file(CURRENT_FILE);
         if (Files.isRegularFile(current)) {
-            return parse(current);
+            return current;
         }
         Path legacy = file(LEGACY_FILE);
-        if (Files.isRegularFile(legacy)) {
-            return parse(legacy);
-        }
-        return new ArrayList<>();
+        return Files.isRegularFile(legacy) ? legacy : null;
     }
 
-    public static void saveEntries(List<BankEntryRecord> entries) {
-        boolean hasCurrent = Files.isRegularFile(file(CURRENT_FILE));
-        boolean hasLegacy = Files.isRegularFile(file(LEGACY_FILE));
+    public static List<BankEntryRecord> loadEntries() {
+        Path active = activeFile();
+        if (active == null) return new ArrayList<>();
         try {
-            if (hasCurrent || !hasLegacy) {
-                write(file(CURRENT_FILE), currentFormat(entries));
-            }
-            if (hasLegacy || !hasCurrent) {
-                write(file(LEGACY_FILE), legacyFormat(entries));
-            }
-        } catch (Exception ignored) {
+            return parseEntries(Files.readString(active));
+        } catch (Exception ex) {
+            return new ArrayList<>();
+        }
+    }
+
+    /** Raw file text for syncing to ops; empty object when no bank file exists yet. */
+    public static String readRaw() {
+        try {
+            Path active = activeFile();
+            return active != null ? Files.readString(active) : "{}";
+        } catch (Exception ex) {
+            return "{}";
+        }
+    }
+
+    public static void writeRaw(String json) throws java.io.IOException {
+        List<BankEntryRecord> entries = parseEntries(json);
+        Path current = file(CURRENT_FILE);
+        Path legacy = file(LEGACY_FILE);
+        boolean hasCurrent = Files.isRegularFile(current);
+        boolean hasLegacy = Files.isRegularFile(legacy);
+        if (hasCurrent || !hasLegacy) {
+            write(current, currentFormat(entries));
+        }
+        if (hasLegacy || !hasCurrent) {
+            write(legacy, toJson(entries));
         }
         CobbleDollarsConfigHelper.invalidateBankEmeraldPriceCache();
     }
 
-    private static List<BankEntryRecord> parse(Path path) {
+    /** Accepts both the legacy {"bank":[...]} object and the CobbleDollars 6.1 list. */
+    public static List<BankEntryRecord> parseEntries(String content) {
         List<BankEntryRecord> out = new ArrayList<>();
         try {
-            JsonElement root = JsonParser.parseString(Files.readString(path));
-            JsonElement list = root;
-            if (root.isJsonObject()) {
-                list = root.getAsJsonObject().get("bank");
-            }
+            JsonElement root = JsonParser.parseString(content);
+            JsonElement list = root.isJsonObject() ? root.getAsJsonObject().get("bank") : root;
             if (list == null || !list.isJsonArray()) {
                 return out;
             }
@@ -77,18 +92,14 @@ public final class BankConfig {
         return out;
     }
 
-    private static JsonElement currentFormat(List<BankEntryRecord> entries) {
-        JsonArray bank = new JsonArray();
-        for (BankEntryRecord e : entries) {
-            JsonObject o = new JsonObject();
-            o.addProperty("item", e.itemId());
-            o.addProperty("price", String.valueOf(e.price()));
-            bank.add(o);
+    public static void saveEntries(List<BankEntryRecord> entries) {
+        try {
+            writeRaw(toJson(entries));
+        } catch (Exception ignored) {
         }
-        return bank;
     }
 
-    private static JsonElement legacyFormat(List<BankEntryRecord> entries) {
+    public static String toJson(List<BankEntryRecord> entries) {
         JsonArray bank = new JsonArray();
         for (BankEntryRecord e : entries) {
             JsonObject o = new JsonObject();
@@ -98,11 +109,22 @@ public final class BankConfig {
         }
         JsonObject root = new JsonObject();
         root.add("bank", bank);
-        return root;
+        return new GsonBuilder().setPrettyPrinting().create().toJson(root);
     }
 
-    private static void write(Path path, JsonElement json) throws java.io.IOException {
+    private static String currentFormat(List<BankEntryRecord> entries) {
+        JsonArray bank = new JsonArray();
+        for (BankEntryRecord e : entries) {
+            JsonObject o = new JsonObject();
+            o.addProperty("item", e.itemId());
+            o.addProperty("price", String.valueOf(e.price()));
+            bank.add(o);
+        }
+        return new GsonBuilder().setPrettyPrinting().create().toJson(bank);
+    }
+
+    private static void write(Path path, String content) throws java.io.IOException {
         Files.createDirectories(path.getParent());
-        Files.writeString(path, new GsonBuilder().setPrettyPrinting().create().toJson(json));
+        Files.writeString(path, content);
     }
 }

@@ -94,6 +94,36 @@ public final class CustomCurrencyConfig {
         loaded = true;
     }
 
+    /** Parses currency JSON into records without touching the loaded state; invalid input gives an empty list. */
+    public static List<CurrencyEntryRecord> parseEntries(String json) {
+        List<CurrencyEntryRecord> out = new ArrayList<>();
+        if (json == null || json.isBlank()) return out;
+        try {
+            Type listType = new TypeToken<List<CurrencyEntry>>() {}.getType();
+            List<CurrencyEntry> entries = new Gson().fromJson(json.trim(), listType);
+            if (entries == null) return out;
+            for (CurrencyEntry e : entries) {
+                if (e == null || e.item == null || e.item.isEmpty()) continue;
+                String id = e.item.contains(":") ? e.item : "minecraft:" + e.item;
+                if ("minecraft:emerald".equalsIgnoreCase(id)) continue;
+                int val = e.value > 0 ? e.value : ModConfigDefaults.DEFAULT_EMERALD_RATE_CD;
+                out.add(new CurrencyEntryRecord(id.toLowerCase(), val));
+            }
+        } catch (Exception ignored) {
+        }
+        return out;
+    }
+
+    /** Raw file text for syncing to ops; the default list when the file does not exist yet. */
+    public static String readRaw() {
+        try {
+            Path file = ModConfig.getConfigDirectory().resolve(CONFIG_SUBDIR).resolve(CONFIG_FILE);
+            return Files.isRegularFile(file) ? Files.readString(file) : getDefaultJson();
+        } catch (Exception ex) {
+            return getDefaultJson();
+        }
+    }
+
     public static void setConfigOverride(String json) {
         configOverride = json;
         loaded = false;
