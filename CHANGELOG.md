@@ -25,6 +25,10 @@
 
 ### Fixed
 
+- **Trading with a Radical Cobblemon Trainers association no longer failed to set your series** (RCT 0.19). RCT
+  removed the call we used to check which series you may pick, so every purchase was silently dropped. The series
+  list now comes from the association's own offers, and if RCT offers none (for example while on freeroam with no
+  previous series) every series plus freeroam is listed so you can always pick one.
 - **The Edit button inside a villager's shop opened the shared default shop** instead of that villager's own shop.
   It now opens the villager's own editor. Blurred titles and names on the editor screens are sharp again, and the
   "Custom shop" note sits right under the villager name.
