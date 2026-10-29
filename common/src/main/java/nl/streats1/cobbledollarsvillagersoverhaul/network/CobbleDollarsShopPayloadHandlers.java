@@ -134,6 +134,7 @@ public final class CobbleDollarsShopPayloadHandlers {
         List<CobbleDollarsShopPayloads.ShopOfferEntry> tradesOffers = new ArrayList<>();
         boolean buyOffersFromConfig = false;
         String villagerLabelsJson = "";
+        List<String> configCategoryNames = List.of();
 
         ServerLevel level = serverPlayer.serverLevel();
         Entity entity = VirtualShopIds.isVirtual(villagerId) ? null : level.getEntity(villagerId);
@@ -143,7 +144,8 @@ public final class CobbleDollarsShopPayloadHandlers {
                 List<CobbleDollarsShopPayloads.ShopOfferEntry> configBuy = CobbleDollarsConfigHelper.getDefaultShopBuyOffers();
                 try {
                     PlatformNetwork.sendToPlayer(serverPlayer,
-                            new CobbleDollarsShopPayloads.ShopData(villagerId, balance, configBuy, List.of(), List.of(), true, false));
+                            new CobbleDollarsShopPayloads.ShopData(villagerId, balance, configBuy, List.of(), List.of(), true, false, "",
+                                    new ArrayList<>(nl.streats1.cobbledollarsvillagersoverhaul.integration.DefaultShopConfig.loadCategories().keySet())));
                 } catch (Exception e) {
                     PlatformNetwork.sendToPlayer(serverPlayer,
                             new CobbleDollarsShopPayloads.ShopData(villagerId, 0L, List.of(), List.of(), List.of(), false, false));
@@ -201,6 +203,9 @@ public final class CobbleDollarsShopPayloadHandlers {
                     if (own != null || !configBuy.isEmpty()) {
                         buyOffers.addAll(configBuy);
                         buyOffersFromConfig = true;
+                        configCategoryNames = own != null
+                                ? new ArrayList<>(own.shop().keySet())
+                                : new ArrayList<>(nl.streats1.cobbledollarsvillagersoverhaul.integration.DefaultShopConfig.loadCategories().keySet());
                     }
                 } else {
                     MerchantOfferDedupe.removeIdenticalDuplicates(villager.getOffers());
@@ -310,7 +315,7 @@ public final class CobbleDollarsShopPayloadHandlers {
         try {
             ConfigShopBuySession.remember(serverPlayer.getUUID(), entity.getUUID(), buyOffersFromConfig);
             PlatformNetwork.sendToPlayer(serverPlayer,
-                    new CobbleDollarsShopPayloads.ShopData(villagerId, balance, safeBuyOffers, safeSellOffers, safeTradesOffers, buyOffersFromConfig, canCycleTrades, villagerLabelsJson));
+                    new CobbleDollarsShopPayloads.ShopData(villagerId, balance, safeBuyOffers, safeSellOffers, safeTradesOffers, buyOffersFromConfig, canCycleTrades, villagerLabelsJson, configCategoryNames));
         } catch (Exception e) {
             ConfigShopBuySession.remember(serverPlayer.getUUID(), entity.getUUID(), false);
             PlatformNetwork.sendToPlayer(serverPlayer,

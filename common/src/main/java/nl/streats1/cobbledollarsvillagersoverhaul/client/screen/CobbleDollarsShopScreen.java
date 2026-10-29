@@ -202,17 +202,25 @@ public class CobbleDollarsShopScreen extends Screen {
         this.tradesOffers = tradesOffers != null ? new ArrayList<>(tradesOffers) : new ArrayList<>();
         this.buyOffersFromConfig = buyOffersFromConfig;
         this.canCycleTrades = canCycleTrades;
+        this.categoryNames = categoryNamesForNextOpen;
 
         rebuildTabs();
         selectFirstNonEmptyTab();
     }
 
+    /** Category names sent with the open shop, so empty categories still get a tab. */
+    private static List<String> categoryNamesForNextOpen = List.of();
+    private List<String> categoryNames = List.of();
+
     private void rebuildTabs() {
         List<String> names = new ArrayList<>();
         List<List<CobbleDollarsShopPayloads.ShopOfferEntry>> offers = new ArrayList<>();
         int buyTabs = 0;
-        if (buyOffersFromConfig && !buyOffers.isEmpty()) {
+        if (buyOffersFromConfig && (!buyOffers.isEmpty() || !categoryNames.isEmpty())) {
             Map<String, List<CobbleDollarsShopPayloads.ShopOfferEntry>> byCat = new LinkedHashMap<>();
+            for (String name : categoryNames) {
+                byCat.computeIfAbsent(name, k -> new ArrayList<>());
+            }
             for (CobbleDollarsShopPayloads.ShopOfferEntry e : buyOffers) {
                 String cat = (e.categoryName() != null && !e.categoryName().isEmpty()) ? e.categoryName() : ShopLabels.buyTab();
                 byCat.computeIfAbsent(cat, k -> new ArrayList<>()).add(e);
@@ -324,6 +332,7 @@ public class CobbleDollarsShopScreen extends Screen {
     /** Opens or refreshes the shop from a server payload, applying that villager's own tab names. */
     public static void openFromPayload(CobbleDollarsShopPayloads.ShopData d) {
         ShopLabels.setOverride(ShopLabels.fromJson(d.labelsJson()));
+        categoryNamesForNextOpen = d.categoryNames() != null ? List.copyOf(d.categoryNames()) : List.of();
         openFromPayload(d.villagerId(), d.balance(), d.buyOffers(), d.sellOffers(), d.tradesOffers(),
                 d.buyOffersFromConfig(), d.canCycleTrades());
     }
@@ -382,6 +391,7 @@ public class CobbleDollarsShopScreen extends Screen {
         int previousOfferIndex = screen.selectedIndex;
         int previousScroll = screen.scrollOffset;
 
+        screen.categoryNames = categoryNamesForNextOpen;
         screen.rebuildTabs();
         screen.applyTabAfterDataRefresh(section, previousTabIndex, previousOfferIndex);
         if (screen.selectedTab == previousTabIndex) {
@@ -611,6 +621,7 @@ public class CobbleDollarsShopScreen extends Screen {
 
         Component professionLabel = getProfessionLabel();
         int headerLeft = left + 8;
+        int headerLines = professionLabel.getString().isEmpty() ? 0 : 1;
         if (!professionLabel.getString().isEmpty()) {
             int headerWidth = 140; 
             int maxLabelWidth = headerWidth - 4; 
@@ -648,6 +659,7 @@ public class CobbleDollarsShopScreen extends Screen {
                     guiGraphics.drawString(font, Component.literal(lines.get(i)), headerLeft, lineY, ShopTheme.active().ink(), false);
                     lineY += font.lineHeight;
                 }
+                headerLines = Math.min(lines.size(), 2);
             } else {
                 
                 guiGraphics.drawString(font, professionLabel, headerLeft, top + RIGHT_PANEL_HEADER_Y, ShopTheme.active().ink(), false);
@@ -656,7 +668,7 @@ public class CobbleDollarsShopScreen extends Screen {
 
         if (buyOffersFromConfig) {
             guiGraphics.drawString(font, Component.translatable("gui.cobbledollars_villagers_overhaul_rca.custom_shop"),
-                    headerLeft, top + RIGHT_PANEL_HEADER_Y + 2 * font.lineHeight + 1, ShopTheme.active().dim(), false);
+                    headerLeft, top + RIGHT_PANEL_HEADER_Y + headerLines * font.lineHeight + 1, ShopTheme.active().dim(), false);
         }
 
         int listTop = top + LIST_TOP_OFFSET;

@@ -126,6 +126,13 @@ public final class CobbleDollarsShopPayloads {
                     }
             );
 
+    private static List<String> decodeNames(RegistryFriendlyByteBuf buf) {
+        int n = VAR_INT.decode(buf);
+        List<String> out = new ArrayList<>(n);
+        for (int i = 0; i < n; i++) out.add(STRING_UTF8.decode(buf));
+        return out;
+    }
+
     public static ResourceLocation id(String path) {
         return ResourceLocation.fromNamespaceAndPath(CobbleDollarsVillagersOverhaulRca.MOD_ID, PREFIX + path);
     }
@@ -146,10 +153,15 @@ public final class CobbleDollarsShopPayloads {
         }
     }
 
-    public record ShopData(int villagerId, long balance, List<ShopOfferEntry> buyOffers, List<ShopOfferEntry> sellOffers, List<ShopOfferEntry> tradesOffers, boolean buyOffersFromConfig, boolean canCycleTrades, String labelsJson) implements CustomPacketPayload {
+    public record ShopData(int villagerId, long balance, List<ShopOfferEntry> buyOffers, List<ShopOfferEntry> sellOffers, List<ShopOfferEntry> tradesOffers, boolean buyOffersFromConfig, boolean canCycleTrades, String labelsJson, List<String> categoryNames) implements CustomPacketPayload {
+    /** Shop with per-villager tab names but no extra category names. */
+    public ShopData(int villagerId, long balance, List<ShopOfferEntry> buyOffers, List<ShopOfferEntry> sellOffers, List<ShopOfferEntry> tradesOffers, boolean buyOffersFromConfig, boolean canCycleTrades, String labelsJson) {
+        this(villagerId, balance, buyOffers, sellOffers, tradesOffers, buyOffersFromConfig, canCycleTrades, labelsJson, List.of());
+    }
+
     /** Shop without per-villager tab names. */
     public ShopData(int villagerId, long balance, List<ShopOfferEntry> buyOffers, List<ShopOfferEntry> sellOffers, List<ShopOfferEntry> tradesOffers, boolean buyOffersFromConfig, boolean canCycleTrades) {
-        this(villagerId, balance, buyOffers, sellOffers, tradesOffers, buyOffersFromConfig, canCycleTrades, "");
+        this(villagerId, balance, buyOffers, sellOffers, tradesOffers, buyOffersFromConfig, canCycleTrades, "", List.of());
     }
 
     public static final CustomPacketPayload.Type<ShopData> TYPE =
@@ -165,6 +177,9 @@ public final class CobbleDollarsShopPayloads {
                             BOOL.encode(buf, data.buyOffersFromConfig());
                             BOOL.encode(buf, data.canCycleTrades());
                             STRING_UTF8.encode(buf, data.labelsJson() != null ? data.labelsJson() : "");
+                            List<String> names = data.categoryNames() != null ? data.categoryNames() : List.of();
+                            VAR_INT.encode(buf, names.size());
+                            for (String name : names) STRING_UTF8.encode(buf, name);
                         },
                         buf -> new ShopData(
                                 VAR_INT.decode(buf),
@@ -174,7 +189,8 @@ public final class CobbleDollarsShopPayloads {
                                 OFFERS_LIST_CODEC.decode(buf),
                                 BOOL.decode(buf),
                                 BOOL.decode(buf),
-                                STRING_UTF8.decode(buf))
+                                STRING_UTF8.decode(buf),
+                                decodeNames(buf))
                 );
 
     @Override
