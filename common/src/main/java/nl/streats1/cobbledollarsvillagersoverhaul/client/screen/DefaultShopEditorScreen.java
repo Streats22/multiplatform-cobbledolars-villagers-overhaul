@@ -31,6 +31,9 @@ public class DefaultShopEditorScreen extends EditorScreen {
     private Button minusBtn;
     private Button plusBtn;
     private boolean valueEditWasFocused;
+    private boolean showSell;
+    private boolean showTrades;
+    private boolean tabsLoaded;
     private static final int ROW_HEIGHT = 24;
     private static final int CAT_ROW_HEIGHT = 18;
     private static final int DEFAULT_PRICE = 50;
@@ -118,12 +121,36 @@ public class DefaultShopEditorScreen extends EditorScreen {
         addRenderableWidget(valueEdit);
         addRenderableWidget(plusBtn);
 
+        if (AdminConfigClient.hasVillagerScope()) {
+            if (!tabsLoaded) {
+                boolean[] tabs = AdminConfigClient.loadVillagerShopTabs();
+                showSell = tabs[0];
+                showTrades = tabs[1];
+                tabsLoaded = true;
+            }
+            int tabBtnW = (CAT_LIST_W - 4) / 2;
+            addRenderableWidget(Button.builder(tabLabel("tab_sell_short", showSell), b -> {
+                        showSell = !showSell;
+                        b.setMessage(tabLabel("tab_sell_short", showSell));
+                    })
+                    .bounds(panelLeft, rowB, tabBtnW, BTN_H).build());
+            addRenderableWidget(Button.builder(tabLabel("tab_trades_short", showTrades), b -> {
+                        showTrades = !showTrades;
+                        b.setMessage(tabLabel("tab_trades_short", showTrades));
+                    })
+                    .bounds(panelLeft + tabBtnW + 4, rowB, tabBtnW, BTN_H).build());
+        }
+
         int itemBtnW = (right - il - 4) / 2;
         addRenderableWidget(Button.builder(Component.translatable("gui.cobbledollars_villagers_overhaul_rca.add_held_item"), b -> addHeldItem())
                 .bounds(il, rowB, itemBtnW, BTN_H).build());
         addRenderableWidget(Button.builder(Component.translatable("gui.cobbledollars_villagers_overhaul_rca.browse_items"), b -> minecraft.setScreen(new ItemPickerScreen(this, (id, val) -> {
                     addEntry(id, val);
-                    minecraft.setScreen(new DefaultShopEditorScreen(parent, getCategories()));
+                    DefaultShopEditorScreen again = new DefaultShopEditorScreen(parent, getCategories());
+                    again.showSell = showSell;
+                    again.showTrades = showTrades;
+                    again.tabsLoaded = tabsLoaded;
+                    minecraft.setScreen(again);
                 }, DEFAULT_PRICE)))
                 .bounds(il + itemBtnW + 4, rowB, itemBtnW, BTN_H).build());
 
@@ -134,6 +161,10 @@ public class DefaultShopEditorScreen extends EditorScreen {
                 .bounds(width / 2 + 4, navY, 100, BTN_H).build());
     }
 
+
+    private static Component tabLabel(String key, boolean on) {
+        return Component.translatable("gui.cobbledollars_villagers_overhaul_rca." + key, Component.translatable(on ? "options.on" : "options.off"));
+    }
 
     private void addCategory() {
         String name = "Category " + (categories.size() + 1);
@@ -203,7 +234,11 @@ public class DefaultShopEditorScreen extends EditorScreen {
     private void saveAndClose() {
         applyValueFromEdit();
         renameSelectedCategory(); 
-        AdminConfigClient.saveShop(categories);
+        if (AdminConfigClient.hasVillagerScope()) {
+            AdminConfigClient.saveVillagerShop(categories, showSell, showTrades);
+        } else {
+            AdminConfigClient.saveShop(categories);
+        }
         if (onSaveCallback != null) {
             onSaveCallback.run();
         } else minecraft.setScreen(parent);

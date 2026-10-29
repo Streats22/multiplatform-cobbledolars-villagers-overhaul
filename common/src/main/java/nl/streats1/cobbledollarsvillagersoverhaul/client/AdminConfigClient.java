@@ -137,6 +137,34 @@ public final class AdminConfigClient {
         else DefaultShopConfig.saveCategories(categories);
     }
 
+    /** {sell, trades}: whether the villager being edited shows those tabs. */
+    public static boolean[] loadVillagerShopTabs() {
+        if (villagerScope == null) return new boolean[]{false, false};
+        if (!isRemote()) {
+            var d = VillagerShopData.loadOrDefaults(scopeId());
+            return new boolean[]{d.sellTab(), d.tradesTab()};
+        }
+        try {
+            var tabs = com.google.gson.JsonParser.parseString(cached(scoped(AdminConfigService.SHOP), "{}")).getAsJsonObject().getAsJsonObject("tabs");
+            return new boolean[]{tabs.get("sell").getAsBoolean(), tabs.get("trades").getAsBoolean()};
+        } catch (Exception e) {
+            return new boolean[]{false, false};
+        }
+    }
+
+    /** Saves the villager's items together with its Sell / Trades tab switches. */
+    public static void saveVillagerShop(Map<String, List<ShopEntryRecord>> categories, boolean showSell, boolean showTrades) {
+        if (villagerScope == null) return;
+        var o = com.google.gson.JsonParser.parseString(DefaultShopConfig.toJson(categories)).getAsJsonObject();
+        var tabs = new com.google.gson.JsonObject();
+        tabs.addProperty("sell", showSell);
+        tabs.addProperty("trades", showTrades);
+        o.add("tabs", tabs);
+        String json = o.toString();
+        if (isRemote()) send(scoped(AdminConfigService.SHOP), json);
+        else VillagerShopData.writeSection(scopeId(), VillagerShopData.SECTION_SHOP, json);
+    }
+
     public static List<BankEntryRecord> loadBank() {
         if (villagerScope != null) {
             return isRemote() ? BankConfig.parseEntries(cached(scoped(AdminConfigService.BANK), "{}"))
@@ -164,25 +192,9 @@ public final class AdminConfigClient {
         return v != null ? v : new ShopLabels.Values("", "", "", "");
     }
 
-    /** {sell, trades}: whether the villager being edited shows those tabs. */
-    public static boolean[] loadVillagerTabs() {
-        if (villagerScope == null) return new boolean[]{true, true};
-        String json = isRemote() ? cached(AdminConfigService.villagerKind(villagerScope, VillagerShopData.SECTION_LABELS), "")
-                : VillagerShopData.readSection(scopeId(), VillagerShopData.SECTION_LABELS);
-        try {
-            var o = com.google.gson.JsonParser.parseString(json).getAsJsonObject();
-            return new boolean[]{o.has("showSell") && o.get("showSell").getAsBoolean(), o.has("showTrades") && o.get("showTrades").getAsBoolean()};
-        } catch (Exception e) {
-            return new boolean[]{false, false};
-        }
-    }
-
-    public static void saveVillagerLabels(ShopLabels.Values values, boolean showSell, boolean showTrades) {
+    public static void saveVillagerLabels(ShopLabels.Values values) {
         if (villagerScope == null) return;
-        var o = com.google.gson.JsonParser.parseString(ShopLabels.toJson(values)).getAsJsonObject();
-        o.addProperty("showSell", showSell);
-        o.addProperty("showTrades", showTrades);
-        String json = o.toString();
+        String json = ShopLabels.toJson(values);
         if (isRemote()) send(AdminConfigService.villagerKind(villagerScope, VillagerShopData.SECTION_LABELS), json);
         else VillagerShopData.writeSection(scopeId(), VillagerShopData.SECTION_LABELS, json);
     }

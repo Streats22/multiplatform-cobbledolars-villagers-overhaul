@@ -120,7 +120,14 @@ public final class VillagerShopData {
     public static String readSection(UUID villager, String section) {
         Data data = loadOrDefaults(villager);
         return switch (section) {
-            case SECTION_SHOP -> DefaultShopConfig.toJson(data.shop());
+            case SECTION_SHOP -> {
+                JsonObject o = JsonParser.parseString(DefaultShopConfig.toJson(data.shop())).getAsJsonObject();
+                JsonObject tabs = new JsonObject();
+                tabs.addProperty("sell", data.sellTab());
+                tabs.addProperty("trades", data.tradesTab());
+                o.add("tabs", tabs);
+                yield o.toString();
+            }
             case SECTION_BANK -> BankConfig.toJson(data.bank());
             case SECTION_LABELS -> {
                 JsonObject o = JsonParser.parseString(ShopLabels.toJson(data.labels())).getAsJsonObject();
@@ -139,7 +146,17 @@ public final class VillagerShopData {
             throw new IllegalArgumentException(section);
         }
         switch (section) {
-            case SECTION_SHOP -> data = new Data(data.labels(), DefaultShopConfig.parseCategories(json), data.bank(), data.sellTab(), data.tradesTab());
+            case SECTION_SHOP -> {
+                boolean sell = data.sellTab();
+                boolean trades = data.tradesTab();
+                JsonObject tabs = check.getAsJsonObject().has("tabs") && check.getAsJsonObject().get("tabs").isJsonObject()
+                        ? check.getAsJsonObject().getAsJsonObject("tabs") : null;
+                if (tabs != null) {
+                    sell = flag(tabs, "sell");
+                    trades = flag(tabs, "trades");
+                }
+                data = new Data(data.labels(), DefaultShopConfig.parseCategories(json), data.bank(), sell, trades);
+            }
             case SECTION_BANK -> data = new Data(data.labels(), data.shop(), BankConfig.parseEntries(json), data.sellTab(), data.tradesTab());
             case SECTION_LABELS -> {
                 ShopLabels.Values labels = ShopLabels.fromJson(json);

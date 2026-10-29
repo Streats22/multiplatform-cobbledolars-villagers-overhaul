@@ -172,4 +172,21 @@ class VillagerShopDataTest {
         VillagerShopData.writeSection(villager, VillagerShopData.SECTION_SHOP, DefaultShopConfig.toJson(shop("X", "minecraft:apple", 1)));
         assertTrue(VillagerShopData.load(villager).sellTab(), "editing items keeps the tab options");
     }
+
+    @Test
+    void tabSwitchesTravelWithTheShopSection() {
+        UUID villager = UUID.randomUUID();
+        VillagerShopData.ensureExists(villager);
+
+        String json = DefaultShopConfig.toJson(shop("X", "minecraft:apple", 1)).replaceFirst("\{", "{\"tabs\":{\"sell\":true,\"trades\":true},");
+        VillagerShopData.writeSection(villager, VillagerShopData.SECTION_SHOP, json);
+
+        var own = VillagerShopData.load(villager);
+        assertTrue(own.sellTab());
+        assertTrue(own.tradesTab());
+        assertTrue(VillagerShopData.readSection(villager, VillagerShopData.SECTION_SHOP).contains("\"sell\":true"));
+
+        VillagerShopData.writeSection(villager, VillagerShopData.SECTION_LABELS, ShopLabels.toJson(new ShopLabels.Values("A", "", "", "")));
+        assertTrue(VillagerShopData.load(villager).sellTab(), "renaming tabs keeps the switches");
+    }
 }

@@ -20,8 +20,6 @@ public class ShopLabelsEditorScreen extends Screen {
     private EditBox buyBox;
     private EditBox sellBox;
     private EditBox tradesBox;
-    private boolean showSell;
-    private boolean showTrades;
 
     public ShopLabelsEditorScreen(Screen parent) {
         super(Component.translatable(LANG + "edit_labels_title"));
@@ -39,22 +37,6 @@ public class ShopLabelsEditorScreen extends Screen {
         tradesBox = field(x, y + 90, "label_trades", v.trades());
 
         int by = y + 124;
-        if (AdminConfigClient.hasVillagerScope()) {
-            boolean[] tabs = AdminConfigClient.loadVillagerTabs();
-            showSell = tabs[0];
-            showTrades = tabs[1];
-            addRenderableWidget(Button.builder(tabLabel("show_sell_tab", showSell), b -> {
-                        showSell = !showSell;
-                        b.setMessage(tabLabel("show_sell_tab", showSell));
-                    })
-                    .bounds(x, by, 98, 20).build());
-            addRenderableWidget(Button.builder(tabLabel("show_trades_tab", showTrades), b -> {
-                        showTrades = !showTrades;
-                        b.setMessage(tabLabel("show_trades_tab", showTrades));
-                    })
-                    .bounds(x + 102, by, 98, 20).build());
-            by += 24;
-        }
         addRenderableWidget(Button.builder(Component.translatable("gui.done"), b -> saveAndClose())
                 .bounds(x, by, 98, 20).build());
         addRenderableWidget(Button.builder(Component.translatable(LANG + "reset_labels"), b -> {
@@ -66,10 +48,6 @@ public class ShopLabelsEditorScreen extends Screen {
                 .bounds(x + 102, by, 98, 20).build());
         addRenderableWidget(Button.builder(Component.translatable("gui.back"), b -> onClose())
                 .bounds(x, by + 24, FIELD_W, 20).build());
-    }
-
-    private static Component tabLabel(String key, boolean on) {
-        return Component.translatable(LANG + key, Component.translatable(on ? "options.on" : "options.off"));
     }
 
     private EditBox field(int x, int y, String key, String value) {
@@ -84,7 +62,7 @@ public class ShopLabelsEditorScreen extends Screen {
     private void saveAndClose() {
         if (AdminConfigClient.hasVillagerScope()) {
             AdminConfigClient.saveVillagerLabels(new ShopLabels.Values(
-                    shopBox.getValue(), buyBox.getValue(), sellBox.getValue(), tradesBox.getValue()), showSell, showTrades);
+                    shopBox.getValue(), buyBox.getValue(), sellBox.getValue(), tradesBox.getValue()));
             onClose();
             return;
         }
