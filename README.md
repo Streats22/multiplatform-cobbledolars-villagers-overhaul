@@ -152,14 +152,14 @@ them. Custom Buy categories in the default shop are renamed under **Edit shop** 
 
 Seasonal looks for the shop screen: **Pumpkin Night**, **Haunted Purple**, **Graveyard Mist** (Halloween) and
 **Christmas**. Open the mod config (Mod Menu on Fabric, Mods list on NeoForge) and press the **Shop theme** button to
-cycle through the themes; **Default** is the normal grey shop. A theme tints the shop textures, changes the title and
+cycle through **Seasonal (auto)**, **Normal** and the themes. A theme tints the shop textures, changes the title and
 tab colors and adds small decorations. It is cosmetic and stored per player in
 `config/cobbledollars_villagers_overhaul_rca/shop_theme.json`.
 
-**Automatic Halloween theme:** from 28 to 31 October the shop switches to Pumpkin Night by itself, and it goes back to
-normal on 1 November. This uses only the date on the player's own computer (no network access), is purely cosmetic,
-never overrides a theme the player picked, and can be switched off with the **Seasonal themes** button in the same
-config screen.
+**Seasonal (auto)** is the default setting: from 28 to 31 October the shop switches to Pumpkin Night by itself and
+returns to normal on 1 November. It reads only the date on the player's own computer (no network access) and is purely
+cosmetic. Pick **Normal** in the same button to always keep the grey shop, or any named theme to keep that one all
+year. Changes apply the next time the shop opens.
 
 ### RCT Series
 
