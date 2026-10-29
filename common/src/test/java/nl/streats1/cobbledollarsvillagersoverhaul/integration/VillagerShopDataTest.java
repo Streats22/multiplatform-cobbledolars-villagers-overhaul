@@ -208,6 +208,7 @@ class VillagerShopDataTest {
         assertEquals("minecraft:emerald", own.trades().get(0).give2Item());
         assertTrue(own.trades().get(0).hasSecondItem());
         assertFalse(own.trades().get(1).hasSecondItem());
+        assertEquals(0, own.trades().get(1).dollars());
 
         VillagerShopData.writeSection(villager, VillagerShopData.SECTION_BANK, BankConfig.toJson(List.of()));
         VillagerShopData.writeSection(villager, VillagerShopData.SECTION_SHOP, DefaultShopConfig.toJson(shop("X", "minecraft:apple", 1)));
@@ -227,5 +228,16 @@ class VillagerShopDataTest {
         assertEquals("Treats", labels.buy());
         assertEquals("Candy", labels.sell());
         assertEquals("Swaps", labels.trades());
+    }
+
+    @Test
+    void tradesCanChargeCobbleDollars() {
+        UUID villager = UUID.randomUUID();
+        VillagerShopData.ensureExists(villager);
+        var paid = TradeRecord.of("minecraft:diamond", "minecraft:emerald").withDollars(1500);
+        VillagerShopData.writeSection(villager, VillagerShopData.SECTION_TRADES,
+                "{\"trades\":" + VillagerShopData.tradesToJson(List.of(paid)) + "}");
+        assertEquals(1500, VillagerShopData.load(villager).trades().get(0).dollars());
+        assertEquals(0, TradeRecord.of("a:b", "c:d").withDollars(-5).dollars(), "negative costs are clamped");
     }
 }

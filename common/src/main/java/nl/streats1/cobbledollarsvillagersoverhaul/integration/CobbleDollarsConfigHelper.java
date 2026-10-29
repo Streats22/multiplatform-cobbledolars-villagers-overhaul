@@ -137,7 +137,7 @@ public final class CobbleDollarsConfigHelper {
             ItemStack get = stackOf(t.getItem(), t.getCount());
             ItemStack give2 = t.hasSecondItem() ? stackOf(t.give2Item(), t.give2Count()) : ItemStack.EMPTY;
             if (give.isEmpty() || get.isEmpty()) continue;
-            out.add(ShopOfferEntryFactory.trade(give, get, give2));
+            out.add(ShopOfferEntryFactory.tradeWithDollars(give, get, give2, t.dollars()));
         }
         return out;
     }

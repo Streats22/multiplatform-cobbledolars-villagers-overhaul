@@ -39,6 +39,11 @@ public final class ShopOfferEntryFactory {
         return new ShopOfferEntry(costA, 0, result, false, "", "", "", 0, 0, costB, "");
     }
 
+    /** A trade that also charges CobbleDollars (shown and checked as a direct price). */
+    public static ShopOfferEntry tradeWithDollars(ItemStack costA, ItemStack result, ItemStack costB, int dollars) {
+        return new ShopOfferEntry(costA, dollars, result, dollars > 0, "", "", "", 0, 0, costB, "");
+    }
+
     public static ShopOfferEntry trade(ItemStack costA, ItemStack result) {
         return trade(costA, result, ItemStack.EMPTY);
     }

@@ -121,6 +121,17 @@ public final class ShopTransactionService {
         if (!give2.isEmpty() && !playerHasShopItem(player, give2, give2Total.getAsInt())) {
             return;
         }
+        var costOpt = ShopInteractionGuard.safeMultiplyLong(trade.dollars(), quantity);
+        if (costOpt.isEmpty()) {
+            return;
+        }
+        long cost = costOpt.getAsLong();
+        if (cost > 0 && CobbleDollarsIntegration.getBalance(player) < cost) {
+            return;
+        }
+        if (cost > 0 && !CobbleDollarsIntegration.addBalance(player, -cost)) {
+            return;
+        }
         takeShopItem(player, give, giveTotal.getAsInt());
         if (!give2.isEmpty()) {
             takeShopItem(player, give2, give2Total.getAsInt());

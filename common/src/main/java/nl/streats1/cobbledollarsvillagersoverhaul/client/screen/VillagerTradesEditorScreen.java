@@ -32,6 +32,7 @@ public class VillagerTradesEditorScreen extends EditorScreen {
     private EditBox giveBox;
     private EditBox give2Box;
     private EditBox getBox;
+    private EditBox costBox;
     private boolean editWasFocused;
     private Button deleteBtn;
     private Button giveBtn;
@@ -97,6 +98,10 @@ public class VillagerTradesEditorScreen extends EditorScreen {
         give2Box = countBox(bx, rowB, boxW);
         bx += boxW + 12 + labelW;
         getBox = countBox(bx, rowB, boxW);
+        bx += boxW + 12 + costLabelW();
+        costBox = new EditBox(font, bx, rowB, 64, BTN_H, Component.translatable(LANG + "value"));
+        costBox.setFilter(s -> s.isEmpty() || s.matches("\\d{0,9}"));
+        addRenderableWidget(costBox);
 
         int navY = height - 28;
         addRenderableWidget(Button.builder(Component.translatable("gui.back"), b -> minecraft.setScreen(parent))
@@ -107,6 +112,10 @@ public class VillagerTradesEditorScreen extends EditorScreen {
         if (selected >= trades.size()) selected = trades.size() - 1;
         listWidget.selectIndex(selected);
         syncBoxes();
+    }
+
+    private int costLabelW() {
+        return font.width(Component.translatable(LANG + "trade_cost")) + 6;
     }
 
     private EditBox countBox(int x, int y, int w) {
@@ -163,6 +172,7 @@ public class VillagerTradesEditorScreen extends EditorScreen {
         giveBox.setEditable(has);
         give2Box.setEditable(has && trades.get(selected).hasSecondItem());
         getBox.setEditable(has);
+        costBox.setEditable(has);
         deleteBtn.active = has;
         giveBtn.active = has;
         give2Btn.active = has;
@@ -173,17 +183,20 @@ public class VillagerTradesEditorScreen extends EditorScreen {
             giveBox.setValue(String.valueOf(t.giveCount()));
             give2Box.setValue(t.hasSecondItem() ? String.valueOf(t.give2Count()) : "");
             getBox.setValue(String.valueOf(t.getCount()));
+            costBox.setValue(t.dollars() > 0 ? String.valueOf(t.dollars()) : "");
         } else {
             giveBox.setValue("");
             give2Box.setValue("");
             getBox.setValue("");
+            costBox.setValue("");
         }
     }
 
     private void applyCountsFromEdit() {
         if (selected < 0 || selected >= trades.size() || giveBox == null) return;
         TradeRecord t = trades.get(selected);
-        trades.set(selected, t.withCounts(parse(giveBox, t.giveCount()), parse(give2Box, t.give2Count()), parse(getBox, t.getCount())));
+        int dollars = costBox.getValue().trim().isEmpty() ? 0 : parse(costBox, t.dollars());
+        trades.set(selected, t.withCounts(parse(giveBox, t.giveCount()), parse(give2Box, t.give2Count()), parse(getBox, t.getCount())).withDollars(dollars));
         listWidget.refresh();
         listWidget.selectIndex(selected);
     }
@@ -207,7 +220,7 @@ public class VillagerTradesEditorScreen extends EditorScreen {
     public void tick() {
         super.tick();
         boolean focused = (giveBox != null && giveBox.isFocused()) || (give2Box != null && give2Box.isFocused())
-                || (getBox != null && getBox.isFocused());
+                || (getBox != null && getBox.isFocused()) || (costBox != null && costBox.isFocused());
         if (editWasFocused && !focused) applyCountsFromEdit();
         editWasFocused = focused;
         AdminConfigClient.tickTimeout();
@@ -238,6 +251,8 @@ public class VillagerTradesEditorScreen extends EditorScreen {
         g.drawString(font, l2, x, ly, 0xFFCCCCCC, false);
         x += labelW + boxW + 12;
         g.drawString(font, l3, x, ly, 0xFFCCCCCC, false);
+        x += labelW + boxW + 12;
+        g.drawString(font, Component.translatable(LANG + "trade_cost"), x, ly, 0xFFCCCCCC, false);
         super.render(g, mouseX, mouseY, partialTick);
     }
 
@@ -287,6 +302,11 @@ public class VillagerTradesEditorScreen extends EditorScreen {
                 if (t.hasSecondItem()) {
                     g.drawString(font, "+", x + 2, textY, EditorWidgets.MUTED_COLOR, false);
                     x = drawStack(g, t.give2Item(), t.give2Count(), x + 12, y, textY);
+                }
+                if (t.dollars() > 0) {
+                    String cost = "+ " + t.dollars() + " CD";
+                    g.drawString(font, cost, x + 2, textY, EditorWidgets.PRICE_COLOR, false);
+                    x += font.width(cost) + 6;
                 }
                 g.drawString(font, "→", x + 4, textY, EditorWidgets.PRICE_COLOR, false);
                 drawStack(g, t.getItem(), t.getCount(), x + 20, y, textY);

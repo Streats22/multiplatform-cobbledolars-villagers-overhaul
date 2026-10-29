@@ -112,7 +112,8 @@ public final class VillagerShopData {
                 String give = text(o, "give");
                 String get = text(o, "get");
                 if (give.isEmpty() || get.isEmpty()) continue;
-                out.add(new TradeRecord(give, number(o, "giveCount"), text(o, "give2"), number(o, "give2Count"), get, number(o, "getCount")));
+                out.add(new TradeRecord(give, number(o, "giveCount"), text(o, "give2"), number(o, "give2Count"), get, number(o, "getCount"),
+                        o.has("dollars") ? Math.max(0, number(o, "dollars")) : 0));
             }
         } catch (Exception ignored) {
         }
@@ -129,6 +130,7 @@ public final class VillagerShopData {
             o.addProperty("give2Count", t.give2Count());
             o.addProperty("get", t.getItem());
             o.addProperty("getCount", t.getCount());
+            o.addProperty("dollars", t.dollars());
             arr.add(o);
         }
         return arr;

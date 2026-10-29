@@ -61,6 +61,7 @@
   "gui.cobbledollars_villagers_overhaul_rca.trade_give_count": "Gives:",
   "gui.cobbledollars_villagers_overhaul_rca.trade_give2_count": "2nd:",
   "gui.cobbledollars_villagers_overhaul_rca.trade_get_count": "Gets:",
+  "gui.cobbledollars_villagers_overhaul_rca.trade_cost": "+ CD:",
   "gui.cobbledollars_villagers_overhaul_rca.villager_shop_name": "Shop name",
   "gui.cobbledollars_villagers_overhaul_rca.villager_shop_name_hint": "e.g. Shop Guga (the villager keeps their own name)",
   "gui.cobbledollars_villagers_overhaul_rca.villager_shop_hint": "Changes only affect this villager",

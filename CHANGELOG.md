@@ -16,6 +16,8 @@
 - **Custom item-for-item trades per villager**: a Trades editor where you set what the player gives (one or two
   items, with counts) and what they get. They show in the villager's Trades tab (switch it on first), after the
   villager's own datapack/normal item trades, and the server checks and runs them. Open it from the villager's menu or from the Trades button in its items editor.
+- A custom trade can also **cost CobbleDollars** on top of its items (the "+ CD" box in the trades editor); the
+  server checks the balance and charges it.
 - The villager's items editor has **Sell list** and **Trades** buttons, so everything for one villager is reachable
   from the screen you already use.
 - **Shop name per villager** (for example "Shop Guga") on the villager's menu; the shopkeeper keeps their own name.
