@@ -170,6 +170,8 @@ public class CobbleDollarsShopScreen extends Screen {
     private List<String> tabNames = List.of();
     private List<List<CobbleDollarsShopPayloads.ShopOfferEntry>> tabOffers = List.of();
     private int buyTabCount;
+    private static final int MAX_VISIBLE_TABS = 5;
+    private int tabScroll;
 
     private enum TabSection {
         BUY,
@@ -251,6 +253,29 @@ public class CobbleDollarsShopScreen extends Screen {
         tabNames = List.copyOf(names);
         tabOffers = List.copyOf(offers);
         buyTabCount = buyTabs;
+        clampTabScroll();
+    }
+
+    private List<Integer> visibleTabIndexes() {
+        List<Integer> out = new ArrayList<>();
+        for (int t = 0; t < tabNames.size(); t++) {
+            if (tabVisible(t)) out.add(t);
+        }
+        return out;
+    }
+
+    private void clampTabScroll() {
+        int max = Math.max(0, visibleTabIndexes().size() - MAX_VISIBLE_TABS);
+        tabScroll = Math.max(0, Math.min(max, tabScroll));
+    }
+
+    /** Scrolls the tab list so the selected tab is one of the visible rows. */
+    private void ensureSelectedTabVisible() {
+        int row = visibleTabIndexes().indexOf(selectedTab);
+        if (row < 0) return;
+        if (row < tabScroll) tabScroll = row;
+        else if (row >= tabScroll + MAX_VISIBLE_TABS) tabScroll = row - MAX_VISIBLE_TABS + 1;
+        clampTabScroll();
     }
 
     /** Sell and Trades tabs can be switched off for a villager's own shop. */
@@ -292,6 +317,7 @@ public class CobbleDollarsShopScreen extends Screen {
             return;
         }
         selectedTab = targetTab;
+        ensureSelectedTabVisible();
         List<CobbleDollarsShopPayloads.ShopOfferEntry> list = tabOffers.get(targetTab);
         selectedIndex = list.isEmpty() ? -1 : Math.min(Math.max(0, previousOfferIndex), list.size() - 1);
         syncSeriesForTradesSelection();
@@ -304,6 +330,7 @@ public class CobbleDollarsShopScreen extends Screen {
                 selectedTab = t;
                 selectedIndex = 0;
                 syncSeriesForTradesSelection();
+                ensureSelectedTabVisible();
                 return;
             }
         }
@@ -638,17 +665,28 @@ public class CobbleDollarsShopScreen extends Screen {
         int tabX = left + CATEGORY_LIST_X;
         int tabY = top + CATEGORY_LIST_Y;
         int tabGapY = 2;
-        int visibleRow = 0;
-        for (int t = 0; t < tabNames.size(); t++) {
-            if (!tabVisible(t)) continue;
-            int y = tabY + visibleRow++ * (CATEGORY_ENTRY_H + tabGapY);
+        List<Integer> shownTabs = visibleTabIndexes();
+        int firstRow = Math.min(tabScroll, Math.max(0, shownTabs.size() - 1));
+        int lastRow = Math.min(shownTabs.size(), firstRow + MAX_VISIBLE_TABS);
+        for (int row = firstRow; row < lastRow; row++) {
+            int t = shownTabs.get(row);
+            int y = tabY + (row - firstRow) * (CATEGORY_ENTRY_H + tabGapY);
             blitFull(guiGraphics, TEX_CATEGORY_BG, tabX, y, TEX_CATEGORY_BG_W, TEX_CATEGORY_BG_H);
             if (t == selectedTab) {
                 blitStretched(guiGraphics, TEX_CATEGORY_OUTLINE, tabX + TAB_OUTLINE_OFFSET_X, y + TAB_OUTLINE_OFFSET_Y, TEX_CATEGORY_OUTLINE_W, TEX_CATEGORY_OUTLINE_H, TEX_CATEGORY_OUTLINE_W, TEX_CATEGORY_OUTLINE_H);
             }
             String label = tabNames.get(t);
             int textColor = t == selectedTab ? ShopTheme.active().ink() : ShopTheme.active().dim();
-            guiGraphics.drawString(font, Component.literal(label), tabX + 4, y + (CATEGORY_ENTRY_H - font.lineHeight) / 2, textColor, false);
+            guiGraphics.drawString(font, Component.literal(font.plainSubstrByWidth(label, TEX_CATEGORY_BG_W - 8)), tabX + 4, y + (CATEGORY_ENTRY_H - font.lineHeight) / 2, textColor, false);
+        }
+        if (shownTabs.size() > MAX_VISIBLE_TABS) {
+            int arrowX = tabX + TEX_CATEGORY_BG_W + 2;
+            if (firstRow > 0) {
+                guiGraphics.drawString(font, "\u25B2", arrowX, tabY + 2, ShopTheme.active().ink(), false);
+            }
+            if (lastRow < shownTabs.size()) {
+                guiGraphics.drawString(font, "\u25BC", arrowX, tabY + (MAX_VISIBLE_TABS - 1) * (CATEGORY_ENTRY_H + tabGapY) + 2, ShopTheme.active().ink(), false);
+            }
         }
 
         Component professionLabel = getProfessionLabel();
@@ -1322,10 +1360,25 @@ public class CobbleDollarsShopScreen extends Screen {
         int tabGapY = 2;
 
         if (mouseX >= tabX && mouseX < tabX + tabW) {
-            int visibleRow = 0;
-            for (int t = 0; t < tabNames.size(); t++) {
-                if (!tabVisible(t)) continue;
-                int tY = tabY + visibleRow++ * (CATEGORY_ENTRY_H + tabGapY);
+            List<Integer> shownTabs = visibleTabIndexes();
+            int firstRow = Math.min(tabScroll, Math.max(0, shownTabs.size() - 1));
+            int lastRow = Math.min(shownTabs.size(), firstRow + MAX_VISIBLE_TABS);
+            if (shownTabs.size() > MAX_VISIBLE_TABS && mouseX >= tabX + TEX_CATEGORY_BG_W) {
+                int rowH = CATEGORY_ENTRY_H + tabGapY;
+                if (mouseY >= tabY && mouseY < tabY + rowH) {
+                    tabScroll--;
+                    clampTabScroll();
+                    return true;
+                }
+                if (mouseY >= tabY + (MAX_VISIBLE_TABS - 1) * rowH && mouseY < tabY + MAX_VISIBLE_TABS * rowH) {
+                    tabScroll++;
+                    clampTabScroll();
+                    return true;
+                }
+            }
+            for (int row = firstRow; row < lastRow; row++) {
+                int t = shownTabs.get(row);
+                int tY = tabY + (row - firstRow) * (CATEGORY_ENTRY_H + tabGapY);
                 if (mouseY >= tY && mouseY < tY + CATEGORY_ENTRY_H) {
                     selectedTab = t;
                     var off = tabOffers.get(t);
@@ -1381,6 +1434,15 @@ public class CobbleDollarsShopScreen extends Screen {
         int left = (guiWidth() - WINDOW_WIDTH) / 2;
         int top = (guiHeight() - WINDOW_HEIGHT) / 2;
         int listTop = top + LIST_TOP_OFFSET;
+        int tabAreaX = left + CATEGORY_LIST_X;
+        int tabAreaY = top + CATEGORY_LIST_Y;
+        if (mouseX >= tabAreaX && mouseX < tabAreaX + CATEGORY_LIST_W
+                && mouseY >= tabAreaY && mouseY < tabAreaY + MAX_VISIBLE_TABS * (CATEGORY_ENTRY_H + 2)
+                && visibleTabIndexes().size() > MAX_VISIBLE_TABS) {
+            tabScroll -= (int) Math.signum(scrollY);
+            clampTabScroll();
+            return true;
+        }
         var offers = currentOffers();
         int rowL = left + LIST_LEFT_OFFSET;
         int rowR = rowL + LIST_WIDTH + 4 + 2 + SCROLLBAR_WIDTH;

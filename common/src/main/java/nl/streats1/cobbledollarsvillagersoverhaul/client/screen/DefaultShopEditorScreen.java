@@ -40,6 +40,7 @@ public class DefaultShopEditorScreen extends EditorScreen {
     private static final int PANEL_PAD = 20;
     private static final int CAT_LIST_W = 140;
     private static final int BTN_H = 20;
+    private static final int HEADER_BTN_W = 62;
 
     public DefaultShopEditorScreen(Screen parent) {
         this(parent, null, null);
@@ -97,6 +98,19 @@ public class DefaultShopEditorScreen extends EditorScreen {
         listWidget.setY(listTop);
         addRenderableWidget(listWidget);
         listWidget.refresh();
+
+        if (AdminConfigClient.hasVillagerScope()) {
+            int tradesX = right - 4 - HEADER_BTN_W;
+            int sellX = tradesX - 4 - HEADER_BTN_W;
+            addRenderableWidget(Button.builder(Component.translatable("gui.cobbledollars_villagers_overhaul_rca.editor_sell_list"),
+                            b -> AdminConfigClient.open(nl.streats1.cobbledollarsvillagersoverhaul.network.AdminConfigService.BANK,
+                                    () -> minecraft.setScreen(new BankEditorScreen(this))))
+                    .bounds(sellX, panelTop + 4, HEADER_BTN_W, BTN_H).build());
+            addRenderableWidget(Button.builder(Component.translatable("gui.cobbledollars_villagers_overhaul_rca.editor_trades"),
+                            b -> AdminConfigClient.open(nl.streats1.cobbledollarsvillagersoverhaul.network.AdminConfigService.TRADES,
+                                    () -> minecraft.setScreen(new VillagerTradesEditorScreen(this))))
+                    .bounds(tradesX, panelTop + 4, HEADER_BTN_W, BTN_H).build());
+        }
 
         int rowA = height - 76;
         int rowB = height - 52;
@@ -304,7 +318,8 @@ public class DefaultShopEditorScreen extends EditorScreen {
         guiGraphics.drawCenteredString(font, Component.translatable("gui.cobbledollars_villagers_overhaul_rca.shop_edit_hint"), width / 2, 19, 0xFFAAAAAA);
         int il = itemListLeft();
         String heading = selectedCategory != null ? selectedCategory : "-";
-        guiGraphics.drawString(font, font.plainSubstrByWidth(heading, panelRight - il - 12), il + 4, panelTop + 11, EditorWidgets.PRICE_COLOR, false);
+        int headingRoom = panelRight - il - 12 - (AdminConfigClient.hasVillagerScope() ? 2 * HEADER_BTN_W + 8 : 0);
+        guiGraphics.drawString(font, font.plainSubstrByWidth(heading, headingRoom), il + 4, panelTop + 11, EditorWidgets.PRICE_COLOR, false);
         guiGraphics.fill(il, panelTop + 26, panelRight - 4, panelTop + 27, 0x44FFFFFF);
         guiGraphics.drawString(font, Component.translatable("gui.cobbledollars_villagers_overhaul_rca.value_label"), il, height - 76 + (BTN_H - font.lineHeight) / 2, 0xFFCCCCCC, false);
         super.render(guiGraphics, mouseX, mouseY, partialTick);

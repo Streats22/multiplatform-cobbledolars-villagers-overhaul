@@ -22,6 +22,8 @@ public final class AdminConfigService {
     public static final String BANK = "bank";
     public static final String ITEM_PRICES = "item_prices";
     public static final String CURRENCY = "currency";
+    /** Only meaningful inside a villager kind ({@code v:<uuid>:trades}). */
+    public static final String TRADES = "trades";
     /** Per-villager sections are addressed as {@code v:<villager uuid>:<shop|bank|labels>}. */
     public static final String VILLAGER_PREFIX = "v:";
 

@@ -7,6 +7,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.npc.AbstractVillager;
 import net.minecraft.world.entity.npc.Villager;
+import nl.streats1.cobbledollarsvillagersoverhaul.integration.TradeRecord;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.VillagerShopConfig;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.VillagerShopData;
 import net.minecraft.world.entity.npc.WanderingTrader;
@@ -92,6 +93,44 @@ public final class ShopTransactionService {
         serverPlayer.inventoryMenu.broadcastChanges();
         sendBalanceUpdate(serverPlayer, villagerId);
         return true;
+    }
+
+    /** Runs one of a villager's own item-for-item trades: takes what the player gives and hands over the result. */
+    private static void handleCustomTrade(ServerPlayer player, int villagerId, Villager villager, int index, int quantity) {
+        var own = VillagerShopData.load(villager.getUUID());
+        if (own == null || !own.tradesTab()) {
+            return;
+        }
+        List<TradeRecord> trades = CobbleDollarsConfigHelper.usableTrades(own.trades());
+        if (index < 0 || index >= trades.size()) {
+            return;
+        }
+        TradeRecord trade = trades.get(index);
+        ItemStack give = CobbleDollarsConfigHelper.stackOf(trade.giveItem(), trade.giveCount());
+        ItemStack give2 = trade.hasSecondItem() ? CobbleDollarsConfigHelper.stackOf(trade.give2Item(), trade.give2Count()) : ItemStack.EMPTY;
+        ItemStack get = CobbleDollarsConfigHelper.stackOf(trade.getItem(), trade.getCount());
+        var giveTotal = ShopInteractionGuard.safeMultiplyExact(give.getCount(), quantity);
+        var give2Total = ShopInteractionGuard.safeMultiplyExact(Math.max(1, give2.getCount()), quantity);
+        var getTotal = ShopInteractionGuard.safeMultiplyExact(get.getCount(), quantity);
+        if (giveTotal.isEmpty() || give2Total.isEmpty() || getTotal.isEmpty()) {
+            return;
+        }
+        if (!playerHasShopItem(player, give, giveTotal.getAsInt())) {
+            return;
+        }
+        if (!give2.isEmpty() && !playerHasShopItem(player, give2, give2Total.getAsInt())) {
+            return;
+        }
+        takeShopItem(player, give, giveTotal.getAsInt());
+        if (!give2.isEmpty()) {
+            takeShopItem(player, give2, give2Total.getAsInt());
+        }
+        ItemStack out = get.copy();
+        out.setCount(getTotal.getAsInt());
+        PlayerInventoryHelper.give(player, out);
+        player.containerMenu.broadcastChanges();
+        player.inventoryMenu.broadcastChanges();
+        sendBalanceUpdate(player, villagerId);
     }
 
     /** The catalog a config-shop buy is checked against: the villager's own shop, else the default shop. */
@@ -211,6 +250,10 @@ public final class ShopTransactionService {
                 && VillagerShopConfig.usesConfigShop(tradesVillager.getUUID())
                 && VillagerShopData.load(tradesVillager.getUUID()) instanceof VillagerShopData.Data own
                 && own.tradesTab();
+        if (ownTrades && entity instanceof Villager customTrader) {
+            handleCustomTrade(serverPlayer, villagerId, customTrader, offerIndex, quantity);
+            return;
+        }
         if (!ownTrades && ShopTradePolicy.shouldBuyFromConfigShop(assignedOrVirtualConfig, openedAsConfigShop, false)) {
             handleBuyFromConfig(serverPlayer, villagerId, offerIndex, quantity);
             return;

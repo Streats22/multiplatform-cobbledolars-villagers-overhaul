@@ -13,6 +13,13 @@
 - **Sell and Trades tabs are optional per villager and off by default.** In a villager's *Shop name and tabs* screen
   you can switch each tab on (Sell uses the villager's own sell list, Trades shows its normal item-for-item trades).
 - Empty shop categories now get a tab, in editor order.
+- **Custom item-for-item trades per villager**: a Trades editor where you set what the player gives (one or two
+  items, with counts) and what they get. They show in the villager's Trades tab (switch it on first) and the server
+  checks and runs them. Open it from the villager's menu or from the Trades button in its items editor.
+- The villager's items editor has **Sell list** and **Trades** buttons, so everything for one villager is reachable
+  from the screen you already use.
+- **Shop name per villager** (for example "Shop Guga") on the villager's menu; the shopkeeper keeps their own name.
+- The category tabs in the shop scroll when there are more than 5 (mouse wheel or the arrows).
 
 ### Fixed
 

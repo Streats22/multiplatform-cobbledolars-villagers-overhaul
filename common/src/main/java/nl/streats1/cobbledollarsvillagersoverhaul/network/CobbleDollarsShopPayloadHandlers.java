@@ -204,7 +204,7 @@ public final class CobbleDollarsShopPayloadHandlers {
                             hiddenTabs |= CobbleDollarsShopPayloads.ShopData.HIDE_SELL_TAB;
                         }
                         if (own.tradesTab()) {
-                            buildItemForItemTrades(villager.getOffers(), tradesOffers);
+                            tradesOffers.addAll(CobbleDollarsConfigHelper.tradeOffersFrom(own.trades()));
                         } else {
                             hiddenTabs |= CobbleDollarsShopPayloads.ShopData.HIDE_TRADES_TAB;
                         }

@@ -25,6 +25,7 @@ public final class VillagerShopData {
     public static final String SECTION_SHOP = "shop";
     public static final String SECTION_BANK = "bank";
     public static final String SECTION_LABELS = "labels";
+    public static final String SECTION_TRADES = "trades";
 
     private static final String SUBDIR = "villager_shops";
 
@@ -33,9 +34,15 @@ public final class VillagerShopData {
                        Map<String, List<ShopEntryRecord>> shop,
                        List<BankEntryRecord> bank,
                        boolean sellTab,
-                       boolean tradesTab) {
+                       boolean tradesTab,
+                       List<TradeRecord> trades) {
         public Data(ShopLabels.Values labels, Map<String, List<ShopEntryRecord>> shop, List<BankEntryRecord> bank) {
-            this(labels, shop, bank, false, false);
+            this(labels, shop, bank, false, false, new ArrayList<>());
+        }
+
+        public Data(ShopLabels.Values labels, Map<String, List<ShopEntryRecord>> shop, List<BankEntryRecord> bank,
+                    boolean sellTab, boolean tradesTab) {
+            this(labels, shop, bank, sellTab, tradesTab, new ArrayList<>());
         }
     }
 
@@ -68,7 +75,8 @@ public final class VillagerShopData {
                     : new ArrayList<>();
             JsonObject tabs = root.has("tabs") && root.get("tabs").isJsonObject() ? root.getAsJsonObject("tabs") : new JsonObject();
             return new Data(labels != null ? labels : new ShopLabels.Values("", "", "", ""), shop, bank,
-                    flag(tabs, "sell"), flag(tabs, "trades"));
+                    flag(tabs, "sell"), flag(tabs, "trades"),
+                    root.has(SECTION_TRADES) ? parseTrades(root.get(SECTION_TRADES)) : new ArrayList<>());
         } catch (Exception ex) {
             return null;
         }
@@ -83,11 +91,58 @@ public final class VillagerShopData {
         tabs.addProperty("sell", data.sellTab());
         tabs.addProperty("trades", data.tradesTab());
         root.add("tabs", tabs);
+        root.add(SECTION_TRADES, tradesToJson(data.trades()));
         try {
             Path file = file(villager);
             Files.createDirectories(file.getParent());
             Files.writeString(file, new GsonBuilder().setPrettyPrinting().create().toJson(root));
         } catch (Exception ignored) {
+        }
+    }
+
+    /** Accepts a list of trades, or an object holding one under {@code "trades"}. */
+    public static List<TradeRecord> parseTrades(JsonElement el) {
+        List<TradeRecord> out = new ArrayList<>();
+        try {
+            JsonElement list = el.isJsonObject() ? el.getAsJsonObject().get(SECTION_TRADES) : el;
+            if (list == null || !list.isJsonArray()) return out;
+            for (JsonElement e : list.getAsJsonArray()) {
+                if (!e.isJsonObject()) continue;
+                JsonObject o = e.getAsJsonObject();
+                String give = text(o, "give");
+                String get = text(o, "get");
+                if (give.isEmpty() || get.isEmpty()) continue;
+                out.add(new TradeRecord(give, number(o, "giveCount"), text(o, "give2"), number(o, "give2Count"), get, number(o, "getCount")));
+            }
+        } catch (Exception ignored) {
+        }
+        return out;
+    }
+
+    public static com.google.gson.JsonArray tradesToJson(List<TradeRecord> trades) {
+        com.google.gson.JsonArray arr = new com.google.gson.JsonArray();
+        for (TradeRecord t : trades) {
+            JsonObject o = new JsonObject();
+            o.addProperty("give", t.giveItem());
+            o.addProperty("giveCount", t.giveCount());
+            o.addProperty("give2", t.give2Item());
+            o.addProperty("give2Count", t.give2Count());
+            o.addProperty("get", t.getItem());
+            o.addProperty("getCount", t.getCount());
+            arr.add(o);
+        }
+        return arr;
+    }
+
+    private static String text(JsonObject o, String key) {
+        return o.has(key) && o.get(key).isJsonPrimitive() ? o.get(key).getAsString() : "";
+    }
+
+    private static int number(JsonObject o, String key) {
+        try {
+            return o.has(key) ? o.get(key).getAsInt() : 1;
+        } catch (Exception e) {
+            return 1;
         }
     }
 
@@ -129,6 +184,11 @@ public final class VillagerShopData {
                 yield o.toString();
             }
             case SECTION_BANK -> BankConfig.toJson(data.bank());
+            case SECTION_TRADES -> {
+                JsonObject o = new JsonObject();
+                o.add(SECTION_TRADES, tradesToJson(data.trades()));
+                yield o.toString();
+            }
             case SECTION_LABELS -> {
                 JsonObject o = JsonParser.parseString(ShopLabels.toJson(data.labels())).getAsJsonObject();
                 o.addProperty("showSell", data.sellTab());
@@ -155,15 +215,21 @@ public final class VillagerShopData {
                     sell = flag(tabs, "sell");
                     trades = flag(tabs, "trades");
                 }
-                data = new Data(data.labels(), DefaultShopConfig.parseCategories(json), data.bank(), sell, trades);
+                data = new Data(data.labels(), DefaultShopConfig.parseCategories(json), data.bank(), sell, trades, data.trades());
             }
-            case SECTION_BANK -> data = new Data(data.labels(), data.shop(), BankConfig.parseEntries(json), data.sellTab(), data.tradesTab());
+            case SECTION_BANK -> data = new Data(data.labels(), data.shop(), BankConfig.parseEntries(json), data.sellTab(), data.tradesTab(), data.trades());
+            case SECTION_TRADES -> data = new Data(data.labels(), data.shop(), data.bank(), data.sellTab(), data.tradesTab(), parseTrades(check));
             case SECTION_LABELS -> {
-                ShopLabels.Values labels = ShopLabels.fromJson(json);
                 JsonObject o = check.getAsJsonObject();
+                ShopLabels.Values current = data.labels();
+                ShopLabels.Values labels = new ShopLabels.Values(
+                        o.has("shop") ? text(o, "shop") : current.shop(),
+                        o.has("buy") ? text(o, "buy") : current.buy(),
+                        o.has("sell") ? text(o, "sell") : current.sell(),
+                        o.has("trades") ? text(o, "trades") : current.trades());
                 boolean sell = o.has("showSell") ? flag(o, "showSell") : data.sellTab();
                 boolean trades = o.has("showTrades") ? flag(o, "showTrades") : data.tradesTab();
-                data = new Data(labels != null ? labels : data.labels(), data.shop(), data.bank(), sell, trades);
+                data = new Data(labels, data.shop(), data.bank(), sell, trades, data.trades());
             }
             default -> throw new IllegalArgumentException(section);
         }

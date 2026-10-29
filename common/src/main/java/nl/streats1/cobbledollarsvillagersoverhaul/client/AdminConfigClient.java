@@ -62,7 +62,7 @@ public final class AdminConfigClient {
     }
 
     private static String scoped(String kind) {
-        if (villagerScope == null || !(AdminConfigService.SHOP.equals(kind) || AdminConfigService.BANK.equals(kind))) return kind;
+        if (villagerScope == null || !(AdminConfigService.SHOP.equals(kind) || AdminConfigService.BANK.equals(kind) || AdminConfigService.TRADES.equals(kind))) return kind;
         return AdminConfigService.villagerKind(villagerScope, kind);
     }
 
@@ -165,6 +165,25 @@ public final class AdminConfigClient {
         else VillagerShopData.writeSection(scopeId(), VillagerShopData.SECTION_SHOP, json);
     }
 
+    public static List<nl.streats1.cobbledollarsvillagersoverhaul.integration.TradeRecord> loadVillagerTrades() {
+        if (villagerScope == null) return new java.util.ArrayList<>();
+        if (!isRemote()) return new java.util.ArrayList<>(VillagerShopData.loadOrDefaults(scopeId()).trades());
+        try {
+            return VillagerShopData.parseTrades(com.google.gson.JsonParser.parseString(cached(scoped(AdminConfigService.TRADES), "{}")));
+        } catch (Exception e) {
+            return new java.util.ArrayList<>();
+        }
+    }
+
+    public static void saveVillagerTrades(List<nl.streats1.cobbledollarsvillagersoverhaul.integration.TradeRecord> trades) {
+        if (villagerScope == null) return;
+        var o = new com.google.gson.JsonObject();
+        o.add(VillagerShopData.SECTION_TRADES, VillagerShopData.tradesToJson(trades));
+        String json = o.toString();
+        if (isRemote()) send(scoped(AdminConfigService.TRADES), json);
+        else VillagerShopData.writeSection(scopeId(), VillagerShopData.SECTION_TRADES, json);
+    }
+
     public static List<BankEntryRecord> loadBank() {
         if (villagerScope != null) {
             return isRemote() ? BankConfig.parseEntries(cached(scoped(AdminConfigService.BANK), "{}"))
@@ -190,6 +209,17 @@ public final class AdminConfigClient {
                 : VillagerShopData.readSection(scopeId(), VillagerShopData.SECTION_LABELS);
         ShopLabels.Values v = ShopLabels.fromJson(json);
         return v != null ? v : new ShopLabels.Values("", "", "", "");
+    }
+
+    /** Renames only the shop of the villager being edited; the other tab names stay as they are. */
+    public static void saveVillagerShopName(String name) {
+        if (villagerScope == null) return;
+        var o = new com.google.gson.JsonObject();
+        o.addProperty("shop", name == null ? "" : name.trim());
+        String json = o.toString();
+        if (isRemote()) PlatformNetwork.sendToServer(new CobbleDollarsShopPayloads.SaveAdminConfig(
+                AdminConfigService.villagerKind(villagerScope, VillagerShopData.SECTION_LABELS), json));
+        else VillagerShopData.writeSection(scopeId(), VillagerShopData.SECTION_LABELS, json);
     }
 
     public static void saveVillagerLabels(ShopLabels.Values values) {

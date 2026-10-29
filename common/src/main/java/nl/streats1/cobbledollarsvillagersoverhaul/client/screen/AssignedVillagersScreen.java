@@ -57,7 +57,11 @@ public class AssignedVillagersScreen extends EditorScreen {
             List<String> labels = ClientAssignedVillagers.labels();
             String label = first + i < labels.size() ? labels.get(first + i) : uuid;
             addRenderableWidget(Button.builder(Component.translatable(LANG + "edit_villager_shop"),
-                            b -> Minecraft.getInstance().setScreen(new VillagerShopHubScreen(this, uuid, label)))
+                            b -> {
+                                nl.streats1.cobbledollarsvillagersoverhaul.client.AdminConfigClient.setVillagerScope(uuid, label);
+                                nl.streats1.cobbledollarsvillagersoverhaul.client.AdminConfigClient.openVillagerLabels(
+                                        () -> Minecraft.getInstance().setScreen(new VillagerShopHubScreen(this, uuid, label)));
+                            })
                     .bounds(x + ROW_W - 146, y + i * 24, 72, 20).build());
             addRenderableWidget(Button.builder(Component.translatable(LANG + "unassign"),
                             b -> PlatformNetwork.sendToServer(new CobbleDollarsShopPayloads.UnassignByUuid(uuid)))

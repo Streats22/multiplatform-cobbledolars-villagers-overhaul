@@ -189,4 +189,43 @@ class VillagerShopDataTest {
         VillagerShopData.writeSection(villager, VillagerShopData.SECTION_LABELS, ShopLabels.toJson(new ShopLabels.Values("A", "", "", "")));
         assertTrue(VillagerShopData.load(villager).sellTab(), "renaming tabs keeps the switches");
     }
+
+    @Test
+    void customTradesRoundTripAndSurviveOtherEdits() {
+        UUID villager = UUID.randomUUID();
+        VillagerShopData.ensureExists(villager);
+        assertTrue(VillagerShopData.load(villager).trades().isEmpty());
+
+        var trades = List.of(
+                new TradeRecord("minecraft:diamond", 2, "minecraft:emerald", 5, "cobblemon:rare_candy", 1),
+                TradeRecord.of("minecraft:apple", "minecraft:bread"));
+        VillagerShopData.writeSection(villager, VillagerShopData.SECTION_TRADES,
+                "{\"trades\":" + VillagerShopData.tradesToJson(trades) + "}");
+
+        var own = VillagerShopData.load(villager);
+        assertEquals(2, own.trades().size());
+        assertEquals(2, own.trades().get(0).giveCount());
+        assertEquals("minecraft:emerald", own.trades().get(0).give2Item());
+        assertTrue(own.trades().get(0).hasSecondItem());
+        assertFalse(own.trades().get(1).hasSecondItem());
+
+        VillagerShopData.writeSection(villager, VillagerShopData.SECTION_BANK, BankConfig.toJson(List.of()));
+        VillagerShopData.writeSection(villager, VillagerShopData.SECTION_SHOP, DefaultShopConfig.toJson(shop("X", "minecraft:apple", 1)));
+        assertEquals(2, VillagerShopData.load(villager).trades().size(), "other edits keep the trades");
+    }
+
+    @Test
+    void renamingTheShopLeavesTheOtherTabNamesAlone() {
+        UUID villager = UUID.randomUUID();
+        VillagerShopData.save(villager, new VillagerShopData.Data(
+                new ShopLabels.Values("Old", "Treats", "Candy", "Swaps"), shop("A", "minecraft:apple", 1), new ArrayList<>()));
+
+        VillagerShopData.writeSection(villager, VillagerShopData.SECTION_LABELS, "{\"shop\":\"Shop Guga\"}");
+
+        var labels = VillagerShopData.load(villager).labels();
+        assertEquals("Shop Guga", labels.shop());
+        assertEquals("Treats", labels.buy());
+        assertEquals("Candy", labels.sell());
+        assertEquals("Swaps", labels.trades());
+    }
 }
