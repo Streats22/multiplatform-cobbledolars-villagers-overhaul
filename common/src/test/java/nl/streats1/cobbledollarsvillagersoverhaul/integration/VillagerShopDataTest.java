@@ -30,8 +30,11 @@ class VillagerShopDataTest {
     }
 
     @AfterEach
-    void tearDown() {
+    void tearDown() throws Exception {
         ModConfig.setConfigRoot(null);
+        try (var paths = Files.walk(root)) {
+            paths.sorted(java.util.Comparator.reverseOrder()).forEach(path -> path.toFile().delete());
+        }
     }
 
     private static Map<String, List<ShopEntryRecord>> shop(String category, String item, int price) {
