@@ -144,29 +144,16 @@ public class CobbleDollarsShopScreen extends Screen {
         return ResourceLocation.fromNamespaceAndPath(namespace, path);
     }
 
-    private static void applyThemeTint(GuiGraphics guiGraphics, ResourceLocation tex) {
-        ShopTheme theme = ShopTheme.active();
-        if (theme.isTinted() && tex != TEX_COBBLEDOLLARS_LOGO) {
-            guiGraphics.setColor(theme.tintR(), theme.tintG(), theme.tintB(), 1.0f);
-        }
-    }
-
     private static void blitFull(GuiGraphics guiGraphics, ResourceLocation tex, int x, int y, int texW, int texH) {
-        applyThemeTint(guiGraphics, tex);
-        guiGraphics.blit(tex, x, y, 0, 0, texW, texH, texW, texH);
-        guiGraphics.setColor(1.0f, 1.0f, 1.0f, 1.0f);
+        guiGraphics.blit(ShopThemeTextures.resolve(tex), x, y, 0, 0, texW, texH, texW, texH);
     }
 
     private static void blitStretched(GuiGraphics guiGraphics, ResourceLocation tex, int x, int y, int drawW, int drawH, int texW, int texH) {
-        applyThemeTint(guiGraphics, tex);
-        guiGraphics.blit(tex, x, y, 0, 0f, 0f, drawW, drawH, texW, texH);
-        guiGraphics.setColor(1.0f, 1.0f, 1.0f, 1.0f);
+        guiGraphics.blit(ShopThemeTextures.resolve(tex), x, y, 0, 0f, 0f, drawW, drawH, texW, texH);
     }
 
     private static void blitRegion(GuiGraphics guiGraphics, ResourceLocation tex, int x, int y, int u, int v, int w, int h, int texW, int texH) {
-        applyThemeTint(guiGraphics, tex);
-        guiGraphics.blit(tex, x, y, u, v, w, h, texW, texH);
-        guiGraphics.setColor(1.0f, 1.0f, 1.0f, 1.0f);
+        guiGraphics.blit(ShopThemeTextures.resolve(tex), x, y, u, v, w, h, texW, texH);
     }
 
     private final int villagerId;
