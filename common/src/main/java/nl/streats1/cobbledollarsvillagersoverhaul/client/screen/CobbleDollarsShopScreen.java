@@ -765,6 +765,8 @@ public class CobbleDollarsShopScreen extends Screen {
                 if (!costB.isEmpty()) {
                     
                     float costBScale = isTradesTab() ? LIST_ICON_SCALE : LIST_COSTB_SCALE;
+                    boolean costsThenResult = tradeShowsCostsThenResult(entry);
+                    ItemStack firstSlot = costsThenResult ? itemTradeSecondaryFrom(entry) : costB;
 
                     int costBX = priceX + Math.round(font.width(priceStr) * LIST_TEXT_SCALE) + (selectedTab < buyTabCount ? 2 : 4); 
                     int costBY = isTradesTab() ? iconY : iconY + 3;
@@ -784,7 +786,7 @@ public class CobbleDollarsShopScreen extends Screen {
                         int arrowBaseY = iconY + (LIST_ITEM_ICON_SIZE - font.lineHeight) / 2 + LIST_TRADES_ARROW_OFFSET_Y;
                         int arrowDrawX = Math.round(arrowBaseX / arrowScale);
                         int arrowDrawY = Math.round(arrowBaseY / arrowScale);
-                        guiGraphics.drawString(font, "→", arrowDrawX, arrowDrawY, 0xFFAAAAAA, false);
+                        guiGraphics.drawString(font, costsThenResult ? "+" : "→", arrowDrawX, arrowDrawY, 0xFFAAAAAA, false);
                     } else {
                         
                         guiGraphics.drawString(font, "+", plusDrawX, plusDrawY, 0xFFAAAAAA, false);
@@ -794,22 +796,23 @@ public class CobbleDollarsShopScreen extends Screen {
                     guiGraphics.pose().scale(costBScale, costBScale, 1.0f);
                     int costDrawX = Math.round((costBX + 2) / costBScale);
                     int costDrawY = Math.round(costBY / costBScale);
-                    guiGraphics.renderItem(costB, costDrawX, costDrawY);
-                    guiGraphics.renderItemDecorations(font, costB, costDrawX, costDrawY);
+                    guiGraphics.renderItem(firstSlot, costDrawX, costDrawY);
+                    guiGraphics.renderItemDecorations(font, firstSlot, costDrawX, costDrawY);
                     guiGraphics.pose().popPose();
                     if (isTradesTab() && entry.hasItemTradeSecondary()) {
                         ItemStack sec = itemTradeSecondaryFrom(entry);
                         if (!sec.isEmpty()) {
                             int firstRight = costBX + 2 + Math.round(LIST_ITEM_ICON_SIZE * costBScale);
                             int plusY = iconY + (LIST_ITEM_ICON_SIZE - font.lineHeight) / 2;
-                            guiGraphics.drawString(font, "+", firstRight + 2, plusY, 0xFFAAAAAA, false);
+                            guiGraphics.drawString(font, costsThenResult ? "→" : "+", firstRight + 2, plusY, 0xFFAAAAAA, false);
                             int secondBX = firstRight + 2 + font.width("+") + 3;
                             guiGraphics.pose().pushPose();
                             guiGraphics.pose().scale(costBScale, costBScale, 1.0f);
                             int secDrawX = Math.round(secondBX / costBScale);
                             int secDrawY = costDrawY;
-                            guiGraphics.renderItem(sec, secDrawX, secDrawY);
-                            guiGraphics.renderItemDecorations(font, sec, secDrawX, secDrawY);
+                            ItemStack lastSlot = costsThenResult ? costB : sec;
+                            guiGraphics.renderItem(lastSlot, secDrawX, secDrawY);
+                            guiGraphics.renderItemDecorations(font, lastSlot, secDrawX, secDrawY);
                             guiGraphics.pose().popPose();
                         }
                     }
@@ -1001,7 +1004,8 @@ public class CobbleDollarsShopScreen extends Screen {
                                 guiGraphics.renderTooltip(font, tooltipLines, mouseX, mouseY);
                             } else {
                                 
-                                guiGraphics.renderTooltip(font, costB, mouseX, mouseY);
+                                guiGraphics.renderTooltip(font,
+                                        tradeShowsCostsThenResult(entry) ? itemTradeSecondaryFrom(entry) : costB, mouseX, mouseY);
                             }
                         }
                         if (isTradesTab() && entry.hasItemTradeSecondary()) {
@@ -1011,7 +1015,7 @@ public class CobbleDollarsShopScreen extends Screen {
                                 int secondBX = firstRight + 2 + font.width("+") + 3;
                                 if (mouseX >= secondBX && mouseX < secondBX + costBSize
                                         && mouseY >= costBY && mouseY < costBY + costBSize) {
-                                    guiGraphics.renderTooltip(font, sec, mouseX, mouseY);
+                                    guiGraphics.renderTooltip(font, tradeShowsCostsThenResult(entry) ? costBStackFrom(entry) : sec, mouseX, mouseY);
                                 }
                             }
                         }
@@ -1095,6 +1099,16 @@ public class CobbleDollarsShopScreen extends Screen {
         ItemStack stack = entry.costB();
         if (stack.isEmpty() || stack.is(Items.AIR)) return ItemStack.EMPTY;
         return stack.copy();
+    }
+
+    /**
+     * Item-for-item trades with two inputs are stored as (A, result C, B); show them as A + B → C
+     * instead of A → C + B. RCT series rows keep their own layout.
+     */
+    private static boolean tradeShowsCostsThenResult(CobbleDollarsShopPayloads.ShopOfferEntry entry) {
+        return entry != null && entry.hasItemTradeSecondary()
+                && (entry.seriesName() == null || entry.seriesName().isEmpty())
+                && !itemTradeSecondaryFrom(entry).isEmpty();
     }
 
     private static ItemStack itemTradeSecondaryFrom(CobbleDollarsShopPayloads.ShopOfferEntry entry) {
