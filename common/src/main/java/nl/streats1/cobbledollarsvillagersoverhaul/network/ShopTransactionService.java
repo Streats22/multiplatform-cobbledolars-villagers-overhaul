@@ -284,7 +284,8 @@ public final class ShopTransactionService {
                 handleBuyFromConfig(serverPlayer, villagerId, offerIndex, quantity);
                 return;
             }
-        } else if (configBuyOffersAvailable && entity instanceof WanderingTrader emptyCheckTrader) {
+        } else if (configBuyOffersAvailable && !RctTrainerAssociationCompat.isTrainerAssociation(entity)
+                && entity instanceof WanderingTrader emptyCheckTrader) {
             MerchantTradeGenerationHelper.ensureMerchantOffersReady(level, emptyCheckTrader);
             if (ShopInteractionGuard.isEmptyOfferConfigFallback(emptyCheckTrader, true)) {
                 handleBuyFromConfig(serverPlayer, villagerId, offerIndex, quantity);
@@ -305,11 +306,15 @@ public final class ShopTransactionService {
                 McaIntegration.prepareOffers(level, v);
             }
             allOffers = v.getOffers();
-        } else if (entity instanceof WanderingTrader trader) {
+        } else if (entity instanceof WanderingTrader trader && !RctTrainerAssociationCompat.isTrainerAssociation(entity)) {
             trader.setTradingPlayer(serverPlayer);
             tradingMerchant = trader;
             allOffers = trader.getOffers();
         } else if (RctTrainerAssociationCompat.isTrainerAssociation(entity)) {
+            if (entity instanceof AbstractVillager association) {
+                association.setTradingPlayer(serverPlayer);
+                tradingMerchant = association;
+            }
             try {
                 var updateOffersForMethod = entity.getClass().getMethod("updateOffersFor", net.minecraft.world.entity.player.Player.class);
                 updateOffersForMethod.setAccessible(true);
@@ -321,7 +326,7 @@ public final class ShopTransactionService {
                 var getOffersMethod = entity.getClass().getMethod("getOffers");
                 var offers = getOffersMethod.invoke(entity);
                 if (offers instanceof List) {
-                    allOffers = (List<MerchantOffer>) offers;
+                    allOffers = ShopSeriesCatalog.withFallbackSeriesOffers((List<MerchantOffer>) offers, serverPlayer);
                 } else {
                     allOffers = List.of();
                 }
@@ -385,16 +390,20 @@ public final class ShopTransactionService {
                 return;
             }
 
-            String targetSeries = selectedSeries;
+            // The offer comes from the association's own per-player list, so its series is trusted over the client's.
+            String offerSeries = ShopSeriesCatalog.seriesIdOfOffer(offer);
+            String targetSeries = offerSeries.isEmpty() ? selectedSeries : offerSeries;
             if (targetSeries == null || targetSeries.isEmpty()) {
                 targetSeries = ShopSeriesCatalog.identifySeriesFromOffer(offer, serverPlayer, offerIndex);
             }
             if (targetSeries == null) {
                 targetSeries = "";
             }
-            List<String> availableIds = ShopSeriesCatalog.getLiveAvailableSeriesIds(serverPlayer);
-            if (!ShopInteractionGuard.isSeriesAllowed(targetSeries, availableIds)) {
-                return;
+            if (offerSeries.isEmpty()) {
+                List<String> availableIds = ShopSeriesCatalog.getLiveAvailableSeriesIds(serverPlayer);
+                if (!ShopInteractionGuard.isSeriesAllowed(targetSeries, availableIds)) {
+                    return;
+                }
             }
 
             
