@@ -17,12 +17,13 @@ import java.time.LocalDate;
  * normal look, and any other value pins that theme.
  */
 public enum ShopTheme {
-    AUTO("auto", 0xFFE0E0E0, 0xFFA0A0A0, Decoration.NONE, 0xE0101010, 0xFF404040, 0xFF202020),
-    DEFAULT("default", 0xFFE0E0E0, 0xFFA0A0A0, Decoration.NONE, 0xE0101010, 0xFF404040, 0xFF202020),
-    PUMPKIN_NIGHT("pumpkin_night", 0xFFFFE2BD, 0xFFC58B52, Decoration.HALLOWEEN, 0xE02B1203, 0xFFA2561A, 0xFF1B0B00),
-    HAUNTED_PURPLE("haunted_purple", 0xFFE6DCFF, 0xFF9A88C8, Decoration.HALLOWEEN, 0xE01A1229, 0xFF5B4A85, 0xFF120C1F),
-    GRAVEYARD_MIST("graveyard_mist", 0xFFDCEBE5, 0xFF8FA59C, Decoration.FOG, 0xE0222C29, 0xFF7D918A, 0xFF18201D),
-    CHRISTMAS("christmas", 0xFFFFF4D6, 0xFFE0A0A0, Decoration.SNOW, 0xE0400A0F, 0xFFD94A52, 0xFF20060A);
+    AUTO("auto", "default", 0xFFE0E0E0, 0xFFA0A0A0, Decoration.NONE, 0xE0101010, 0xFF404040, 0xFF202020),
+    DEFAULT("default", "default", 0xFFE0E0E0, 0xFFA0A0A0, Decoration.NONE, 0xE0101010, 0xFF404040, 0xFF202020),
+    PUMPKIN_NIGHT("pumpkin_night", "pumpkin_night", 0xFFFFE2BD, 0xFFC58B52, Decoration.HALLOWEEN, 0xE02B1203, 0xFFA2561A, 0xFF1B0B00),
+    HAUNTED_PURPLE("haunted_purple", "haunted_purple", 0xFFE6DCFF, 0xFF9A88C8, Decoration.HALLOWEEN, 0xE01A1229, 0xFF5B4A85, 0xFF120C1F),
+    GRAVEYARD_MIST("graveyard_mist", "graveyard_mist", 0xFFDCEBE5, 0xFF8FA59C, Decoration.FOG, 0xE0222C29, 0xFF7D918A, 0xFF18201D),
+    CRIMSON("crimson", "crimson", 0xFFFFF4D6, 0xFFE0A0A0, Decoration.NONE, 0xE0400A0F, 0xFFD94A52, 0xFF20060A),
+    CHRISTMAS("christmas", "crimson", 0xFFFFF4D6, 0xFFE0A0A0, Decoration.SNOW, 0xE0400A0F, 0xFFD94A52, 0xFF20060A);
 
     public enum Decoration {
         NONE, HALLOWEEN, FOG, SNOW
@@ -36,9 +37,11 @@ public enum ShopTheme {
     private static final int HALLOWEEN_LAST_DAY = 31;
 
     private static ShopTheme current = AUTO;
+    private static boolean decorations = true;
     private static boolean loaded;
 
     private final String id;
+    private final String textureId;
     private final int ink;
     private final int dim;
     private final Decoration decoration;
@@ -46,8 +49,9 @@ public enum ShopTheme {
     private final int panelHighlight;
     private final int panelShadow;
 
-    ShopTheme(String id, int ink, int dim, Decoration decoration, int panelBackground, int panelHighlight, int panelShadow) {
+    ShopTheme(String id, String textureId, int ink, int dim, Decoration decoration, int panelBackground, int panelHighlight, int panelShadow) {
         this.id = id;
+        this.textureId = textureId;
         this.ink = ink;
         this.dim = dim;
         this.decoration = decoration;
@@ -58,10 +62,16 @@ public enum ShopTheme {
 
     private static final class Data {
         String theme = "auto";
+        boolean decorations = true;
     }
 
     public String id() {
         return id;
+    }
+
+    /** Folder under {@code textures/gui/shop/themes/} holding this theme's textures. */
+    public String textureId() {
+        return textureId;
     }
 
     /** Text color for the title, header and selected tab. */
@@ -114,7 +124,10 @@ public enum ShopTheme {
             Path file = file();
             if (Files.isRegularFile(file)) {
                 Data d = GSON.fromJson(Files.readString(file), Data.class);
-                if (d != null && d.theme != null) current = byId(d.theme);
+                if (d != null) {
+                    if (d.theme != null) current = byId(d.theme);
+                    decorations = d.decorations;
+                }
             }
         } catch (Exception ignored) {
         }
@@ -138,6 +151,18 @@ public enum ShopTheme {
         return halloween ? PUMPKIN_NIGHT : DEFAULT;
     }
 
+    /** Whether theme decorations (cobweb, pumpkin, snow, holly, fog) are drawn on top of the style. */
+    public static boolean decorationsEnabled() {
+        ensureLoaded();
+        return decorations;
+    }
+
+    public static void setDecorations(boolean enabled) {
+        ensureLoaded();
+        decorations = enabled;
+        save();
+    }
+
     public static void set(ShopTheme theme) {
         ensureLoaded();
         current = theme;
@@ -150,6 +175,7 @@ public enum ShopTheme {
             Files.createDirectories(file.getParent());
             Data d = new Data();
             d.theme = current.id;
+            d.decorations = decorations;
             Files.writeString(file, GSON.toJson(d));
         } catch (Exception ignored) {
         }

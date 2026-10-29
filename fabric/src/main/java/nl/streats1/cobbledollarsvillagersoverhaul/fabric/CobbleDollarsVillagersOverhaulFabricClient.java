@@ -89,6 +89,14 @@ public class CobbleDollarsVillagersOverhaulFabricClient implements ClientModInit
                 });
             });
 
+        ClientPlayNetworking.registerGlobalReceiver(CobbleDollarsShopPayloads.AdminConfigData.TYPE,
+                (payload, context) -> context.client().execute(() ->
+                        nl.streats1.cobbledollarsvillagersoverhaul.client.AdminConfigClient.onData(payload.kind(), payload.json())));
+
+        ClientPlayNetworking.registerGlobalReceiver(CobbleDollarsShopPayloads.AssignedList.TYPE,
+                (payload, context) -> context.client().execute(() ->
+                        nl.streats1.cobbledollarsvillagersoverhaul.client.ClientAssignedVillagers.set(payload.uuids(), payload.labels())));
+
         ClientPlayNetworking.registerGlobalReceiver(CobbleDollarsShopPayloads.AssignModeUpdate.TYPE,
                 (payload, context) -> context.client().execute(() -> ClientAssignMode.setInMode(payload.on())));
     }

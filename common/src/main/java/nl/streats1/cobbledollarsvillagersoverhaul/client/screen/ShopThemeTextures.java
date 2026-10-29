@@ -21,7 +21,7 @@ public final class ShopThemeTextures {
         if (!theme.hasOwnTextures() || !path.startsWith(SHOP_PREFIX)) {
             return tex;
         }
-        String themed = SHOP_PREFIX + "themes/" + theme.id() + "/" + path.substring(SHOP_PREFIX.length());
+        String themed = SHOP_PREFIX + "themes/" + theme.textureId() + "/" + path.substring(SHOP_PREFIX.length());
         return CACHE.computeIfAbsent(tex.getNamespace() + ":" + themed,
                 k -> ResourceLocation.fromNamespaceAndPath(tex.getNamespace(), themed));
     }

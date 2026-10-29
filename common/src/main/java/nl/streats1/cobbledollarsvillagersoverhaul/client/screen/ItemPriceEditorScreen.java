@@ -13,6 +13,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import nl.streats1.cobbledollarsvillagersoverhaul.client.AdminConfigClient;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.DatapackItemPricing;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.ItemPriceConfig;
 
@@ -44,7 +45,7 @@ public class ItemPriceEditorScreen extends Screen {
     @Override
     protected void init() {
         if (entries.isEmpty()) {
-            entries = new LinkedHashMap<>(ItemPriceConfig.loadEntries());
+            entries = new LinkedHashMap<>(AdminConfigClient.loadItemPrices());
         }
 
         int panelLeft = PANEL_PAD;
@@ -126,9 +127,7 @@ public class ItemPriceEditorScreen extends Screen {
 
     private void saveAndClose() {
         applyValueFromEdit();
-        ItemPriceConfig.saveEntries(entries);
-        
-        DatapackItemPricing.loadCustomPrices(buildJsonFromEntries());
+        AdminConfigClient.saveItemPrices(entries);
         minecraft.setScreen(parent);
     }
 

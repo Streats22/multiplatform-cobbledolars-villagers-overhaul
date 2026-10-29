@@ -647,6 +647,11 @@ public class CobbleDollarsShopScreen extends Screen {
             }
         }
 
+        if (buyOffersFromConfig) {
+            guiGraphics.drawString(font, Component.translatable("gui.cobbledollars_villagers_overhaul_rca.custom_shop"),
+                    headerLeft, top + RIGHT_PANEL_HEADER_Y + 2 * font.lineHeight + 1, ShopTheme.active().dim(), false);
+        }
+
         int listTop = top + LIST_TOP_OFFSET;
         int rowL = left + LIST_LEFT_OFFSET - 10;
         int rowR = rowL + LIST_WIDTH;

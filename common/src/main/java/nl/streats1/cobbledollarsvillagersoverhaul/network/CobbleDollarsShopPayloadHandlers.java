@@ -351,6 +351,40 @@ public final class CobbleDollarsShopPayloadHandlers {
         }
     }
 
+    public static void handleRequestAssignedList(ServerPlayer serverPlayer) {
+        if (!serverPlayer.hasPermissions(2)) return;
+        var server = serverPlayer.getServer();
+        if (server == null) return;
+        List<String> uuids = new ArrayList<>();
+        List<String> labels = new ArrayList<>();
+        for (java.util.UUID id : VillagerShopConfig.getAll()) {
+            uuids.add(id.toString());
+            labels.add(describeAssigned(server, id));
+        }
+        PlatformNetwork.sendToPlayer(serverPlayer, new CobbleDollarsShopPayloads.AssignedList(uuids, labels));
+    }
+
+    public static void handleUnassignByUuid(ServerPlayer serverPlayer, String uuid) {
+        if (!serverPlayer.hasPermissions(2)) return;
+        try {
+            VillagerShopConfig.remove(java.util.UUID.fromString(uuid));
+        } catch (IllegalArgumentException ignored) {
+            return;
+        }
+        handleRequestAssignedList(serverPlayer);
+    }
+
+    private static String describeAssigned(net.minecraft.server.MinecraftServer server, java.util.UUID id) {
+        for (ServerLevel level : server.getAllLevels()) {
+            Entity entity = level.getEntity(id);
+            if (entity != null) {
+                var pos = entity.blockPosition();
+                return entity.getName().getString() + " (" + pos.getX() + ", " + pos.getY() + ", " + pos.getZ() + ")";
+            }
+        }
+        return id.toString().substring(0, 8) + " (not loaded)";
+    }
+
     public static void handleBuy(ServerPlayer serverPlayer, int villagerId, int offerIndex, int quantity, boolean fromConfigShop, int tab, String selectedSeries) {
         // fromConfigShop is client-written. Catalog selection uses ConfigShopBuySession.
         ShopTransactionService.handleBuy(serverPlayer, villagerId, offerIndex, quantity, tab, selectedSeries);

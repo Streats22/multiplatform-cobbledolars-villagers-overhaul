@@ -12,6 +12,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import nl.streats1.cobbledollarsvillagersoverhaul.client.AdminConfigClient;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.CurrencyEntryRecord;
 import nl.streats1.cobbledollarsvillagersoverhaul.integration.CustomCurrencyConfig;
 
@@ -50,8 +51,7 @@ public class CustomCurrencyConfigScreen extends Screen {
     @Override
     protected void init() {
         if (entries.isEmpty()) {
-            CustomCurrencyConfig.ensureLoadedForUi();
-            entries = new ArrayList<>(CustomCurrencyConfig.getEntries());
+            entries = new ArrayList<>(AdminConfigClient.loadCurrency());
         }
 
         int panelLeft = PANEL_PAD;
@@ -149,12 +149,14 @@ public class CustomCurrencyConfigScreen extends Screen {
 
     private void saveAndClose() {
         applyValueFromEdit();
-        CustomCurrencyConfig.replaceEntries(entries);
-        CustomCurrencyConfig.writeEntriesToFile(entries);
-        if (useFile) {
-            CustomCurrencyConfig.saveToFile();
-        } else {
-            onSave.accept(entries);
+        if (!AdminConfigClient.saveCurrencyRemote(entries)) {
+            CustomCurrencyConfig.replaceEntries(entries);
+            CustomCurrencyConfig.writeEntriesToFile(entries);
+            if (useFile) {
+                CustomCurrencyConfig.saveToFile();
+            } else {
+                onSave.accept(entries);
+            }
         }
         minecraft.setScreen(parent);
     }

@@ -16,6 +16,7 @@ final class ShopThemeDecorations {
     }
 
     static void render(GuiGraphics g, ShopTheme theme, int left, int top, int width, int height) {
+        if (!ShopTheme.decorationsEnabled()) return;
         switch (theme.decoration()) {
             case HALLOWEEN -> {
                 cobweb(g, left, top);

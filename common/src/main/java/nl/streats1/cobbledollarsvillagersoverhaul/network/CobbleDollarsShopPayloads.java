@@ -339,6 +339,106 @@ public final class CobbleDollarsShopPayloads {
         }
     }
 
+    public record RequestAssignedList(boolean unused) implements CustomPacketPayload {
+    public static final CustomPacketPayload.Type<RequestAssignedList> TYPE =
+                new CustomPacketPayload.Type<>(Objects.requireNonNull(id("request_assigned_list")));
+    public static final StreamCodec<RegistryFriendlyByteBuf, RequestAssignedList> STREAM_CODEC =
+                StreamCodec.composite(BOOL, RequestAssignedList::unused, RequestAssignedList::new);
+
+    @Override
+    public Type<? extends CustomPacketPayload> type() {
+            return TYPE;
+        }
+    }
+
+    public record AssignedList(List<String> uuids, List<String> labels) implements CustomPacketPayload {
+    public static final CustomPacketPayload.Type<AssignedList> TYPE =
+                new CustomPacketPayload.Type<>(Objects.requireNonNull(id("assigned_list")));
+    public static final StreamCodec<RegistryFriendlyByteBuf, AssignedList> STREAM_CODEC =
+                StreamCodec.of(
+                        (buf, data) -> {
+                            int n = Math.min(data.uuids().size(), data.labels().size());
+                            VAR_INT.encode(buf, n);
+                            for (int i = 0; i < n; i++) {
+                                STRING_UTF8.encode(buf, data.uuids().get(i));
+                                STRING_UTF8.encode(buf, data.labels().get(i));
+                            }
+                        },
+                        buf -> {
+                            int n = Math.min(VAR_INT.decode(buf), 512);
+                            List<String> uuids = new ArrayList<>(n);
+                            List<String> labels = new ArrayList<>(n);
+                            for (int i = 0; i < n; i++) {
+                                uuids.add(STRING_UTF8.decode(buf));
+                                labels.add(STRING_UTF8.decode(buf));
+                            }
+                            return new AssignedList(uuids, labels);
+                        });
+
+    @Override
+    public Type<? extends CustomPacketPayload> type() {
+            return TYPE;
+        }
+    }
+
+    public record UnassignByUuid(String uuid) implements CustomPacketPayload {
+    public static final CustomPacketPayload.Type<UnassignByUuid> TYPE =
+                new CustomPacketPayload.Type<>(Objects.requireNonNull(id("unassign_by_uuid")));
+    public static final StreamCodec<RegistryFriendlyByteBuf, UnassignByUuid> STREAM_CODEC =
+                StreamCodec.composite(STRING_UTF8, UnassignByUuid::uuid, UnassignByUuid::new);
+
+    @Override
+    public Type<? extends CustomPacketPayload> type() {
+            return TYPE;
+        }
+    }
+
+    public record RequestAdminConfig(String kind) implements CustomPacketPayload {
+    public static final CustomPacketPayload.Type<RequestAdminConfig> TYPE =
+                new CustomPacketPayload.Type<>(Objects.requireNonNull(id("request_admin_config")));
+    public static final StreamCodec<RegistryFriendlyByteBuf, RequestAdminConfig> STREAM_CODEC =
+                StreamCodec.composite(STRING_UTF8, RequestAdminConfig::kind, RequestAdminConfig::new);
+
+    @Override
+    public Type<? extends CustomPacketPayload> type() {
+            return TYPE;
+        }
+    }
+
+    public record AdminConfigData(String kind, String json) implements CustomPacketPayload {
+    public static final CustomPacketPayload.Type<AdminConfigData> TYPE =
+                new CustomPacketPayload.Type<>(Objects.requireNonNull(id("admin_config_data")));
+    public static final StreamCodec<RegistryFriendlyByteBuf, AdminConfigData> STREAM_CODEC =
+                StreamCodec.of(
+                        (buf, data) -> {
+                            STRING_UTF8.encode(buf, data.kind());
+                            buf.writeUtf(data.json(), 262144);
+                        },
+                        buf -> new AdminConfigData(STRING_UTF8.decode(buf), buf.readUtf(262144)));
+
+    @Override
+    public Type<? extends CustomPacketPayload> type() {
+            return TYPE;
+        }
+    }
+
+    public record SaveAdminConfig(String kind, String json) implements CustomPacketPayload {
+    public static final CustomPacketPayload.Type<SaveAdminConfig> TYPE =
+                new CustomPacketPayload.Type<>(Objects.requireNonNull(id("save_admin_config")));
+    public static final StreamCodec<RegistryFriendlyByteBuf, SaveAdminConfig> STREAM_CODEC =
+                StreamCodec.of(
+                        (buf, data) -> {
+                            STRING_UTF8.encode(buf, data.kind());
+                            buf.writeUtf(data.json(), 262144);
+                        },
+                        buf -> new SaveAdminConfig(STRING_UTF8.decode(buf), buf.readUtf(262144)));
+
+    @Override
+    public Type<? extends CustomPacketPayload> type() {
+            return TYPE;
+        }
+    }
+
     public record AssignModeUpdate(boolean on) implements CustomPacketPayload {
     public static final CustomPacketPayload.Type<AssignModeUpdate> TYPE =
                 new CustomPacketPayload.Type<>(Objects.requireNonNull(id("assign_mode_update")));
