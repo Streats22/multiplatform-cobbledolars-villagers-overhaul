@@ -7,11 +7,13 @@ import nl.streats1.cobbledollarsvillagersoverhaul.util.ModConfig;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.LocalDate;
 
 /**
  * Seasonal look of the shop screen. A theme multiplies the grey shop textures by a tint, picks the text
  * colors and selects an optional decoration. The choice is cosmetic and stored per client in
- * {@code shop_theme.json}.
+ * {@code shop_theme.json}. While the seasonal option is on and no theme is picked, Halloween Night shows
+ * automatically from 28 to 31 October by the local clock and switches off again on 1 November.
  */
 public enum ShopTheme {
     DEFAULT("default", 1f, 1f, 1f, 0xFFE0E0E0, 0xFFA0A0A0, Decoration.NONE),
@@ -28,7 +30,12 @@ public enum ShopTheme {
     private static final String CONFIG_SUBDIR = "cobbledollars_villagers_overhaul_rca";
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
+    private static final int HALLOWEEN_FIRST_DAY = 28;
+    private static final int HALLOWEEN_LAST_DAY = 31;
+
     private static ShopTheme current;
+    private static boolean seasonal = true;
+    private static boolean loaded;
 
     private final String id;
     private final float tintR;
@@ -50,6 +57,7 @@ public enum ShopTheme {
 
     private static final class Data {
         String theme = "default";
+        boolean seasonal = true;
     }
 
     public String id() {
@@ -95,28 +103,66 @@ public enum ShopTheme {
         return all[(ordinal() + 1) % all.length];
     }
 
-    public static ShopTheme current() {
-        if (current != null) return current;
-        ShopTheme loaded = DEFAULT;
+    private static void ensureLoaded() {
+        if (loaded) return;
+        loaded = true;
+        current = DEFAULT;
         try {
             Path file = file();
             if (Files.isRegularFile(file)) {
                 Data d = GSON.fromJson(Files.readString(file), Data.class);
-                if (d != null && d.theme != null) loaded = byId(d.theme);
+                if (d != null) {
+                    if (d.theme != null) current = byId(d.theme);
+                    seasonal = d.seasonal;
+                }
             }
         } catch (Exception ignored) {
         }
-        current = loaded;
+    }
+
+    /** The theme the player picked in the config screen. */
+    public static ShopTheme current() {
+        ensureLoaded();
         return current;
     }
 
+    /** The theme to draw: the picked one, or the seasonal one when nothing is picked and its dates are on. */
+    public static ShopTheme active() {
+        ensureLoaded();
+        if (current != DEFAULT) return current;
+        return seasonal ? seasonalOn(LocalDate.now()) : DEFAULT;
+    }
+
+    static ShopTheme seasonalOn(LocalDate date) {
+        boolean halloween = date.getMonthValue() == 10
+                && date.getDayOfMonth() >= HALLOWEEN_FIRST_DAY && date.getDayOfMonth() <= HALLOWEEN_LAST_DAY;
+        return halloween ? PUMPKIN_NIGHT : DEFAULT;
+    }
+
+    public static boolean seasonalEnabled() {
+        ensureLoaded();
+        return seasonal;
+    }
+
     public static void set(ShopTheme theme) {
+        ensureLoaded();
         current = theme;
+        save();
+    }
+
+    public static void setSeasonal(boolean enabled) {
+        ensureLoaded();
+        seasonal = enabled;
+        save();
+    }
+
+    private static void save() {
         try {
             Path file = file();
             Files.createDirectories(file.getParent());
             Data d = new Data();
-            d.theme = theme.id;
+            d.theme = current.id;
+            d.seasonal = seasonal;
             Files.writeString(file, GSON.toJson(d));
         } catch (Exception ignored) {
         }

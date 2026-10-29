@@ -156,6 +156,11 @@ cycle through the themes; **Default** is the normal grey shop. A theme tints the
 tab colors and adds small decorations. It is cosmetic and stored per player in
 `config/cobbledollars_villagers_overhaul_rca/shop_theme.json`.
 
+**Automatic Halloween theme:** from 28 to 31 October the shop switches to Pumpkin Night by itself, and it goes back to
+normal on 1 November. This uses only the date on the player's own computer (no network access), is purely cosmetic,
+never overrides a theme the player picked, and can be switched off with the **Seasonal themes** button in the same
+config screen.
+
 ### RCT Series
 
 When using RCT trainers, you can:

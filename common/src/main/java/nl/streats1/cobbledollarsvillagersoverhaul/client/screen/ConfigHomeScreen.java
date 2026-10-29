@@ -29,7 +29,7 @@ public class ConfigHomeScreen extends Screen {
     @Override
     protected void init() {
         int centerX = width / 2 - 100;
-        int startY = height / 2 - 80;
+        int startY = height / 2 - 92;
         addRenderableWidget(Button.builder(
                         Component.translatable("config.cobbledollars_villagers_overhaul_rca.category.general"),
                         b -> Minecraft.getInstance().setScreen(generalScreen))
@@ -74,9 +74,21 @@ public class ConfigHomeScreen extends Screen {
                 .bounds(centerX, startY + 150, 200, 20)
                 .build());
 
-        addRenderableWidget(Button.builder(Component.translatable("gui.back"), b -> onClose())
+        addRenderableWidget(Button.builder(seasonalLabel(), b -> {
+                    ShopTheme.setSeasonal(!ShopTheme.seasonalEnabled());
+                    b.setMessage(seasonalLabel());
+                })
                 .bounds(centerX, startY + 175, 200, 20)
                 .build());
+
+        addRenderableWidget(Button.builder(Component.translatable("gui.back"), b -> onClose())
+                .bounds(centerX, startY + 200, 200, 20)
+                .build());
+    }
+
+    private static Component seasonalLabel() {
+        return Component.translatable("gui.cobbledollars_villagers_overhaul_rca.seasonal_themes",
+                Component.translatable(ShopTheme.seasonalEnabled() ? "options.on" : "options.off"));
     }
 
     private static Component themeLabel() {

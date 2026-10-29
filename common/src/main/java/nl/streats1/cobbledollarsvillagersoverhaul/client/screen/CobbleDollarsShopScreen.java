@@ -145,7 +145,7 @@ public class CobbleDollarsShopScreen extends Screen {
     }
 
     private static void applyThemeTint(GuiGraphics guiGraphics, ResourceLocation tex) {
-        ShopTheme theme = ShopTheme.current();
+        ShopTheme theme = ShopTheme.active();
         if (theme.isTinted() && tex != TEX_COBBLEDOLLARS_LOGO) {
             guiGraphics.setColor(theme.tintR(), theme.tintG(), theme.tintB(), 1.0f);
         }
@@ -574,8 +574,8 @@ public class CobbleDollarsShopScreen extends Screen {
         blitFull(guiGraphics, TEX_SHOP_BASE, left, top, TEX_SHOP_BASE_W, TEX_SHOP_BASE_H);
 
         int stripX = left + 8;
-        ShopThemeDecorations.render(guiGraphics, ShopTheme.current(), left, top, WINDOW_WIDTH, WINDOW_HEIGHT);
-        guiGraphics.drawString(font, ShopLabels.shopTitle(), stripX, top + 6, ShopTheme.current().ink(), false);
+        ShopThemeDecorations.render(guiGraphics, ShopTheme.active(), left, top, WINDOW_WIDTH, WINDOW_HEIGHT);
+        guiGraphics.drawString(font, ShopLabels.shopTitle(), stripX, top + 6, ShopTheme.active().ink(), false);
         int balanceBgX = left + BALANCE_BG_X;
         int balanceBgY = top + BALANCE_BG_Y;
         blitFull(guiGraphics, TEX_COBBLEDOLLARS_LOGO, balanceBgX, balanceBgY, TEX_COBBLEDOLLARS_LOGO_W, TEX_COBBLEDOLLARS_LOGO_H);
@@ -611,7 +611,7 @@ public class CobbleDollarsShopScreen extends Screen {
                 blitStretched(guiGraphics, TEX_CATEGORY_OUTLINE, tabX + TAB_OUTLINE_OFFSET_X, y + TAB_OUTLINE_OFFSET_Y, TEX_CATEGORY_OUTLINE_W, TEX_CATEGORY_OUTLINE_H, TEX_CATEGORY_OUTLINE_W, TEX_CATEGORY_OUTLINE_H);
             }
             String label = tabNames.get(t);
-            int textColor = t == selectedTab ? ShopTheme.current().ink() : ShopTheme.current().dim();
+            int textColor = t == selectedTab ? ShopTheme.active().ink() : ShopTheme.active().dim();
             guiGraphics.drawString(font, Component.literal(label), tabX + 4, y + (CATEGORY_ENTRY_H - font.lineHeight) / 2, textColor, false);
         }
 
@@ -651,12 +651,12 @@ public class CobbleDollarsShopScreen extends Screen {
                 
                 int lineY = top + RIGHT_PANEL_HEADER_Y;
                 for (int i = 0; i < Math.min(lines.size(), 2); i++) {
-                    guiGraphics.drawString(font, Component.literal(lines.get(i)), headerLeft, lineY, ShopTheme.current().ink(), false);
+                    guiGraphics.drawString(font, Component.literal(lines.get(i)), headerLeft, lineY, ShopTheme.active().ink(), false);
                     lineY += font.lineHeight;
                 }
             } else {
                 
-                guiGraphics.drawString(font, professionLabel, headerLeft, top + RIGHT_PANEL_HEADER_Y, ShopTheme.current().ink(), false);
+                guiGraphics.drawString(font, professionLabel, headerLeft, top + RIGHT_PANEL_HEADER_Y, ShopTheme.active().ink(), false);
             }
         }
 
@@ -838,7 +838,7 @@ public class CobbleDollarsShopScreen extends Screen {
         
         int closeX = left + WINDOW_WIDTH - CLOSE_BUTTON_SIZE - CLOSE_BUTTON_MARGIN;
         int closeY = top + 2;
-        guiGraphics.drawString(font, Component.literal("×"), closeX + 4, closeY + 3, ShopTheme.current().ink(), false);
+        guiGraphics.drawString(font, Component.literal("×"), closeX + 4, closeY + 3, ShopTheme.active().ink(), false);
 
         if (offers.isEmpty()) {
             Component emptyMsg = Component.translatable("gui.cobbledollars_villagers_overhaul_rca.no_trades");
