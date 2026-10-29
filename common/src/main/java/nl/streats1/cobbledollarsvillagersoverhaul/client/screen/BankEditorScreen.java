@@ -52,12 +52,22 @@ public class BankEditorScreen extends Screen {
         int panelLeft = PANEL_PAD;
         int panelRight = width - PANEL_PAD;
         int listTop = 48;
-        int listBottom = height - 88;
+        int listBottom = height - 114;
         listWidget = new BankListWidget(minecraft, panelRight - panelLeft - 24, listBottom - listTop, listTop, ROW_HEIGHT);
         listWidget.setX(panelLeft + 12);
         listWidget.setY(listTop);
         addRenderableWidget(listWidget);
         listWidget.refresh();
+
+        String[][] quick = {{"minecraft:emerald", "500"}, {"minecraft:diamond", "2500"}, {"cobblemon:relic_coin", "1000"}};
+        int quickX = width / 2 - 155;
+        for (String[] q : quick) {
+            Item qi = BuiltInRegistries.ITEM.get(ResourceLocation.parse(q[0]));
+            Component label = Component.literal("+ ").append(qi == Items.AIR ? Component.literal(q[0]) : qi.getDescription());
+            addRenderableWidget(Button.builder(label, b -> quickAdd(q[0], Integer.parseInt(q[1])))
+                    .bounds(quickX, height - 110, 100, 20).build());
+            quickX += 105;
+        }
 
         addRenderableWidget(Button.builder(
                         Component.translatable("gui.cobbledollars_villagers_overhaul_rca.add_held_item"),
@@ -109,9 +119,25 @@ public class BankEditorScreen extends Screen {
 
     private void addEntry(String itemId, int price) {
         String id = itemId.contains(":") ? itemId : "minecraft:" + itemId;
-        if (entries.stream().anyMatch(e -> e.itemId().equalsIgnoreCase(id))) return;
-        entries.add(new BankEntryRecord(id, price));
-        listWidget.refresh();
+        if (entries.stream().noneMatch(e -> e.itemId().equalsIgnoreCase(id))) {
+            entries.add(new BankEntryRecord(id, price));
+            listWidget.refresh();
+        }
+        selectEntry(id);
+    }
+
+    private void quickAdd(String itemId, int price) {
+        addEntry(itemId, price);
+        if (valueEdit != null) setFocused(valueEdit);
+    }
+
+    private void selectEntry(String itemId) {
+        for (var e : listWidget.children()) {
+            if (e.getRecord().itemId().equalsIgnoreCase(itemId)) {
+                listWidget.setSelected(e);
+                return;
+            }
+        }
     }
 
     private void removeEntry(String itemId) {

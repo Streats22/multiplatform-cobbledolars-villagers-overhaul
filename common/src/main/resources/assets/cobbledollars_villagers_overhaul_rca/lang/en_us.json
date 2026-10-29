@@ -67,7 +67,7 @@
   "gui.cobbledollars_villagers_overhaul_rca.category_name_hint": "e.g. Buy, Sell",
   "gui.cobbledollars_villagers_overhaul_rca.edit_bank_title": "Bank",
   "gui.cobbledollars_villagers_overhaul_rca.shop_edit_hint": "Left-click to select & edit price • Right-click to remove",
-  "gui.cobbledollars_villagers_overhaul_rca.bank_edit_hint": "Left-click to select & edit price • Right-click to remove",
+  "gui.cobbledollars_villagers_overhaul_rca.bank_edit_hint": "Click an item, type its price below • Right-click to remove",
   "gui.cobbledollars_villagers_overhaul_rca.pick_item": "Pick an item",
   "gui.cobbledollars_villagers_overhaul_rca.search_items": "Search items...",
   "gui.cobbledollars_villagers_overhaul_rca.value_label": "Value:",

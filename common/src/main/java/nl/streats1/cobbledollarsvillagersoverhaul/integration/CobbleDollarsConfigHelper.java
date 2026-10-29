@@ -39,41 +39,17 @@ public final class CobbleDollarsConfigHelper {
     public static OptionalInt getBankEmeraldPrice() {
         if (cachedBankEmeraldPrice >= 0) return OptionalInt.of(cachedBankEmeraldPrice);
         if (cachedBankEmeraldPrice == -2) return OptionalInt.empty();
-        Path configDir = getConfigDirectory();
-        Path bankFile = configDir.resolve(COBBLEDOLLARS_CONFIG_SUBDIR).resolve(BANK_FILE);
-        if (!Files.isRegularFile(bankFile)) {
-            cachedBankEmeraldPrice = -2;
-            return OptionalInt.empty();
-        }
-        try {
-            String content = Files.readString(bankFile);
-            JsonObject root = JsonParser.parseString(content).getAsJsonObject();
-            if (!root.has("bank")) {
-                cachedBankEmeraldPrice = -2;
-                return OptionalInt.empty();
-            }
-            JsonElement bankEl = root.get("bank");
-            if (bankEl.isJsonArray()) {
-                JsonArray bank = bankEl.getAsJsonArray();
-                for (JsonElement entry : bank) {
-                    if (!entry.isJsonObject()) continue;
-                    JsonObject obj = entry.getAsJsonObject();
-                    String item = obj.has("item") ? obj.get("item").getAsString() : null;
-                    if (EMERALD_ITEM.equals(item) && obj.has("price")) {
-                        int price = EmeraldRateHelper.normalizeCdPerEmerald(obj.get("price").getAsInt());
-                        if (price > 0) {
-                            cachedBankEmeraldPrice = price;
-                            return OptionalInt.of(price);
-                        }
-                    }
+        for (BankEntryRecord entry : BankConfig.loadEntries()) {
+            if (EMERALD_ITEM.equals(entry.itemId())) {
+                int price = EmeraldRateHelper.normalizeCdPerEmerald(entry.price());
+                if (price > 0) {
+                    cachedBankEmeraldPrice = price;
+                    return OptionalInt.of(price);
                 }
             }
-            cachedBankEmeraldPrice = -2;
-            return OptionalInt.empty();
-        } catch (Exception e) {
-            cachedBankEmeraldPrice = -2;
-            return OptionalInt.empty();
         }
+        cachedBankEmeraldPrice = -2;
+        return OptionalInt.empty();
     }
 
     public static List<CobbleDollarsShopPayloads.ShopOfferEntry> getDefaultShopBuyOffers() {
@@ -82,7 +58,7 @@ public final class CobbleDollarsConfigHelper {
         if (!Files.isRegularFile(shopFile)) return List.of();
         try {
             String content = Files.readString(shopFile);
-            JsonObject root = JsonParser.parseString(content).getAsJsonObject();
+            JsonObject root = DefaultShopConfig.asLegacyRoot(JsonParser.parseString(content));
             List<CobbleDollarsShopPayloads.ShopOfferEntry> out = new ArrayList<>();
 
             if (root.has(DEFAULT_SHOP_KEY)) {
@@ -135,35 +111,15 @@ public final class CobbleDollarsConfigHelper {
     }
 
     public static List<CobbleDollarsShopPayloads.ShopOfferEntry> getBankSellOffers() {
-        Path configDir = getConfigDirectory();
-        Path bankFile = configDir.resolve(COBBLEDOLLARS_CONFIG_SUBDIR).resolve(BANK_FILE);
-        if (!Files.isRegularFile(bankFile)) return List.of();
-        try {
-            String content = Files.readString(bankFile);
-            JsonObject root = JsonParser.parseString(content).getAsJsonObject();
-            List<CobbleDollarsShopPayloads.ShopOfferEntry> out = new ArrayList<>();
-            if (!root.has("bank")) return List.of();
-            JsonElement bankEl = root.get("bank");
-            if (!bankEl.isJsonArray()) return List.of();
-            JsonArray bank = bankEl.getAsJsonArray();
-            for (JsonElement entry : bank) {
-                if (!entry.isJsonObject()) continue;
-                JsonObject obj = entry.getAsJsonObject();
-                String itemId = obj.has("item") ? obj.get("item").getAsString() : null;
-                if (itemId == null || itemId.isEmpty()) continue;
-                int price = JsonPriceParser.parse(obj.get("price"));
-                if (price <= 0) continue;
-                ResourceLocation id = ResourceLocation.tryParse(itemId);
-                if (id == null) continue;
-                var item = BuiltInRegistries.ITEM.get(id);
-                if (item == null || item == Items.AIR) continue;
-                
-                out.add(ShopOfferEntryFactory.sellDirect(new ItemStack(item, 1), price));
-            }
-            return out;
-        } catch (Exception e) {
-            return List.of();
+        List<CobbleDollarsShopPayloads.ShopOfferEntry> out = new ArrayList<>();
+        for (BankEntryRecord entry : BankConfig.loadEntries()) {
+            ResourceLocation id = ResourceLocation.tryParse(entry.itemId());
+            if (id == null) continue;
+            var item = BuiltInRegistries.ITEM.get(id);
+            if (item == null || item == Items.AIR) continue;
+            out.add(ShopOfferEntryFactory.sellDirect(new ItemStack(item, 1), entry.price()));
         }
+        return out;
     }
 
     public static int getEffectiveEmeraldRate() {

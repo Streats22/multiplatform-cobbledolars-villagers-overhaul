@@ -1,10 +1,10 @@
 package nl.streats1.cobbledollarsvillagersoverhaul.integration;
 
+import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import nl.streats1.cobbledollarsvillagersoverhaul.CobbleDollarsVillagersOverhaulRca;
 import nl.streats1.cobbledollarsvillagersoverhaul.util.JsonPriceParser;
 import nl.streats1.cobbledollarsvillagersoverhaul.util.ModConfig;
 
@@ -15,49 +15,70 @@ import java.util.List;
 
 public final class BankConfig {
     private static final String COBBLEDOLLARS_CONFIG_SUBDIR = "cobbledollars";
-    private static final String BANK_FILE = "bank.json";
+    private static final String LEGACY_FILE = "bank.json";
+    private static final String CURRENT_FILE = "default_bank.json";
 
     private BankConfig() {
     }
 
-    private static Path getBankFile() {
-        return ModConfig.getConfigDirectory().resolve(COBBLEDOLLARS_CONFIG_SUBDIR).resolve(BANK_FILE);
+    private static Path file(String name) {
+        return ModConfig.getConfigDirectory().resolve(COBBLEDOLLARS_CONFIG_SUBDIR).resolve(name);
+    }
+
+    private static Path activeFile() {
+        Path current = file(CURRENT_FILE);
+        if (Files.isRegularFile(current)) {
+            return current;
+        }
+        Path legacy = file(LEGACY_FILE);
+        return Files.isRegularFile(legacy) ? legacy : null;
     }
 
     public static List<BankEntryRecord> loadEntries() {
-        Path file = getBankFile();
-        if (!Files.isRegularFile(file)) return new ArrayList<>();
+        Path active = activeFile();
+        if (active == null) return new ArrayList<>();
         try {
-            return parseEntries(Files.readString(file));
+            return parseEntries(Files.readString(active));
         } catch (Exception ex) {
             return new ArrayList<>();
         }
     }
 
-    /** Raw file text for syncing to ops; empty object when the file does not exist yet. */
+    /** Raw file text for syncing to ops; empty object when no bank file exists yet. */
     public static String readRaw() {
         try {
-            Path file = getBankFile();
-            return Files.isRegularFile(file) ? Files.readString(file) : "{}";
+            Path active = activeFile();
+            return active != null ? Files.readString(active) : "{}";
         } catch (Exception ex) {
             return "{}";
         }
     }
 
     public static void writeRaw(String json) throws java.io.IOException {
-        Path file = getBankFile();
-        Files.createDirectories(file.getParent());
-        Files.writeString(file, json);
+        List<BankEntryRecord> entries = parseEntries(json);
+        Path current = file(CURRENT_FILE);
+        Path legacy = file(LEGACY_FILE);
+        boolean hasCurrent = Files.isRegularFile(current);
+        boolean hasLegacy = Files.isRegularFile(legacy);
+        if (hasCurrent || !hasLegacy) {
+            write(current, currentFormat(entries));
+        }
+        if (hasLegacy || !hasCurrent) {
+            write(legacy, toJson(entries));
+        }
+        CobbleDollarsConfigHelper.invalidateBankEmeraldPriceCache();
     }
 
+    /** Accepts both the legacy {"bank":[...]} object and the CobbleDollars 6.1 list. */
     public static List<BankEntryRecord> parseEntries(String content) {
+        List<BankEntryRecord> out = new ArrayList<>();
         try {
-            JsonObject root = JsonParser.parseString(content).getAsJsonObject();
-            List<BankEntryRecord> out = new ArrayList<>();
-            if (!root.has("bank")) return out;
-            JsonElement bankEl = root.get("bank");
-            if (!bankEl.isJsonArray()) return out;
-            for (JsonElement e : bankEl.getAsJsonArray()) {
+            JsonElement root = JsonParser.parseString(content);
+            JsonElement list = root.isJsonObject() ? root.getAsJsonObject().get("bank") : root;
+            if (list == null || !list.isJsonArray()) {
+                return out;
+            }
+            for (JsonElement e : list.getAsJsonArray()) {
                 if (!e.isJsonObject()) continue;
                 JsonObject o = e.getAsJsonObject();
                 String itemId = o.has("item") ? o.get("item").getAsString() : null;
@@ -66,16 +87,15 @@ public final class BankConfig {
                 if (price <= 0) continue;
                 out.add(new BankEntryRecord(itemId, price));
             }
-            return out;
-        } catch (Exception ex) {
-            return new ArrayList<>();
+        } catch (Exception ignored) {
         }
+        return out;
     }
 
     public static void saveEntries(List<BankEntryRecord> entries) {
         try {
             writeRaw(toJson(entries));
-        } catch (Exception ex) {
+        } catch (Exception ignored) {
         }
     }
 
@@ -89,6 +109,22 @@ public final class BankConfig {
         }
         JsonObject root = new JsonObject();
         root.add("bank", bank);
-        return new com.google.gson.GsonBuilder().setPrettyPrinting().create().toJson(root);
+        return new GsonBuilder().setPrettyPrinting().create().toJson(root);
+    }
+
+    private static String currentFormat(List<BankEntryRecord> entries) {
+        JsonArray bank = new JsonArray();
+        for (BankEntryRecord e : entries) {
+            JsonObject o = new JsonObject();
+            o.addProperty("item", e.itemId());
+            o.addProperty("price", String.valueOf(e.price()));
+            bank.add(o);
+        }
+        return new GsonBuilder().setPrettyPrinting().create().toJson(bank);
+    }
+
+    private static void write(Path path, String content) throws java.io.IOException {
+        Files.createDirectories(path.getParent());
+        Files.writeString(path, content);
     }
 }

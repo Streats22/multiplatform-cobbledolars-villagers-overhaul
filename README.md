@@ -24,7 +24,7 @@ enhanced trading experience with RCT series support.
 ## Requirements
 
 - Minecraft 1.21.1
-- Cobblemon **1.7.1+** (including **1.8.0**)
+- Cobblemon **1.8.0+** (built against 1.8.0)
 - CobbleDollars **Beta-5.1+** (including **Beta-6.1**) — core currency system
 - (Optional) Radical Cobblemon Trainers mod - for series-based trades
 - (Optional) Minecraft Comes Alive **7.7.x** — soft coexistence (see below)
