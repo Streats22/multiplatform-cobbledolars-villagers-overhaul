@@ -23,6 +23,12 @@ project.
 | **Configuration**           | `03_Configuration.md`              |
 | **Trading behavior**        | `04_Trading_Behavior.md`           |
 | **Discord & support**       | `05_Discord_Support_Guidelines.md` |
+| **Shop customization**      | `06_Shop_Customization.md`         |
+| **Operator tools**          | `07_Operator_Tools.md`             |
+| **Supported mods**          | `08_Supported_Mods.md`             |
+| **Quick start**             | `09_Quick_Start.md`                |
+| **Interaction & compat**    | `10_Interaction_and_Compatibility.md` |
+| **Architecture & network**  | `11_Architecture_and_Network.md`   |
 
 ---
 
@@ -33,3 +39,10 @@ project.
 - `03_Configuration.md` – Config options, default shop/bank, edit screen
 - `04_Trading_Behavior.md` – How buys work (costA, costB, CobbleDollars), for debugging/support
 - `05_Discord_Support_Guidelines.md` – What to ask users when they report issues (loader, version, template)
+- `06_Shop_Customization.md` – Shop and tab names, themes, decorations
+- `07_Operator_Tools.md` – Commands, editing on a server, custom villagers
+- `08_Supported_Mods.md` – Supported mods and links to their own pages
+- `09_Quick_Start.md` – Short guide for players and server owners
+- `10_Interaction_and_Compatibility.md` – Right-click rules, mod integrations, mixins
+- `11_Architecture_and_Network.md` – Modules, packets, how to extend, tests, releases
+- `Home.md` – Index page (use as the wiki home page)

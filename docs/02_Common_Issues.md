@@ -123,6 +123,50 @@ for item-for-item trades). Ensure you’re on a build that includes this.
 
 ---
 
+## Relic Coins are not accepted by the bank
+
+**Symptoms:** Relic Coins (or other custom currency items) convert in villager trades but the bank rejects them.
+
+**Check:**
+
+- The item is listed in `custom_currency.json` (Fabric) or `customCurrencyItems` (NeoForge TOML).
+- Which CobbleDollars version is installed. The mod patches both bank layouts; if it still fails, report the
+  CobbleDollars and mod versions with `latest.log`.
+
+---
+
+## Cannot trade with the RCT Trainer Association
+
+**Symptoms:** The Trainer Association does not let you trade while the CobbleDollars interface is on.
+
+**Check:** `useRctTradesOverhaul`. If it is off, RCT's own trade screen should open. If the shop has no offers for the
+entity, the entity's own menu opens instead. As a workaround, add `rctmod:trainer_association` to
+`excludedEntityTypeIds`. When reporting, include the `useRctTradesOverhaul` value, the RCT version and `latest.log`.
+
+---
+
+## Two-item trade looks wrong in the Trades tab
+
+Two-input trades are shown as **A + B → C**. If a row shows the items in another order, update the mod; older versions
+showed A → C + B while still charging correctly.
+
+---
+
+## "The server did not answer" when opening an editor
+
+The editors on a server need operator rights (permission level 2) and the mod installed on the server. Check
+`/op` status and that server and client use the same mod version.
+
+---
+
+## Shop names or theme did not change
+
+- Shop and tab names are server-wide: set them with `/cvm label`. They update on the next shop open.
+- The theme is per player. **Seasonal (auto)** only changes the look on 28–31 October; pick a named theme to use one
+  all year. Decorations have their own On/Off button.
+
+---
+
 ## Encoding / version mismatch
 
 - Client and server (if multiplayer) should use the same mod version and loader (both Fabric or both NeoForge).

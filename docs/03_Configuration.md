@@ -1,97 +1,168 @@
-# Configuration
+# Configuration reference
 
-Config files live under `config/cobbledollars_villagers_overhaul_rca/` (Fabric) or NeoForge TOML (see below).
+Every setting and file the mod reads or writes. New here? Start with [Quick start](09_Quick_Start.md).
+
+Contents: [Where files live](#where-files-live) · [Main settings](#main-settings) · [Settings the server sends to players](#settings-the-server-sends-to-players) · [Custom currency](#custom-currency) · [Item prices](#item-prices) · [Shop, bank and villager files](#shop-bank-and-villager-files) · [Names and themes](#names-and-themes) · [When changes apply](#when-changes-apply) · [Troubleshooting](#troubleshooting-config-files)
 
 ---
 
-## Main config
+## Where files live
 
-### Fabric
+| What | Path |
+|------|------|
+| This mod's folder | `config/cobbledollars_villagers_overhaul_rca/` |
+| CobbleDollars' own folder (shop and bank lists) | `config/cobbledollars/` |
+| Main settings, Fabric | `config/cobbledollars_villagers_overhaul_rca/config.json` |
+| Main settings, NeoForge | `config/cobbledollars_villagers_overhaul_rca-common.toml` |
 
-- **Path:** `config/cobbledollars_villagers_overhaul_rca/config.json`
-- Created on first run with defaults from `ModConfigDefaults` if missing.
-- **Mod Menu:** Saves the same JSON shape (including `freeMinimumEmeraldTrade` and comment keys).
+On a server these are the **server's** files. Players' own copies only matter for their themes and for singleplayer.
+Back up files before hand-editing; most can also be edited in game (see [Operator tools](07_Operator_Tools.md)).
 
-| Key                                    | Default                          | Description                                                                                                            |
-|----------------------------------------|----------------------------------|------------------------------------------------------------------------------------------------------------------------|
-| `cobbledollarsEmeraldRate`             | `750`                            | **Literal** CobbleDollars per emerald; **always** used for villager emerald→CD pricing (menu + this JSON reload).      |
-| `syncCobbleDollarsBankRate`            | `true`                           | Legacy field; preserved in files. Align `cobbledollarsEmeraldRate` with `bank.json` emerald price manually if desired. |
-| `villagersAcceptCobbleDollars`         | `true`                           | Villager emerald costs can be paid from CobbleDollars balance.                                                         |
-| `freeMinimumEmeraldTrade`              | `false`                          | If true, trades that cost 1 emerald (e.g. after curing) charge 0 CD.                                                   |
-| `useCobbleDollarsShopUi`               | `true`                           | Use the CobbleDollars shop UI instead of vanilla trading.                                                              |
-| `useRctTradesOverhaul`                 | `true`                           | Use RCT series trades overhaul for RCT trainers.                                                                       |
-| `useDatapackTrades`                    | `true`                           | Price non-emerald datapack trades with CobbleDollars item tables.                                                      |
-| `excludedVillagerProfessionNamespaces` | `["cobbledollars"]`              | Mod namespaces whose villagers keep their native UI.                                                                   |
-| `excludedVillagerProfessionIds`        | `["casinorocket:casino_worker"]` | Specific profession IDs to exclude.                                                                                    |
-| `enableMcaCompatibility`             | `true`                           | MCA right-click stays with MCA's GUI; Trade / shift-click opens this shop.                                        |
-| `skipShopOverrideWhenSneaking`       | `true`                           | Sneak-right-click does not open the shop (vanilla). Allows leads, backpacks, Carry On, Easy Villagers.              |
-| `excludedEntityTypeNamespaces`        | `[]`                             | Entity-type namespaces that keep their own interact.                                                               |
-| `excludedEntityTypeIds`               | `[]`                             | Specific entity-type ids (`namespace:path`) that keep their own interact.                                           |
-| `passthroughInteractItemIds`         | `[]`                             | Held-item ids that must not open the shop. Spawn eggs and named name tags always pass through.                        |
-| `passthroughInteractItemNamespaces`    | lassos/backpacks/catchers         | Held-item namespaces that must not open the shop (optional companion mods; ignored if the mod is absent).           |
+---
 
-**Migration:** Older configs used step values (`1` / `2` / `3` → 250 / 500 / 750). Rates are now literal. If you had
-`"cobbledollarsEmeraldRate": 3`, set `750` (or your desired value) explicitly.
+## Main settings
 
-### NeoForge
+Same options on both loaders. Fabric stores them as JSON values; NeoForge stores them in the TOML under `[general]`.
+In NeoForge the **list** options are a single comma-separated string (for example `"a:b, c:d"`); in Fabric they are
+real JSON arrays.
 
-- **Path:** `config/cobbledollars_villagers_overhaul_rca-common.toml` (server/common spec)
-- Same options as Fabric, under the `[general]` section. `cobbledollarsEmeraldRate` default is **750** (literal CD).
+| Key | Default | What it does |
+|-----|---------|--------------|
+| `cobbledollarsEmeraldRate` | `750` | CobbleDollars per emerald. Used for every emerald price and as the emerald's value as currency. Minimum 1. |
+| `syncCobbleDollarsBankRate` | `true` | Legacy. Kept so old files load; villager prices always use `cobbledollarsEmeraldRate`. Match the emerald `price` in the bank file by hand if you want the two to agree. |
+| `villagersAcceptCobbleDollars` | `true` | Emerald costs can be paid from the CobbleDollars balance. When off, trading falls back to the normal menu. |
+| `freeMinimumEmeraldTrade` | `false` | A trade that costs exactly 1 emerald (for example after curing a villager) costs 0 CobbleDollars. No emerald is taken either. |
+| `useCobbleDollarsShopUi` | `true` | Use the shop screen instead of the vanilla trading screen. Checked on the server. |
+| `useRctTradesOverhaul` | `true` | Use the extended shop for the RCT Trainer Association. When off, RCT's own screen is used. |
+| `useDatapackTrades` | `true` | Items with a price in `item_prices.json` turn item-for-item trades into CobbleDollar purchases. See [Item prices](#item-prices). |
+| `enableMcaCompatibility` | `true` | With MCA loaded, right-click keeps MCA's own screen; its Trade button (or shift-trade) opens this shop. |
+| `skipShopOverrideWhenSneaking` | `true` | Sneak + right-click does not open the shop. Lets other mods leash, carry or capture villagers. |
+| `excludedVillagerProfessionNamespaces` | `["cobbledollars"]` | Professions from these namespaces keep their own screen. |
+| `excludedVillagerProfessionIds` | `["casinorocket:casino_worker"]` | Specific professions that keep their own screen. |
+| `excludedEntityTypeNamespaces` | `[]` | Entity types from these namespaces keep their own right-click behavior. |
+| `excludedEntityTypeIds` | `[]` | Specific entity types (`namespace:path`) that keep their own right-click behavior. |
+| `passthroughInteractItemIds` | `[]` | Held items that must not open the shop. |
+| `passthroughInteractItemNamespaces` | `sophisticatedbackpacks, easyvillagers, moblassos, lasso, moblasso, mob_lasso, mobcatcher, carryon, cyclic` | Held-item namespaces that must not open the shop. |
+
+Notes:
+
+- Spawn eggs and name tags that carry a custom name **always** pass through; you do not need to list them.
+- Matching on the lists is not case sensitive.
+- Fabric Mod Menu edits the general options and the two MCA/sneaking toggles. The exclusion and pass-through **lists
+  have no screen on Fabric**; edit `config.json`.
+- Migration: very old configs used step values `1`/`2`/`3` for the rate. The rate is now the literal number.
+- The rate setting in the NeoForge screen shows `3` as its "reset" value. The real default is `750`.
+
+---
+
+## Settings the server sends to players
+
+When you join a server, and each time you open a shop, the server sends these to your game. They replace your local
+values for that session and are never saved to your own files.
+
+| Sent by the server | Why |
+|--------------------|-----|
+| `useCobbleDollarsShopUi`, `villagersAcceptCobbleDollars`, `useDatapackTrades`, `useRctTradesOverhaul` | The client follows the world it is actually playing on |
+| The effective emerald rate | Prices on screen match what the server charges |
+| `syncCobbleDollarsBankRate` | Legacy |
+| Shop title and tab names | Server-wide names (see [Shop customization](06_Shop_Customization.md)) |
+
+Not sent (they only matter on the server): `freeMinimumEmeraldTrade`, the MCA/sneaking options, the exclusion and
+pass-through lists, custom currencies and item prices.
 
 ---
 
 ## Custom currency
 
-Items that behave like emeralds in trades (Relic Coins, Poketokens, etc.). **Emeralds are not listed here** — they
-always use `getEffectiveEmeraldRate()` (= `cobbledollarsEmeraldRate` after load).
+Items that behave like emeralds: Relic Coins, Poketokens and so on. The emerald itself is **not** listed; it always
+uses `cobbledollarsEmeraldRate`.
 
-### Fabric
-
-- **Path:** `config/cobbledollars_villagers_overhaul_rca/custom_currency.json`
-- Auto-created on first run (only items from loaded mods are included).
-- **Format:** `[{"item":"cobblemon:relic_coin","value":250}, ...]` — `value` is literal CD per 1 item.
-
-### NeoForge
-
-- **TOML:** `customCurrencyItems` — JSON array string (same format). Default lists relic coins / tokens only.
-- **Empty `[]`:** Falls back to `custom_currency.json` in the folder above.
-
-**Edit in-game:** Mods → Config → Edit currencies.
-
----
-
-## Item prices (datapack item-for-item trades)
-
-- **Path:** `config/cobbledollars_villagers_overhaul_rca/item_prices.json`
-- Custom CD value per item when villagers trade items for items. Without an entry, items use the emerald rate (1 item ≈
-  1 emerald worth).
-- **Edit in-game:** Mods → Config → Edit item prices.
+- **Fabric:** `config/cobbledollars_villagers_overhaul_rca/custom_currency.json`. Created on first run with the
+  default list (only items from loaded mods).
+- **NeoForge:** `customCurrencyItems` in the TOML (a JSON array as text). If it is empty (`""` or `[]`), the mod reads
+  `custom_currency.json` instead.
+- **Format:** `[{"item":"cobblemon:relic_coin","value":250}, ...]`. `value` is CobbleDollars per **one** item.
+- **Defaults:** `cobblemon:relic_coin` 250, `cobblemon:relic_coin_pouch` 2250, `cobblemon:relic_coin_sack` 20250,
+  `allthemons:token` 250.
+- An id without a colon gets `minecraft:`. A value of 0 or less becomes 750. Ids are lowercased. A bare item name is
+  also matched without its namespace.
+- Currency items are also accepted by the CobbleDollars **bank**.
+- Edit in game: Mods → Config → **Edit currencies**.
 
 ---
 
-## CobbleDollars shop / bank (external)
+## Item prices
 
-These files belong to **CobbleDollars**, not this mod:
+`config/cobbledollars_villagers_overhaul_rca/item_prices.json`: `{"itemPrices": {"<item id>": <CobbleDollars per item>}}`.
 
-| File                                     | Purpose                                                                                               |
-|------------------------------------------|-------------------------------------------------------------------------------------------------------|
-| `config/cobbledollars/default_shop.json` | Default buy offers (prices are already in CD when `directPrice` is used).                             |
-| `config/cobbledollars/bank.json`         | CobbleDollars bank UI sell prices (set emerald `price` to match villager rate if economy should tie). |
+- Not created automatically; the editor creates it. Entries of 0 or less are ignored.
+- With `useDatapackTrades` on, an item-for-item trade whose first item has a price here is shown in the **Buy** tab and
+  paid in CobbleDollars. See [Trading behavior](04_Trading_Behavior.md).
+- A price here also sets what a **gold ingot** sell offer pays.
+- Items without a price here fall back to the emerald rate where a price is needed.
+- Edit in game: Mods → Config → **Edit item prices**.
 
-Edit via Mods → Config → Edit shop / Edit bank (this mod’s UI writes to those paths).
-
----
-
-## Emerald ↔ CobbleDollars rate
-
-- Villager **emerald** costs convert using **`cobbledollarsEmeraldRate`** (Mod Menu / `config.json` / NeoForge TOML).
-- Config shop buy prices in `default_shop.json` are **not** multiplied by the emerald rate when marked direct.
-- Custom currency entries use their own literal `value` per item.
+> The old description of "rarity tiers" (Common to Legendary) is not a working feature. The values exist in the code
+> but nothing reads them, so they cannot be configured.
 
 ---
 
-## Tips
+## Shop, bank and villager files
 
-- Back up JSON/TOML before hand-editing.
-- Invalid JSON can leave shops or currencies empty; check the log for parse warnings.
-- After changing emerald rate, restart the world or reconnect so clients receive the synced rate in multiplayer.
+| File | Owner | What it is |
+|------|-------|------------|
+| `config/cobbledollars/default_shop.json` | CobbleDollars | The default shop. Edit in game: **Edit shop**. |
+| `config/cobbledollars/default_bank.json` | CobbleDollars 6.x | The bank list. Read first if it exists. |
+| `config/cobbledollars/bank.json` | CobbleDollars (older) | The bank list in the older layout. Used when `default_bank.json` is missing. |
+| `.../villager_shops.json` | This mod | Which villagers use a custom shop: `{"useConfigShop": ["<uuid>", ...]}`. Created on the first assign. |
+| `.../villager_shops/<uuid>.json` | This mod | One assigned villager's own shop (see below). |
+
+**Default shop format:** `{"defaultShop": [{"Category name": [{"item": "minecraft:apple", "price": 120}]}]}`.
+A price can be a number or text such as `"1.5k"` or `"2m"`. Entries with no item or a price of 0 or less are dropped.
+An older layout (a list of `{name, offers}`) is still read. A missing or broken file shows one empty "Default"
+category.
+
+**Bank format:** `{"bank": [{"item": "minecraft:diamond", "price": 5000}]}` or a bare list. Saving writes the file
+that exists (both if neither). CobbleDollars reads these itself, so reload or restart after changing the bank.
+
+**Per-villager file** (`villager_shops/<uuid>.json`): `labels` (shop, buy, sell, trades names), `shop` (categories of
+items for sale), `bank` (what the villager buys), `tabs` (`sell`, `trades`, both default off) and `trades` (your own
+item-for-item trades, each with up to two items in, one item out and an optional CobbleDollar cost). If the file is
+missing or unreadable, the villager uses the default shop. Edit in game through
+[Custom villagers](07_Operator_Tools.md#custom-villagers).
+
+---
+
+## Names and themes
+
+| File | Scope | Contents |
+|------|-------|----------|
+| `shop_labels.json` | Server | `{"shop","buy","sell","trades"}`, each up to 32 characters, blank = default |
+| `shop_theme.json` | Each player | `{"theme": "auto", "decorations": true}` |
+
+Theme ids: `auto` (default), `default`, `pumpkin_night`, `haunted_purple`, `graveyard_mist`, `crimson`, `christmas`.
+An unknown id acts as `auto`. Details in [Shop customization](06_Shop_Customization.md).
+
+---
+
+## When changes apply
+
+| Change | Applies |
+|--------|---------|
+| Default shop, villager shop files | Next time a shop opens |
+| Item prices, currencies (edited in game) | Immediately |
+| Shop and tab names | Immediately for online players on the server (the shop screen updates on its next open) |
+| Theme and decorations | Next time the shop opens |
+| Bank lists | After a CobbleDollars reload or restart |
+| Main settings | Fabric: on server start, on leaving a world, and after saving in Mod Menu. NeoForge: when the file or screen saves. There is no live file watcher. |
+| Emerald rate on a server | Players receive it when they join and each time a shop opens |
+
+---
+
+## Troubleshooting config files
+
+- **Fabric `config.json` that does not parse:** the load stops silently at the problem. Keys before it are applied and
+  the rest keep their defaults. A value of the wrong type (text where a number belongs) also stops the load. On Fabric
+  the currency and item price files are loaded after `config.json`, so a broken `config.json` also skips them.
+- **Other JSON files:** a broken file behaves as empty. Nothing is logged.
+- Back up before editing, validate JSON in an editor, and use the in-game editors where possible.
