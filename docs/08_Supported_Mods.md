@@ -29,6 +29,11 @@ only list pages we have checked.
 
 ---
 
+## More detail
+
+How each integration works, in which order checks run and what breaks when a mod is missing is in
+[Interaction and compatibility](11_Interaction_and_Compatibility.md).
+
 ## RCT in more detail
 
 - With RCT installed and `useRctTradesOverhaul` on, right-clicking the **Trainer Association** opens the extended

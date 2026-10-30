@@ -54,7 +54,7 @@ Cobblemon Trainers (RCT)**.
 ## Usage (short)
 
 - **Open shop**: Right-click villager / wandering trader / RCT trainer.
-- **Tabs**: Buy, Sell, Trades (Trades only with RCT trainers).
+- **Tabs**: Buy, Sell, Trades. Trades holds item-for-item trades; with RCT trainers it also holds series trades.
 - **Currency**: CobbleDollars only; prices shown as numbers next to the CobbleDollars icon (no "C" suffix).
 - **Item-for-item trades** are shown as **A + B → C** in the Trades tab.
 - **Commands** (op): `/cvm open shop`, `/cvm open bank`, `/cvm assign`, `/cvm unassign`, `/cvm label ...`,
@@ -74,12 +74,20 @@ Key classes: `CobbleDollarsShopPayloadHandlers` (buy/sell logic), `CobbleDollars
 
 ---
 
-## Links to sub-docs
+## Where to read next
 
-- **Common issues** – Shop not opening, wrong price, item not received, etc.
-- **Shop customization** – Shop and tab names, themes, decorations.
-- **Operator tools** – Commands, server-side editors, custom villagers.
-- **Supported mods** – How we work with other mods, with links to their own pages.
-- **Configuration** – Config options, default shop/bank files.
-- **Trading behavior** – How costA/costB and balance deduction work.
-- **Discord & support** – What to ask users when they report bugs.
+**For players and server owners**
+
+- [Quick start](09_Quick_Start.md) – Install, first setup, custom villagers, commands.
+- [Common issues](02_Common_Issues.md) – Shop not opening, wrong price, item not received, and more.
+- [Shop customization](06_Shop_Customization.md) – Names, themes, decorations.
+- [Operator tools](07_Operator_Tools.md) – Commands, editing on a server, custom villagers.
+- [Configuration reference](03_Configuration.md) – Every setting and file.
+
+**For support staff, pack makers and developers**
+
+- [Trading behavior](04_Trading_Behavior.md) – How offers become tabs, how prices and trades work.
+- [Interaction and compatibility](11_Interaction_and_Compatibility.md) – Why a click opens the shop, mod by mod.
+- [Supported mods](08_Supported_Mods.md) – Other mods and links to their own pages.
+- [Architecture and network](12_Architecture_and_Network.md) – Modules, packets, adding features, tests.
+- [Discord & support](05_Discord_Support_Guidelines.md) – What to ask when someone reports a bug.

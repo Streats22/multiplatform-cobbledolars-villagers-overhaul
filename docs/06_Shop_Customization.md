@@ -26,6 +26,8 @@ the server sees the same names.
 - Defaults come from the language keys `gui.cobbledollars_villagers_overhaul_rca.shop`, `.buy`, `.sell` and `.trades`,
   so a resource pack can also rename them.
 - Custom Buy categories in the default shop are renamed in the shop editor (**Edit shop** → **Rename category**).
+- A custom villager can have its own shop name and tab names, which override these server-wide ones (see
+  [Operator tools](07_Operator_Tools.md#a-villagers-own-shop)).
 
 ---
 
