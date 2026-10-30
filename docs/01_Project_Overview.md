@@ -13,6 +13,12 @@ Cobblemon Trainers (RCT)**.
 - **Wandering traders** – Right-click to open the shop.
 - **RCT integration** – Series-based trades, difficulty stars, series selection for trainer entities.
 - **Configurable** – Toggle shop UI and RCT trades overhaul in config.
+- **Customizable by operators** – Rename the shop and tabs, edit the shop, bank, item prices and currencies in game on a
+  server, and assign custom villagers to your own shop. See [Operator tools](07_Operator_Tools.md).
+- **Themes** – Seasonal and named looks for the shop, with optional decorations. See
+  [Shop customization](06_Shop_Customization.md).
+- **Custom currency in the bank** – Relic Coins and other configured currency items are accepted by the CobbleDollars
+  bank as well as in villager trades.
 - **Multi-platform** – Fabric and NeoForge (shared logic in `common/`).
 
 ---
@@ -50,14 +56,16 @@ Cobblemon Trainers (RCT)**.
 - **Open shop**: Right-click villager / wandering trader / RCT trainer.
 - **Tabs**: Buy, Sell, Trades (Trades only with RCT trainers).
 - **Currency**: CobbleDollars only; prices shown as numbers next to the CobbleDollars icon (no "C" suffix).
-- **Commands**: `/cvm open shop`, `/cvm open bank` (virtual shop/bank; op), `/villagershop edit` (open shop for entity
-  looked at; op). Config editor via Mods menu → Config.
+- **Item-for-item trades** are shown as **A + B → C** in the Trades tab.
+- **Commands** (op): `/cvm open shop`, `/cvm open bank`, `/cvm assign`, `/cvm unassign`, `/cvm label ...`,
+  `/villagershop edit`. Full list in [Operator tools](07_Operator_Tools.md). Config editors via Mods menu → Config.
 
 ---
 
 ## Project structure (high level)
 
-- **common/** – Shared code: shop screen, payload handlers, config helper, integration.
+- **common/** – Shared code: shop screen, payload handlers, config helper, integration, themes (`ShopTheme`), shop
+  labels (`ShopLabels`) and the operator config sync (`AdminConfigService`, `AdminConfigClient`).
 - **fabric/** – Fabric loader, networking, menu registration.
 - **neoforge/** – NeoForge loader, events, networking, menu registration.
 
@@ -69,6 +77,9 @@ Key classes: `CobbleDollarsShopPayloadHandlers` (buy/sell logic), `CobbleDollars
 ## Links to sub-docs
 
 - **Common issues** – Shop not opening, wrong price, item not received, etc.
+- **Shop customization** – Shop and tab names, themes, decorations.
+- **Operator tools** – Commands, server-side editors, custom villagers.
+- **Supported mods** – How we work with other mods, with links to their own pages.
 - **Configuration** – Config options, default shop/bank files.
 - **Trading behavior** – How costA/costB and balance deduction work.
 - **Discord & support** – What to ask users when they report bugs.

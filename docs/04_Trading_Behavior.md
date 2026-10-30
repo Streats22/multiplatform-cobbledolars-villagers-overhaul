@@ -17,6 +17,22 @@ item requirement (item-for-item).
 
 ---
 
+## How item-for-item trades are shown
+
+Trades with two inputs are stored as (costA, result, costB) and shown in the Trades tab as **A + B → result**. The
+stored order is unchanged because the buy logic depends on it. RCT series rows keep their own layout.
+
+---
+
+## Custom currency in the bank
+
+Items listed in `custom_currency.json` (for example Relic Coins) are accepted by the CobbleDollars bank. The bank mixins
+(`BankMixin` for the older layout, `BankMixinApi` for the newer one) add them to the bank's contains/offer lookups. The
+bank offer object is created by `BankOfferFactory`, which accepts any compatible constructor because that class differs
+between CobbleDollars versions.
+
+---
+
 ## Order of operations (buy, after our fixes)
 
 1. **Validate costA (item-for-item only)**  

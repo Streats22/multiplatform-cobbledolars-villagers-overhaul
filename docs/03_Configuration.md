@@ -90,6 +90,27 @@ Edit via Mods → Config → Edit shop / Edit bank (this mod’s UI writes to th
 
 ---
 
+## Files added for customization
+
+| File | Scope | Purpose |
+|------|-------|---------|
+| `config/cobbledollars_villagers_overhaul_rca/shop_labels.json` | Server | Shop title and tab names (`/cvm label`) |
+| `config/cobbledollars_villagers_overhaul_rca/shop_theme.json` | Each player | Chosen theme and the decorations switch |
+| `config/cobbledollars_villagers_overhaul_rca/villager_shops.json` | Server | UUIDs of villagers that use the config shop |
+
+See [Shop customization](06_Shop_Customization.md) and [Operator tools](07_Operator_Tools.md).
+
+---
+
+## Editing on a server
+
+Connected to a server, the in-game editors (Edit shop, Edit bank, Edit item prices, Edit currencies) change the
+**server's** files, not your own, and only for operators (permission level 2). In singleplayer they edit local files.
+Bank changes need a CobbleDollars reload or restart. On NeoForge a currency edit made on a server does not change the
+`customCurrencyItems` value in the TOML.
+
+---
+
 ## Tips
 
 - Back up JSON/TOML before hand-editing.
