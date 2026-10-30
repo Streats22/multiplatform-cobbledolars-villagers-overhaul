@@ -138,7 +138,7 @@ There is no shared registration list, so both loaders must be updated.
    options, or add a default.
 5. Declare it as optional/suggested in `neoforge.mods.toml` and `fabric.mod.json`.
 6. Add a row to [Supported mods](08_Supported_Mods.md) and a section to
-   [Interaction and compatibility](11_Interaction_and_Compatibility.md).
+   [Interaction and compatibility](10_Interaction_and_Compatibility.md).
 
 Reflection into another mod's private names fails silently. Prefer a public API when one exists, and add a unit test for
 whatever logic you can pull out.

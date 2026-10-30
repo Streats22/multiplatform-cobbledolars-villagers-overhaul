@@ -27,8 +27,8 @@ project.
 | **Operator tools**          | `07_Operator_Tools.md`             |
 | **Supported mods**          | `08_Supported_Mods.md`             |
 | **Quick start**             | `09_Quick_Start.md`                |
-| **Interaction & compat**    | `11_Interaction_and_Compatibility.md` |
-| **Architecture & network**  | `12_Architecture_and_Network.md`   |
+| **Interaction & compat**    | `10_Interaction_and_Compatibility.md` |
+| **Architecture & network**  | `11_Architecture_and_Network.md`   |
 
 ---
 
@@ -43,6 +43,6 @@ project.
 - `07_Operator_Tools.md` – Commands, editing on a server, custom villagers
 - `08_Supported_Mods.md` – Supported mods and links to their own pages
 - `09_Quick_Start.md` – Short guide for players and server owners
-- `11_Interaction_and_Compatibility.md` – Right-click rules, mod integrations, mixins
-- `12_Architecture_and_Network.md` – Modules, packets, how to extend, tests, releases
+- `10_Interaction_and_Compatibility.md` – Right-click rules, mod integrations, mixins
+- `11_Architecture_and_Network.md` – Modules, packets, how to extend, tests, releases
 - `Home.md` – Index page (use as the wiki home page)

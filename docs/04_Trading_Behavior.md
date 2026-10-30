@@ -170,4 +170,4 @@ costs items only, and the player needs wheat × quantity and bone × quantity. I
   between CobbleDollars versions.
 
 For how the right-click decides to open the shop at all, see
-[Interaction and compatibility](11_Interaction_and_Compatibility.md).
+[Interaction and compatibility](10_Interaction_and_Compatibility.md).

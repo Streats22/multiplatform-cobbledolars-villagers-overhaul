@@ -85,5 +85,5 @@ To undo it, press **Unassign** next to the villager in the list.
 | Names, themes, decorations | [Shop customization](06_Shop_Customization.md) |
 | Everything operators can do | [Operator tools](07_Operator_Tools.md) |
 | How prices and trades work | [Trading behavior](04_Trading_Behavior.md) |
-| Why a click does or does not open the shop | [Interaction and compatibility](11_Interaction_and_Compatibility.md) |
-| How the code is built | [Architecture and network](12_Architecture_and_Network.md) |
+| Why a click does or does not open the shop | [Interaction and compatibility](10_Interaction_and_Compatibility.md) |
+| How the code is built | [Architecture and network](11_Architecture_and_Network.md) |

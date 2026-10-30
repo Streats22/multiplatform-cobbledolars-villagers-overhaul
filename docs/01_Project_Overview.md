@@ -87,7 +87,7 @@ Key classes: `CobbleDollarsShopPayloadHandlers` (buy/sell logic), `CobbleDollars
 **For support staff, pack makers and developers**
 
 - [Trading behavior](04_Trading_Behavior.md) – How offers become tabs, how prices and trades work.
-- [Interaction and compatibility](11_Interaction_and_Compatibility.md) – Why a click opens the shop, mod by mod.
+- [Interaction and compatibility](10_Interaction_and_Compatibility.md) – Why a click opens the shop, mod by mod.
 - [Supported mods](08_Supported_Mods.md) – Other mods and links to their own pages.
-- [Architecture and network](12_Architecture_and_Network.md) – Modules, packets, adding features, tests.
+- [Architecture and network](11_Architecture_and_Network.md) – Modules, packets, adding features, tests.
 - [Discord & support](05_Discord_Support_Guidelines.md) – What to ask when someone reports a bug.
